@@ -110,7 +110,7 @@ We use a feature-branch workflow. Please work ONLY in your assigned branch and m
 | Member | Feature Branch | Responsibilities |
 | :--- | :--- | :--- |
 | **THIRNAJAYA SJK** | `feature/auth-and-procurement` | Authentication, Admin/Procurement Dashboards, PO Records |
-| **A.M.M.P ADIKARI** | `feature/depreciation-and-discard` | Depreciation Calculator, Superintend/Accountant Dashboards |
+| **A.M.M.P ADIKARI** | `feature/accountant-and-superintend` | Accountant & Superintend Dashboards, Depreciation, Discarding |
 | **D.M. OPANAYAKA** | `feature/storekeeper-workflow` | Storekeeper Dashboard, TIN, GRN, GIN Issuing |
 | **L. KESHANI** | `feature/reporting-and-hr` | Auditor Dashboard, HR Dashboard, PDF/Excel reports, User Management |
 | **W.G.S. MADHUBHASHANI** | `feature/employee-requests` | Employee/Division Head Dashboards, Asset/Transfer/Discard Requests |
