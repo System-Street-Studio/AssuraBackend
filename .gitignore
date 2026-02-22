@@ -1,0 +1,109 @@
+
+# ==========================================
+# .NET / MSBuild
+# ==========================================
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ==========================================
+# .NET Test Results
+# ==========================================
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage-report/
+
+# ==========================================
+# NuGet
+# ==========================================
+*.nupkg
+*.snupkg
+**/[Pp]ackages/
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+nuget.config
+
+# ==========================================
+# Secrets & Environment
+# ==========================================
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+appsettings.Local.json
+appsettings.Production.json
+secrets.json
+
+# ==========================================
+# Entity Framework Core
+# ==========================================
+# Keep migrations, ignore snapshots if preferred
+# *.cs filter would be too broad — leave EF files tracked
+
+# ==========================================
+# Visual Studio
+# ==========================================
+.vs/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# ==========================================
+# JetBrains Rider
+# ==========================================
+.idea/
+*.sln.iml
+
+# ==========================================
+# VS Code
+# ==========================================
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# ==========================================
+# OS
+# ==========================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ==========================================
+# Docker
+# ==========================================
+docker-compose.override.yml
+
+# ==========================================
+# Logs
+# ==========================================
+*.log
+logs/
