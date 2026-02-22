@@ -11,6 +11,40 @@ graph TD
     Application --> Domain
 ```
 
+## 📂 Folder Structure
+Below is the simplified structure of the `src` directory to help you find your way:
+
+```text
+src/
+├── Assura.API/                 # Presentation Layer
+│   ├── Controllers/            # API Endpoints
+│   ├── Middleware/             # Error handling, etc.
+│   └── Program.cs              # DI & App Pipeline
+│
+├── Assura.Application/          # Application Layer
+│   ├── Common/                 # Mappings, Interfaces
+│   ├── DependencyInjection.cs  # Service registration
+│   └── Features/               # CQRS Features (Logic goes here)
+│       └── [FeatureName]/      # e.g., Assets, Auth
+│           ├── Commands/       # Write logic
+│           ├── Queries/        # Read logic
+│           ├── DTOs/           # Request/Response models
+│           └── Validators/     # Input validation
+│
+├── Assura.Domain/               # Domain Layer (Pure)
+│   ├── Common/                 # BaseEntity, etc.
+│   ├── Entities/               # DB Classes
+│   └── Enums/                  # Constants
+│
+└── Assura.Infrastructure/      # Infrastructure Layer
+    ├── DependencyInjection.cs  # Infrastructure DI
+    ├── Persistence/            # EF Core Data Access
+    │   ├── AppDbContext.cs     # Main Context
+    │   ├── Configurations/     # Fluent API Mappings
+    │   └── Migrations/         # DB Migrations
+    └── Services/               # External implementations (Auth, Email)
+```
+
 ## 1. Assura.Domain
 The core of the application. It contains no dependencies on any other layer.
 - `/Common`: Base classes (e.g., `BaseEntity`).
