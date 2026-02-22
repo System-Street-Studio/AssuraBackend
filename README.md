@@ -10,6 +10,11 @@ The project follows Clean Architecture with four distinct layers:
 - **Assura.Infrastructure**: EF Core, SQL Server, and External services.
 - **Assura.API**: Controllers, Middleware, and API configuration.
 
+## 📚 Documentation
+For detailed guides on how to develop for this project, see:
+- [**Project Structure & Architecture**](docs/PROJECT_STRUCTURE.md) — Detailed folder breakdown.
+- [**Coding & Implementation Guide**](docs/CONTRIBUTING.md) — How to add new features using CQRS/MediatR.
+
 ## 🛠️ Technology Stack
 - **Framework**: .NET 8
 - **Database**: SQL Server (EF Core)
