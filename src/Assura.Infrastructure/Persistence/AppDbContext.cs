@@ -1,4 +1,5 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Common;
 using Assura.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
@@ -40,7 +41,23 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Add logic for BaseEntity properties (CreatedAt, etc.) if needed via ChangeTracker
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    // entry.Entity.CreatedBy = _currentUserService.UserId; // Placeholder for when auth is ready
+                    break;
+
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    // entry.Entity.UpdatedBy = _currentUserService.UserId; // Placeholder
+                    break;
+            }
+        }
+
         return await base.SaveChangesAsync(cancellationToken);
     }
 }
+

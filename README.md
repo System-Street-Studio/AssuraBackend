@@ -1,7 +1,14 @@
-<<<<<<< HEAD
-# Project Structure & Architecture
+# Assura FAMS Backend
 
-This document provides a detailed breakdown of the FAMS Backend folder structure based on **Clean Architecture**.
+## 🚀 Overview
+This is the backend for the **Fixed Assets Management System (FAMS)**, built with .NET 8 using **Clean Architecture** and **CQRS (MediatR)**.
+
+## 🏗️ Architecture
+The project follows Clean Architecture with four distinct layers:
+- **Assura.Domain**: Core entities, enums, and domain logic.
+- **Assura.Application**: Use cases, MediatR handlers, and interfaces.
+- **Assura.Infrastructure**: EF Core, SQL Server, and External services.
+- **Assura.API**: Controllers, Middleware, and API configuration.
 
 ```mermaid
 graph TD
@@ -46,57 +53,12 @@ src/
     └── Services/               # External implementations (Auth, Email)
 ```
 
-## 1. Assura.Domain
-The core of the application. It contains no dependencies on any other layer.
-- `/Common`: Base classes (e.g., `BaseEntity`).
-- `/Entities`: Database models (e.g., `Asset`, `User`).
-- `/Enums`: Groupings of constants (e.g., `AssetStatus`).
-- `/Interfaces`: Domain-level interfaces.
-
-## 2. Assura.Application
-Contains the business logic and defines the interfaces for functionality.
-- `/Common`: Interfaces (`IApplicationDbContext`), Mappings, Behaviors.
-- `/Features`: **CQRS Folders**. Each feature (e.g., Assets) has its own folder containing:
-    - `/Commands`: Logic that changes state (Create, Update, Delete).
-    - `/Queries`: Logic that reads data (GetById, List).
-    - `/DTOs`: Data Transfer Objects for that specific feature.
-    - `/Validators`: FluentValidation rules.
-
-## 3. Assura.Infrastructure
-Handles external concerns like databases, logging, and identity.
-- `/Persistence`: 
-    - `AppDbContext`: The EF Core context.
-    - `/Configurations`: Fluent API configurations for entities.
-    - `/Migrations`: Database migration history.
-- `/Identity`: JWT service and Auth implementations.
-- `/Services`: External integrations (e.g., Email, File Storage).
-
-## 4. Assura.API (Presentation)
-The entry point for the Web API.
-- `/Controllers`: Slim controllers that delegate work to MediatR.
-- `/Middleware`: Error handling and logging middleware.
-- `Program.cs`: Dependency injection and pipeline configuration.
-
-## 5. Tests
-- Separate projects corresponding to each layer (`Domain.Tests`, etc.).
-- Categorized into `/Unit` and `/Integration`.
-=======
-# Assura FAMS Backend
-
-## 🚀 Overview
-This is the backend for the **Fixed Assets Management System (FAMS)**, built with .NET 8 using **Clean Architecture** and **CQRS (MediatR)**.
-
-## 🏗️ Architecture
-The project follows Clean Architecture with four distinct layers:
-- **Assura.Domain**: Core entities, enums, and domain logic.
-- **Assura.Application**: Use cases, MediatR handlers, and interfaces.
-- **Assura.Infrastructure**: EF Core, SQL Server, and External services.
-- **Assura.API**: Controllers, Middleware, and API configuration.
-
 ## 📚 Documentation
 For detailed guides on how to develop for this project, see:
+- [**🚩 Team Onboarding & Setup**](docs/TEAM_SETUP_GUIDE.md) — **START HERE** if you just cloned the repo.
 - [**Project Structure & Architecture**](docs/PROJECT_STRUCTURE.md) — Detailed folder breakdown.
 - [**Coding & Implementation Guide**](docs/CONTRIBUTING.md) — How to add new features using CQRS/MediatR.
+
 
 ## 🛠️ Technology Stack
 - **Framework**: .NET 8
@@ -121,4 +83,4 @@ We use a feature-branch workflow. Please work ONLY in your assigned branch and m
 3. **Switch to your branch**: `git checkout <your-assigned-branch>`
 4. **Build the solution**: `dotnet build`
 5. **Run the API**: `dotnet run --project src/Assura.API`
->>>>>>> develop
+
