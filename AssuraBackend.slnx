@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="src/Assura.API/Assura.API.csproj" />
+  <Project Path="src/Assura.Application/Assura.Application.csproj" />
+  <Project Path="src/Assura.Domain/Assura.Domain.csproj" />
+  <Project Path="src/Assura.Infrastructure/Assura.Infrastructure.csproj" />
+  <Project Path="tests/Assura.API.Tests/Assura.API.Tests.csproj" />
+  <Project Path="tests/Assura.Application.Tests/Assura.Application.Tests.csproj" />
+  <Project Path="tests/Assura.Domain.Tests/Assura.Domain.Tests.csproj" />
+  <Project Path="tests/Assura.Infrastructure.Tests/Assura.Infrastructure.Tests.csproj" />
+</Solution>
