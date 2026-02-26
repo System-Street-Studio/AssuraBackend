@@ -36,7 +36,25 @@ public class AppDbContext : DbContext, IApplicationDbContext
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
+        // Apply Soft Delete Global Query Filter
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(ConvertFilterExpression(entityType.ClrType));
+            }
+        }
+
         base.OnModelCreating(modelBuilder);
+    }
+
+    private static System.Linq.Expressions.LambdaExpression ConvertFilterExpression(Type type)
+    {
+        var parameter = System.Linq.Expressions.Expression.Parameter(type, "e");
+        var property = System.Linq.Expressions.Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
+        var falseConstant = System.Linq.Expressions.Expression.Constant(false);
+        var body = System.Linq.Expressions.Expression.Equal(property, falseConstant);
+        return System.Linq.Expressions.Expression.Lambda(body, parameter);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -47,12 +65,19 @@ public class AppDbContext : DbContext, IApplicationDbContext
             {
                 case EntityState.Added:
                     entry.Entity.CreatedAt = DateTime.UtcNow;
-                    // entry.Entity.CreatedBy = _currentUserService.UserId; // Placeholder for when auth is ready
+                    entry.Entity.CreatedBy = "System"; // Placeholder until Auth is implemented
                     break;
 
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
-                    // entry.Entity.UpdatedBy = _currentUserService.UserId; // Placeholder
+                    entry.Entity.UpdatedBy = "System"; // Placeholder
+                    break;
+
+                case EntityState.Deleted:
+                    entry.State = EntityState.Modified;
+                    entry.Entity.IsDeleted = true;
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    entry.Entity.UpdatedBy = "System"; // Placeholder
                     break;
             }
         }
