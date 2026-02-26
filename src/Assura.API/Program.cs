@@ -1,6 +1,9 @@
 using Assura.API.Middleware;
 using Assura.Application;
 using Assura.Infrastructure;
+using DotNetEnv;
+
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
