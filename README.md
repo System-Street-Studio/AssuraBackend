@@ -10,10 +10,55 @@ The project follows Clean Architecture with four distinct layers:
 - **Assura.Infrastructure**: EF Core, SQL Server, and External services.
 - **Assura.API**: Controllers, Middleware, and API configuration.
 
+```mermaid
+graph TD
+    API[Assura.API] --> Infrastructure[Assura.Infrastructure]
+    API --> Application[Assura.Application]
+    Infrastructure --> Application
+    Infrastructure --> Domain[Assura.Domain]
+    Application --> Domain
+```
+
+## 📂 Folder Structure
+Below is the simplified structure of the `src` directory to help you find your way:
+
+```text
+src/
+├── Assura.API/                 # Presentation Layer
+│   ├── Controllers/            # API Endpoints
+│   ├── Middleware/             # Error handling, etc.
+│   └── Program.cs              # DI & App Pipeline
+│
+├── Assura.Application/          # Application Layer
+│   ├── Common/                 # Mappings, Interfaces
+│   ├── DependencyInjection.cs  # Service registration
+│   └── Features/               # CQRS Features (Logic goes here)
+│       └── [FeatureName]/      # e.g., Assets, Auth
+│           ├── Commands/       # Write logic
+│           ├── Queries/        # Read logic
+│           ├── DTOs/           # Request/Response models
+│           └── Validators/     # Input validation
+│
+├── Assura.Domain/               # Domain Layer (Pure)
+│   ├── Common/                 # BaseEntity, etc.
+│   ├── Entities/               # DB Classes
+│   └── Enums/                  # Constants
+│
+└── Assura.Infrastructure/      # Infrastructure Layer
+    ├── DependencyInjection.cs  # Infrastructure DI
+    ├── Persistence/            # EF Core Data Access
+    │   ├── AppDbContext.cs     # Main Context
+    │   ├── Configurations/     # Fluent API Mappings
+    │   └── Migrations/         # DB Migrations
+    └── Services/               # External implementations (Auth, Email)
+```
+
 ## 📚 Documentation
 For detailed guides on how to develop for this project, see:
+- [**🚩 Team Onboarding & Setup**](docs/TEAM_SETUP_GUIDE.md) — **START HERE** if you just cloned the repo.
 - [**Project Structure & Architecture**](docs/PROJECT_STRUCTURE.md) — Detailed folder breakdown.
 - [**Coding & Implementation Guide**](docs/CONTRIBUTING.md) — How to add new features using CQRS/MediatR.
+
 
 ## 🛠️ Technology Stack
 - **Framework**: .NET 8
@@ -38,3 +83,4 @@ We use a feature-branch workflow. Please work ONLY in your assigned branch and m
 3. **Switch to your branch**: `git checkout <your-assigned-branch>`
 4. **Build the solution**: `dotnet build`
 5. **Run the API**: `dotnet run --project src/Assura.API`
+

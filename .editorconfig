@@ -1,0 +1,23 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+# Organize usings
+dotnet_separate_import_directive_groups = true
+dotnet_sort_system_directives_first = true
+
+# Naming conventions
+dotnet_naming_rule.interface_should_be_begun_with_i.severity = suggestion
+dotnet_naming_rule.interface_should_be_begun_with_i.symbols = interface_types
+dotnet_naming_rule.interface_should_be_begun_with_i.style = begun_with_i
+
+dotnet_naming_symbols.interface_types.applicable_kinds = interface
+dotnet_naming_style.begun_with_i.required_prefix = I
+dotnet_naming_style.begun_with_i.capitalization = pascal_case
