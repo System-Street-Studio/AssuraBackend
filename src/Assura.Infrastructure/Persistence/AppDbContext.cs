@@ -23,6 +23,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<PurchasingOrder> PurchasingOrders => Set<PurchasingOrder>();
     public DbSet<GRN> GRNs => Set<GRN>();
     public DbSet<QRN> QRNs => Set<QRN>();
+    public DbSet<GIN> GINs => Set<GIN>();
     public DbSet<TIN> TINs => Set<TIN>();
     public DbSet<Transfer> Transfers => Set<Transfer>();
     public DbSet<Request> Requests => Set<Request>();
