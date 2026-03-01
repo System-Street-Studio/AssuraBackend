@@ -1,0 +1,36 @@
+// handles data when user registering
+
+using Assura.Application.Common.Interfaces;
+using Assura.Domain.Enums;
+using MediatR;
+
+namespace Assura.Application.Features.Users.Commands.RegisterUser;
+
+public record RegisterUserCommand: IRequest<bool>
+{
+    public string Username { get; init; } = string.Empty;
+    public string Password { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public string FirstName { get; init; } = string.Empty;
+    public string LastName { get; init; } = string.Empty;
+}
+
+public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, bool>
+{
+    private readonly IIdentifyServices _identifyServices;
+    public RegisterUserCommandHandler(IIdentifyServices identifyServices)
+    {
+        _identifyServices = identifyServices;
+    }
+    public async Task<bool> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+    {
+        // check the user already exists
+        if (await _identifyServices.UserExistsAsync(request.Username, request.Email))
+        {
+            return false;
+        }
+        // register the user
+         return await _identifyServices.RegisterAsync(
+            request.Username, request.Password, request.Email, request.FirstName, request.LastName);
+    }
+}

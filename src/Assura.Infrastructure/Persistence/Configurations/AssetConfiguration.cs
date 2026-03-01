@@ -42,14 +42,15 @@ public class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .HasForeignKey(a => a.AssignedUserId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.OwnsOne(a => a.Specifications, builder =>
+        builder.OwnsOne(a => a.Specifications, specBuilder =>
         {
-            builder.ToJson();
-            builder.OwnsOne(s => s.Computer);
-            builder.OwnsOne(s => s.Server);
-            builder.OwnsOne(s => s.Networking);
-            builder.OwnsOne(s => s.Printing);
-            builder.OwnsOne(s => s.Furniture);
+            specBuilder.OwnsOne(s => s.Computer);
+            specBuilder.OwnsOne(s => s.Server);
+            specBuilder.OwnsOne(s => s.Networking);
+            specBuilder.OwnsOne(s => s.Printing);
+            specBuilder.OwnsOne(s => s.Furniture);
         });
+
+        builder.Navigation(a => a.Specifications).IsRequired();
     }
 }
