@@ -79,8 +79,9 @@ We use a feature-branch workflow. Please work ONLY in your assigned branch and m
 
 ## 🚦 Getting Started
 1. **Clone the repo**: `git clone <repo-url>`
-2. **Setup environment**: Rename `.env.example` to `.env` and update your local connection string.
-3. **Switch to your branch**: `git checkout <your-assigned-branch>`
-4. **Build the solution**: `dotnet build`
-5. **Run the API**: `dotnet run --project src/Assura.API`
-
+2. **`git checkout develop`**: Switch to the `develop` branch.
+3. **`git pull`**: Pull the latest changes from the `develop` branch.
+4. **Setup environment**: Rename `.env.example` to `.env` and update your local connection string.
+5. **Switch to your branch**: `git checkout <your-assigned-branch>`
+6. **Build the solution**: `dotnet build`
+7. **Run the API**: `dotnet run --project src/Assura.API`

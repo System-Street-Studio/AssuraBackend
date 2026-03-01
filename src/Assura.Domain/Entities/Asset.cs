@@ -1,5 +1,6 @@
 using Assura.Domain.Common;
 using Assura.Domain.Enums;
+using System.Text.Json.Serialization;
 
 namespace Assura.Domain.Entities;
 
@@ -13,6 +14,8 @@ public class Asset : BaseEntity
     public decimal PurchaseValue { get; set; }
     public string? Warranty { get; set; }
     public string? Notes { get; set; }
+
+    public AssetSpecifications? Specifications { get; set; }
 
     public int CategoryId { get; set; }
     public Category Category { get; set; } = null!;
