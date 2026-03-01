@@ -41,5 +41,15 @@ public class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .WithMany(u => u.AssignedAssets)
             .HasForeignKey(a => a.AssignedUserId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.OwnsOne(a => a.Specifications, builder =>
+        {
+            builder.ToJson();
+            builder.OwnsOne(s => s.Computer);
+            builder.OwnsOne(s => s.Server);
+            builder.OwnsOne(s => s.Networking);
+            builder.OwnsOne(s => s.Printing);
+            builder.OwnsOne(s => s.Furniture);
+        });
     }
 }
