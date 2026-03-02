@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 
         services.AddScoped<IIdentifyServices, IdentityService>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
         var jwtSettings = configuration.GetSection("Jwt");
         var secretKey = jwtSettings.GetValue<string>("Key") ?? "YourDevelopmentSecretKeyChangeInProduction";

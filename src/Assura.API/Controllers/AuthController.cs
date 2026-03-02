@@ -1,4 +1,5 @@
 using Assura.Application.Features.Users.Commands.RegisterUser;
+using Assura.Application.Features.Users.Commands.Login;
 using Assura.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -28,17 +29,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
     {
-        var result = await _identifyServices.AuthenticateAsync(request.Username, request.Password);
+        var result = await _mediator.Send(command);
         return result != null 
             ? Ok(result) 
             : Unauthorized(new { Message = "Invalid username or password." });
     }
-}
-
-public class LoginRequest
-{
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
 }

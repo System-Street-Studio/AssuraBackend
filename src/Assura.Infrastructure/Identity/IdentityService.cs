@@ -8,9 +8,12 @@ public class IdentityService : IIdentifyServices
 {
     private readonly IApplicationDbContext _context;
 
-    public IdentityService(IApplicationDbContext context)
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
+
+    public IdentityService(IApplicationDbContext context, IJwtTokenGenerator jwtTokenGenerator)
     {
         _context = context;
+        _jwtTokenGenerator = jwtTokenGenerator;
     }
 
     public async Task<bool> RegisterAsync(string username, string password, string email, string firstName, string lastName)
@@ -38,9 +41,24 @@ public class IdentityService : IIdentifyServices
         return await _context.Users.AnyAsync(u => u.Username == username || u.Email == email);
     }
 
-    public Task<Assura.Application.Common.Models.AuthResponse> AuthenticateAsync(string username, string password)
+    public async Task<Assura.Application.Common.Models.AuthResponse?> AuthenticateAsync(string username, string password)
     {
-        // Placeholder for now
-        return Task.FromResult<Assura.Application.Common.Models.AuthResponse>(null!);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == username);
+
+        if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+        {
+            return null;
+        }
+
+        var token = _jwtTokenGenerator.GenerateToken(user);
+
+        return new Assura.Application.Common.Models.AuthResponse
+        {
+            Token = token,
+            Username = user.Username,
+            Email = user.Email,
+            Role = user.Role ?? Assura.Domain.Enums.UserRole.Employee
+        };
     }
 }
