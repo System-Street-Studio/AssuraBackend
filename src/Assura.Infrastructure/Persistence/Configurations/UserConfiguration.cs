@@ -24,9 +24,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(u => u.Email)
             .IsUnique();
 
+        builder.Property(u => u.DivisionId)
+            .IsRequired(false);
+
         builder.HasOne(u => u.Division)
             .WithMany(d => d.Users)
             .HasForeignKey(u => u.DivisionId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
