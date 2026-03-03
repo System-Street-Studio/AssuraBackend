@@ -30,6 +30,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<RepairingFirm> RepairingFirms => Set<RepairingFirm>();
     public DbSet<DiscountInfo> DiscountInfos => Set<DiscountInfo>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<PurchasingOrderItem> PurchasingOrderItems => Set<PurchasingOrderItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
