@@ -1,17 +1,25 @@
-// handles data when user registering
-
+using System.ComponentModel.DataAnnotations;
 using Assura.Application.Common.Interfaces;
-using Assura.Domain.Enums;
 using MediatR;
 
 namespace Assura.Application.Features.Users.Commands.RegisterUser;
 
-public record RegisterUserCommand: IRequest<bool>
+public record RegisterUserCommand : IRequest<bool>
 {
-    public string Username { get; init; } = string.Empty;
+    [Required]
+    public string Username { get; init; } = string.Empty; // Manually added by the user during registration
+
+    [Required]
     public string Password { get; init; } = string.Empty;
+
+    [Required]
+    [EmailAddress]
     public string Email { get; init; } = string.Empty;
+
+    [Required]
     public string FirstName { get; init; } = string.Empty;
+
+    [Required]
     public string LastName { get; init; } = string.Empty;
 }
 
