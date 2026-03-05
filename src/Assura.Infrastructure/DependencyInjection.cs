@@ -1,3 +1,4 @@
+// src/Assura.Infrastructure/DependencyInjection.cs
 using Assura.Application.Common.Interfaces;
 using Assura.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Assura.Infrastructure.Identity;
+using Assura.Infrastructure.Services;
 
 namespace Assura.Infrastructure;
 
@@ -17,12 +19,15 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
-            options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)),
+            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
                 b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
         });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddHttpContextAccessor();
 
+        // Custom Auth Services from feature/auth
         services.AddScoped<IIdentifyServices, IdentityService>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 

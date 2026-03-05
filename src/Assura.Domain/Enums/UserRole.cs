@@ -13,3 +13,4 @@ public enum UserRole
     Accountant = 9,
     Auditor = 10,
 }
+

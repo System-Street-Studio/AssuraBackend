@@ -1,3 +1,4 @@
+// src/Assura.Infrastructure/Persistence/Configurations/AssetConfiguration.cs
 using Assura.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

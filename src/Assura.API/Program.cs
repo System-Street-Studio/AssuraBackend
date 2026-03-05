@@ -1,3 +1,4 @@
+// src/Assura.API/Program.cs
 using Assura.API.Middleware;
 using Assura.Application;
 using Assura.Infrastructure;
@@ -21,13 +22,13 @@ builder.Configuration["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE");
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
-
 // Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DefaultPolicy", policy =>
     {
-        policy.AllowAnyOrigin()
+        var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"]?.Split(',') ?? new[] { "http://localhost:4200" };
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -51,13 +52,11 @@ else
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
-
+app.UseHttpsRedirection();
 app.UseCors("DefaultPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();
-
