@@ -1,5 +1,7 @@
 using Assura.Application.DTOs;
 using Assura.Application.NewArrivals.Commands;
+using Assura.Application.NewArrivals.Queries;
+using Assura.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +18,14 @@ public class InformingController : ControllerBase
     public InformingController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [AllowAnonymous]
+    [HttpGet("history")]
+    public async Task<ActionResult<List<AssetInforming>>> GetHistory()
+    {
+        var result = await _mediator.Send(new GetAssetInformingsQuery());
+        return Ok(result);
     }
 
     [AllowAnonymous]
