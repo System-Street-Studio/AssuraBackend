@@ -25,6 +25,7 @@ public interface IApplicationDbContext
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<PurchasingOrderItem> PurchasingOrderItems { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<AssetInforming> AssetInformings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
