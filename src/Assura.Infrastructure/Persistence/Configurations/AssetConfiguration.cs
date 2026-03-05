@@ -1,3 +1,4 @@
+// src/Assura.Infrastructure/Persistence/Configurations/AssetConfiguration.cs
 using Assura.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -41,5 +42,16 @@ public class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .WithMany(u => u.AssignedAssets)
             .HasForeignKey(a => a.AssignedUserId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.OwnsOne(a => a.Specifications, specBuilder =>
+        {
+            specBuilder.OwnsOne(s => s.Computer);
+            specBuilder.OwnsOne(s => s.Server);
+            specBuilder.OwnsOne(s => s.Networking);
+            specBuilder.OwnsOne(s => s.Printing);
+            specBuilder.OwnsOne(s => s.Furniture);
+        });
+
+        builder.Navigation(a => a.Specifications).IsRequired();
     }
 }

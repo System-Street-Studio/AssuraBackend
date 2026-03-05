@@ -10,8 +10,11 @@ namespace Assura.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext, IApplicationDbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    private readonly ICurrentUserService _currentUserService;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserService currentUserService) : base(options)
     {
+        _currentUserService = currentUserService;
     }
 
     public DbSet<Asset> Assets => Set<Asset>();
@@ -23,6 +26,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<PurchasingOrder> PurchasingOrders => Set<PurchasingOrder>();
     public DbSet<GRN> GRNs => Set<GRN>();
     public DbSet<QRN> QRNs => Set<QRN>();
+    public DbSet<GIN> GINs => Set<GIN>();
     public DbSet<TIN> TINs => Set<TIN>();
     public DbSet<Transfer> Transfers => Set<Transfer>();
     public DbSet<Request> Requests => Set<Request>();
@@ -66,19 +70,18 @@ public class AppDbContext : DbContext, IApplicationDbContext
             {
                 case EntityState.Added:
                     entry.Entity.CreatedAt = DateTime.UtcNow;
-                    entry.Entity.CreatedBy = "System"; // Placeholder until Auth is implemented
+                    entry.Entity.CreatedBy = _currentUserService.UserId ?? "System";
                     break;
-
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
-                    entry.Entity.UpdatedBy = "System"; // Placeholder
+                    entry.Entity.UpdatedBy = _currentUserService.UserId ?? "System";
                     break;
 
                 case EntityState.Deleted:
                     entry.State = EntityState.Modified;
                     entry.Entity.IsDeleted = true;
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
-                    entry.Entity.UpdatedBy = "System"; // Placeholder
+                    entry.Entity.UpdatedBy = _currentUserService.UserId ?? "System";
                     break;
             }
         }

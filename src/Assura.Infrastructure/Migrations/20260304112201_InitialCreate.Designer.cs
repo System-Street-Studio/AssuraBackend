@@ -4,6 +4,7 @@ using Assura.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Assura.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260304112201_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -567,76 +570,6 @@ namespace Assura.Infrastructure.Migrations
                     b.ToTable("PurchasingOrders");
                 });
 
-            modelBuilder.Entity("Assura.Domain.Entities.PurchasingOrderItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("Discount")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("DiscountedPrice")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("ItemName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Model")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("PurchasingOrderId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SpecialNote")
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("VatAmount")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("VatPercentage")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<string>("Warranty")
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PurchasingOrderId");
-
-                    b.ToTable("PurchasingOrderItems");
-                });
-
             modelBuilder.Entity("Assura.Domain.Entities.QRN", b =>
                 {
                     b.Property<int>("Id")
@@ -765,12 +698,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<int>("RequesterId")
                         .HasColumnType("int");
-
-                    b.Property<string>("SpecialNote")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Specifications")
-                        .HasColumnType("longtext");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1315,17 +1242,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("Assura.Domain.Entities.PurchasingOrderItem", b =>
-                {
-                    b.HasOne("Assura.Domain.Entities.PurchasingOrder", "PurchasingOrder")
-                        .WithMany("Items")
-                        .HasForeignKey("PurchasingOrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PurchasingOrder");
-                });
-
             modelBuilder.Entity("Assura.Domain.Entities.QRN", b =>
                 {
                     b.HasOne("Assura.Domain.Entities.Asset", "Asset")
@@ -1444,8 +1360,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("Discounts");
 
                     b.Navigation("GRNs");
-
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.RepairingFirm", b =>
