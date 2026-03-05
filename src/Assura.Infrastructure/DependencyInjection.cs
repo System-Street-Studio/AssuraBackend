@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Assura.Infrastructure.Persistence;
 using Assura.Infrastructure.Services;
 
 namespace Assura.Infrastructure;
