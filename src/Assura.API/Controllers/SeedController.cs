@@ -1,5 +1,6 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Entities;
+using Assura.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -89,6 +90,73 @@ public class SeedController : ControllerBase
                 InnerMessage = ex.InnerException?.Message,
                 StackTrace = ex.StackTrace 
             });
+        }
+    }
+
+
+
+    [HttpPost("test-users")]
+    public async Task<IActionResult> SeedTestUsers()
+    {
+        try
+        {
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword("Password@123");
+
+            var admin = await _context.Users.FirstOrDefaultAsync(u => u.Username == "admin");
+            if (admin != null)
+            {
+                admin.PasswordHash = passwordHash;
+                admin.Role = UserRole.Admin;
+                admin.IsActive = true;
+                _context.Users.Update(admin);
+            }
+            else
+            {
+                admin = new User
+                {
+                    Username = "admin",
+                    PasswordHash = passwordHash,
+                    Email = "admin@assura.com",
+                    FirstName = "System",
+                    LastName = "Admin",
+                    Role = UserRole.Admin,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Users.Add(admin);
+            }
+
+            var procurement = await _context.Users.FirstOrDefaultAsync(u => u.Username == "procurement");
+            if (procurement != null)
+            {
+                procurement.PasswordHash = passwordHash;
+                procurement.Role = UserRole.Procurement;
+                procurement.IsActive = true;
+                _context.Users.Update(procurement);
+            }
+            else
+            {
+                procurement = new User
+                {
+                    Username = "procurement",
+                    PasswordHash = passwordHash,
+                    Email = "proc@assura.com",
+                    FirstName = "Procurement",
+                    LastName = "Officer",
+                    Role = UserRole.Procurement,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Users.Add(procurement);
+            }
+
+            await _context.SaveChangesAsync(default);
+
+            return Ok("Test users updated/seeded successfully with password: Password@123");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
         }
     }
 }
