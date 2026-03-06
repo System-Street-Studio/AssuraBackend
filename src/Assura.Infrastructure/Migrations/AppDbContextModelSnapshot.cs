@@ -1012,7 +1012,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("DivisionId")
+                    b.Property<int?>("DivisionId")
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
@@ -1047,7 +1047,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<DateTime?>("RefreshTokenExpiryTime")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("Role")
+                    b.Property<int?>("Role")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1472,8 +1472,7 @@ namespace Assura.Infrastructure.Migrations
                     b.HasOne("Assura.Domain.Entities.Division", "Division")
                         .WithMany("Users")
                         .HasForeignKey("DivisionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Division");
                 });

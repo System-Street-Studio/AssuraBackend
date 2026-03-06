@@ -1,7 +1,6 @@
 using Assura.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.PurchasingOrders.Queries;
 

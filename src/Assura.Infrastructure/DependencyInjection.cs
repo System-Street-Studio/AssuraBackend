@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Assura.Infrastructure.Identity;
 using Assura.Infrastructure.Services;
 
 namespace Assura.Infrastructure;
@@ -25,6 +26,10 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddHttpContextAccessor();
+
+        // Custom Auth Services from feature/auth
+        services.AddScoped<IIdentifyServices, IdentityService>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
         var jwtSettings = configuration.GetSection("Jwt");
         var secretKey = jwtSettings.GetValue<string>("Key") ?? "YourDevelopmentSecretKeyChangeInProduction";
