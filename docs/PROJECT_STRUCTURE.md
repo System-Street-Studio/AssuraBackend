@@ -33,7 +33,7 @@ src/
 │
 ├── Assura.Domain/               # Domain Layer (Pure)
 │   ├── Common/                 # BaseEntity, etc.
-│   ├── Entities/               # DB Classes
+│   ├── Entities/               # DB Classes (e.g., Asset, AssetSpecifications)
 │   └── Enums/                  # Constants
 │
 └── Assura.Infrastructure/      # Infrastructure Layer
@@ -48,7 +48,7 @@ src/
 ## 1. Assura.Domain
 The core of the application. It contains no dependencies on any other layer.
 - `/Common`: Base classes (e.g., `BaseEntity`).
-- `/Entities`: Database models (e.g., `Asset`, `User`).
+- `/Entities`: Database models (e.g., `Asset`, `User`, `AssetSpecifications`).
 - `/Enums`: Groupings of constants (e.g., `AssetStatus`).
 - `/Interfaces`: Domain-level interfaces.
 
@@ -74,7 +74,7 @@ Handles external concerns like databases, logging, and identity.
 The entry point for the Web API.
 - `/Controllers`: Slim controllers that delegate work to MediatR.
 - `/Middleware`: Error handling and logging middleware.
-- `Program.cs`: Dependency injection and pipeline configuration.
+- `Program.cs`: Dependency injection and pipeline configuration (uses `DotNetEnv` for MySQL/JWT).
 
 ## 5. Tests
 - Separate projects corresponding to each layer (`Domain.Tests`, etc.).

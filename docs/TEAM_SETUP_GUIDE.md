@@ -8,7 +8,7 @@ Welcome to the Assura Backend! Follow these steps to set up your local developme
 Before you begin, ensure you have the following installed:
 *   **SDK**: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 *   **IDE**: [Visual Studio 2022 (v17.10+)](https://visualstudio.microsoft.com/vs/) (Required for `.slnx` support) or VS Code with C# Dev Kit.
-*   **Database**: SQL Server (LocalDB or Express).
+*   **Database**: MySQL Server (v8.0+).
 
 ---
 
@@ -23,8 +23,9 @@ cd AssuraBackend
 ### Step 2: Environment Configuration
 1.  Locate `.env.example` in the root directory.
 2.  Copy it and rename it to `.env`.
-3.  Update the `ConnectionStrings__DefaultConnection` with your local SQL Server details.
-    *   *Example: `Server=(localdb)\MSSQLLocalDB;Database=AssuraDb;Trusted_Connection=True;MultipleActiveResultSets=true`*
+3.  Update the database and JWT variables with your local details.
+    *   *Example: `DB_SERVER=localhost`, `DB_PORT=3306`, `DB_NAME=AssuraFAMS`*
+    *   *Ensure `JWT_SECRET_KEY` is a secure random string.*
 
 ### Step 3: Trust SSL Certificate (Optional but Recommended)
 To avoid "Your connection isn't private" errors in your browser, run:
@@ -64,5 +65,5 @@ Please read our **[Coding & Implementation Guide](PROJECT_STRUCTURE.md)** for:
 
 ## 🚩 Troubleshooting
 *   **SLNX not opening?** Ensure Visual Studio is updated to at least v17.10.
-*   **Database Connection Error?** Double-check your `.env` file and ensure SQL Server is running.
+*   **Database Connection Error?** Ensure MySQL is running on the configured `DB_PORT` (default 3306) and credentials in `.env` are correct.
 *   **Missing Dependencies?** Run `dotnet restore` manually.
