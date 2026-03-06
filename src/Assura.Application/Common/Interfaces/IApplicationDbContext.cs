@@ -23,7 +23,9 @@ public interface IApplicationDbContext
     DbSet<RepairingFirm> RepairingFirms { get; }
     DbSet<DiscountInfo> DiscountInfos { get; }
     DbSet<AuditLog> AuditLogs { get; }
+    DbSet<PurchasingOrderItem> PurchasingOrderItems { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<AssetInforming> AssetInformings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

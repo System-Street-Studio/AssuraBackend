@@ -11,6 +11,8 @@ public class Request : BaseEntity
     public string? Description { get; set; }
     public string Status { get; set; } = "Pending";
     public string? Remarks { get; set; }
+    public string? Specifications { get; set; }
+    public string? SpecialNote { get; set; }
 
     public int RequesterId { get; set; }
     public User Requester { get; set; } = null!;
