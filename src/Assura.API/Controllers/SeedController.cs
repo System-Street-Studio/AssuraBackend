@@ -56,4 +56,39 @@ public class SeedController : ControllerBase
             });
         }
     }
+
+    [HttpPost("categories")]
+    public async Task<IActionResult> SeedCategories()
+    {
+        try
+        {
+            if (await _context.Categories.AnyAsync())
+            {
+                return BadRequest("Categories already exist.");
+            }
+
+            var categories = new List<Category>
+            {
+                new() { Name = "Computers", Description = "Laptops, Desktops, Servers" },
+                new() { Name = "Furniture", Description = "Desks, Chairs, Tables" },
+                new() { Name = "Networking", Description = "Routers, Switches, Cables" },
+                new() { Name = "Servers", Description = "Servers" },
+                new() { Name = "Printing", Description = "Printers" }
+            };
+
+            _context.Categories.AddRange(categories);
+            await _context.SaveChangesAsync(default);
+
+            return Ok("Categories seeded successfully.");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new 
+            { 
+                Message = ex.Message, 
+                InnerMessage = ex.InnerException?.Message,
+                StackTrace = ex.StackTrace 
+            });
+        }
+    }
 }
