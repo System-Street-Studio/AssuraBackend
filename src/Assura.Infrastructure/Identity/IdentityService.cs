@@ -56,9 +56,13 @@ public class IdentityService : IIdentifyServices
         return new Assura.Application.Common.Models.AuthResponse
         {
             Token = token,
-            Username = user.Username,
-            Email = user.Email,
-            Role = user.Role ?? Assura.Domain.Enums.UserRole.Employee
+            User = new Assura.Application.Common.Models.UserDto
+            {
+                Id = user.Id.ToString(),
+                Email = user.Email,
+                Name = $"{user.FirstName} {user.LastName}",
+                Roles = new List<string> { user.Role?.ToString() ?? "Employee" }
+            }
         };
     }
 }
