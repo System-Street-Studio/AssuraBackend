@@ -52,7 +52,6 @@ else
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseHttpsRedirection();
 app.UseCors("DefaultPolicy");
 
 app.UseAuthentication();

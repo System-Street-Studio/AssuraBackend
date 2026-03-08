@@ -31,9 +31,19 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
     {
-        var result = await _mediator.Send(command);
-        return result != null 
-            ? Ok(result) 
-            : Unauthorized(new { Message = "Invalid username or password." });
+        Console.WriteLine($"[DEBUG] AuthController: Login request received for {command.Username}");
+        try {
+            var result = await _mediator.Send(command);
+            if (result != null) {
+                Console.WriteLine("[DEBUG] AuthController: Login successful, returning 200 OK");
+                return Ok(result);
+            } else {
+                Console.WriteLine("[DEBUG] AuthController: Login failed (null result), returning 401 Unauthorized");
+                return Unauthorized(new { Message = "Invalid username or password." });
+            }
+        } catch (Exception ex) {
+            Console.WriteLine($"[DEBUG] AuthController: Error during login: {ex.Message}");
+            throw;
+        }
     }
 }

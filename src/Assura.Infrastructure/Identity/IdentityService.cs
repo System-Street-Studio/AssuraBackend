@@ -43,15 +43,34 @@ public class IdentityService : IIdentifyServices
 
     public async Task<Assura.Application.Common.Models.AuthResponse?> AuthenticateAsync(string username, string password)
     {
+        Console.WriteLine($"[DEBUG] AuthenticateAsync started for user: {username}");
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Username == username);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+        if (user == null) 
         {
+            Console.WriteLine("[DEBUG] User not found");
             return null;
         }
 
+        Console.WriteLine("[DEBUG] User found, verifying password...");
+        bool isPasswordValid = false;
+        try {
+            isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+        } catch (Exception ex) {
+            Console.WriteLine($"[DEBUG] BCrypt error: {ex.Message}");
+            throw;
+        }
+
+        if (!isPasswordValid)
+        {
+            Console.WriteLine("[DEBUG] Password verification failed");
+            return null;
+        }
+
+        Console.WriteLine("[DEBUG] Password verified, generating token...");
         var token = _jwtTokenGenerator.GenerateToken(user);
+        Console.WriteLine("[DEBUG] Token generated successfully");
 
         return new Assura.Application.Common.Models.AuthResponse
         {
