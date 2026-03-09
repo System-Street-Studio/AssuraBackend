@@ -26,8 +26,14 @@ public class PurchasingOrdersController : BaseApiController
     [HttpGet("{id}")]
     public async Task<ActionResult<PurchasingOrderDto>> GetPurchasingOrder(int id)
     {
+        _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPurchasingOrder called for ID {Id}", id);
         var result = await _mediator.Send(new GetPurchasingOrderByIdQuery(id));
-        if (result == null) return NotFound();
+        if (result == null) 
+        {
+            _logger.LogWarning("[DEBUG] PurchasingOrdersController: PO with ID {Id} not found", id);
+            return NotFound();
+        }
+        _logger.LogInformation("[DEBUG] PurchasingOrdersController: Successfully retrieved PO {OrderNumber}", result.OrderNumber);
         return result;
     }
 
