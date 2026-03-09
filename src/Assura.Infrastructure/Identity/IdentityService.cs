@@ -84,4 +84,31 @@ public class IdentityService : IIdentifyServices
             }
         };
     }
+
+    public async Task<string?> GeneratePasswordResetTokenAsync(string email)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user == null) return null;
+
+        var token = Guid.NewGuid().ToString();
+        user.PasswordResetToken = token;
+        user.ResetTokenExpiryTime = DateTime.UtcNow.AddHours(1);
+
+        await _context.SaveChangesAsync(default);
+        return token;
+    }
+
+    public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.PasswordResetToken == token);
+        
+        if (user == null || user.ResetTokenExpiryTime < DateTime.UtcNow)
+            return false;
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.PasswordResetToken = null;
+        user.ResetTokenExpiryTime = null;
+
+        return await _context.SaveChangesAsync(default) > 0;
+    }
 }
