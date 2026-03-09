@@ -31,7 +31,15 @@ public class PurchasingOrdersController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<int>> CreatePurchasingOrder(CreatePurchasingOrderCommand command)
     {
-        return await _mediator.Send(command);
+        Console.WriteLine($"[DEBUG] PurchasingOrdersController: Received request for supplier {command.SupplierName} with {command.Items?.Count} items");
+        try {
+            var id = await _mediator.Send(command);
+            Console.WriteLine($"[DEBUG] PurchasingOrdersController: Successfully created PO with ID {id}");
+            return Ok(id);
+        } catch (Exception ex) {
+            Console.WriteLine($"[DEBUG] PurchasingOrdersController: Error creating PO: {ex.Message}");
+            throw;
+        }
     }
 
     [HttpGet("pending-requests")]

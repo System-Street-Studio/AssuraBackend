@@ -34,13 +34,18 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
 
     public async Task<int> Handle(CreatePurchasingOrderCommand request, CancellationToken cancellationToken)
     {
+        Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Starting for Supplier: '{request.SupplierName}'");
+
         // 1. Find or create supplier (simplified for this task)
         var supplier = await _context.Suppliers.FirstOrDefaultAsync(s => s.Name == request.SupplierName, cancellationToken);
         if (supplier == null)
         {
+            Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Supplier not found. Creating new supplier: '{request.SupplierName}'");
             supplier = new Supplier { Name = request.SupplierName };
             _context.Suppliers.Add(supplier);
             await _context.SaveChangesAsync(cancellationToken);
+        } else {
+            Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Supplier found with ID {supplier.Id}");
         }
 
         // 2. Create the Purchasing Order
@@ -51,16 +56,22 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
             SupplierId = supplier.Id,
             Status = "Pending"
         };
+        // Explicitly ensuring list is initialized if not already (check Domain entity)
+        po.Items ??= new List<PurchasingOrderItem>();
 
+        Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Processing {request.Items?.Count} items");
         // 3. Create Items and calculate totals
         decimal totalAmount = 0;
-        foreach (var itemDto in request.Items)
+        foreach (var itemDto in request.Items ?? new())
         {
             var amount = itemDto.Quantity * itemDto.UnitPrice;
-            var discountedPrice = amount - itemDto.Discount;
+            var discountAmount = amount * (itemDto.Discount / 100);
+            var discountedPrice = amount - discountAmount;
             var vatAmount = discountedPrice * (itemDto.VatPercentage / 100);
             var totalPrice = discountedPrice + vatAmount;
 
+            Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Processing Item: '{itemDto.ItemName}', Total: {totalPrice}");
+            
             var item = new PurchasingOrderItem
             {
                 ItemName = itemDto.ItemName,
@@ -69,7 +80,7 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
                 Quantity = itemDto.Quantity,
                 UnitPrice = itemDto.UnitPrice,
                 Amount = amount,
-                Discount = itemDto.Discount,
+                Discount = itemDto.Discount, // This is now stored as percentage
                 DiscountedPrice = discountedPrice,
                 VatPercentage = itemDto.VatPercentage,
                 VatAmount = vatAmount,
@@ -84,7 +95,9 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
         po.TotalAmount = totalAmount;
 
         _context.PurchasingOrders.Add(po);
+        Console.WriteLine("[DEBUG] CreatePurchasingOrderCommandHandler: Saving changes to database...");
         await _context.SaveChangesAsync(cancellationToken);
+        Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Success! PO saved with Total: {totalAmount}");
 
         return po.Id;
     }
