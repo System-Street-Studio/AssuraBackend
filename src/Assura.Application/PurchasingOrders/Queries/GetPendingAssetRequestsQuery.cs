@@ -19,13 +19,14 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
     {
         return await _context.Requests
             .Include(x => x.Requester)
+                .ThenInclude(u => u.Division)
             .Where(x => x.Status == "Pending")
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new AssetRequestDto
             {
                 Id = x.Id,
                 EmployeeName = $"{x.Requester.FirstName} {x.Requester.LastName}",
-                DivisionName = "Procurement", // Placeholder
+                DivisionName = x.Requester.Division != null ? x.Requester.Division.Name : "N/A",
                 Date = x.CreatedAt,
                 Specifications = x.Specifications,
                 SpecialNote = x.SpecialNote

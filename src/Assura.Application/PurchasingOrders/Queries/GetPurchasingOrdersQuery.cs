@@ -18,13 +18,14 @@ public class GetPurchasingOrdersQueryHandler : IRequestHandler<GetPurchasingOrde
     public async Task<List<PurchasingOrderSummaryDto>> Handle(GetPurchasingOrdersQuery request, CancellationToken cancellationToken)
     {
         return await _context.PurchasingOrders
+            .Include(x => x.Supplier)
             .OrderByDescending(x => x.OrderDate)
             .Select(x => new PurchasingOrderSummaryDto
             {
                 Id = x.Id,
                 OrderNumber = x.OrderNumber,
                 IssuedDate = x.OrderDate,
-                DepartmentName = "Information Technology" // Placeholder until actual department/division logic is linked to PO
+                DepartmentName = x.Supplier.Name // Using Supplier Name for now as "Department" in UI
             })
             .ToListAsync(cancellationToken);
     }
