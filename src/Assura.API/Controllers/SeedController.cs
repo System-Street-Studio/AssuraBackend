@@ -159,4 +159,33 @@ public class SeedController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+    [HttpPost("suppliers")]
+    public async Task<IActionResult> SeedSuppliers()
+    {
+        try
+        {
+            if (await _context.Suppliers.AnyAsync())
+            {
+                return BadRequest("Suppliers already exist.");
+            }
+
+            var suppliers = new List<Supplier>
+            {
+                new() { Name = "Super Neat technology (Pvt)Ltd.", Phone = "0114814646", Email = "sales4@superneat.lk", Address = "No 478, Kandy road, Kelaniya", CreatedAt = DateTime.UtcNow },
+                new() { Name = "TechWave Solutions Inc.", Phone = "0112345678", Website = "www.techwave.lk", Email = "info@techwave.lk", Address = "No 22, Galle Road, Colombo", CreatedAt = DateTime.UtcNow },
+                new() { Name = "Global Systems & Services", Phone = "0119876543", Website = "www.globalsys.lk", Email = "contact@globalsys.lk", Address = "No 56, Hospital Road, Kandy", CreatedAt = DateTime.UtcNow },
+                new() { Name = "Apex Procurement Co.", Phone = "0117654321", Email = "apex@procurement.lk", Address = "No 10, Main Street, Galle", CreatedAt = DateTime.UtcNow },
+                new() { Name = "NovaTech Industries Ltd.", Phone = "0115432109", Website = "www.novatech.lk", Email = "nova@novatech.lk", Address = "No 88, Industrial Zone, Ratmalana", CreatedAt = DateTime.UtcNow }
+            };
+
+            _context.Suppliers.AddRange(suppliers);
+            await _context.SaveChangesAsync(default);
+
+            return Ok("Suppliers seeded successfully.");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }
