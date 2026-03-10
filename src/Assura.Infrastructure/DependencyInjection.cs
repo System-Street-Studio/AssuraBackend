@@ -1,3 +1,4 @@
+// src/Assura.Infrastructure/DependencyInjection.cs
 using Assura.Application.Common.Interfaces;
 using Assura.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +12,13 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<AppDbContext>(options =>
-            // Using SQL Server as per the plan
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            
+            // --- MySQL (Pomelo) භාවිතා කිරීමට මෙය වෙනස් කරන්න ---
+            options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)),
+                b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+        });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 
