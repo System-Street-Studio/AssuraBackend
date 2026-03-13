@@ -1,6 +1,7 @@
 using Assura.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Assura.Application.Features.Suppliers.Queries;
 
@@ -9,15 +10,18 @@ public record GetSuppliersQuery : IRequest<List<SupplierDto>>;
 public class GetSuppliersQueryHandler : IRequestHandler<GetSuppliersQuery, List<SupplierDto>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ILogger<GetSuppliersQueryHandler> _logger;
 
-    public GetSuppliersQueryHandler(IApplicationDbContext context)
+    public GetSuppliersQueryHandler(IApplicationDbContext context, ILogger<GetSuppliersQueryHandler> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<List<SupplierDto>> Handle(GetSuppliersQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Suppliers
+        _logger.LogInformation("[DEBUG] GetSuppliersQueryHandler: Fetching suppliers from DB");
+        var suppliers = await _context.Suppliers
             .AsNoTracking()
             .Select(s => new SupplierDto
             {
@@ -32,5 +36,8 @@ public class GetSuppliersQueryHandler : IRequestHandler<GetSuppliersQuery, List<
                 CreatedAt = s.CreatedAt
             })
             .ToListAsync(cancellationToken);
+
+        _logger.LogInformation("[DEBUG] GetSuppliersQueryHandler: Found {Count} suppliers", suppliers.Count);
+        return suppliers;
     }
 }

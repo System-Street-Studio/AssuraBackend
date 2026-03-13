@@ -1,4 +1,5 @@
 using Assura.Application.Features.Suppliers.Queries;
+using Assura.Application.Features.Suppliers.Commands.CreateSupplier;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,5 +23,17 @@ public class SuppliersController : BaseApiController
         return await _mediator.Send(new GetSuppliersQuery());
     }
 
-    // You can add more endpoints here like GetSupplierById, CreateSupplier, etc.
+    [HttpGet("{id}")]
+    public async Task<ActionResult<SupplierDto?>> GetSupplierById(int id)
+    {
+        _logger.LogInformation("[DEBUG] SuppliersController: GetSupplierById called with id {Id}", id);
+        return await _mediator.Send(new GetSupplierByIdQuery(id));
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<int>> CreateSupplier([FromBody] CreateSupplierCommand command)
+    {
+        _logger.LogInformation("[DEBUG] SuppliersController: CreateSupplier called with {@Command}", command);
+        return await _mediator.Send(command);
+    }
 }
