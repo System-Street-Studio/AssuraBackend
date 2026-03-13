@@ -1,10 +1,12 @@
 using Assura.Application.Features.Suppliers.Queries;
 using Assura.Application.Features.Suppliers.Commands.CreateSupplier;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
+[Authorize(Roles = "Admin,Procurement")]
 public class SuppliersController : BaseApiController
 {
     private readonly IMediator _mediator;
