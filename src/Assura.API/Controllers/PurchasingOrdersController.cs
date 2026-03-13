@@ -57,4 +57,11 @@ public class PurchasingOrdersController : BaseApiController
         _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPendingRequests called");
         return await _mediator.Send(new GetPendingAssetRequestsQuery());
     }
+
+    [HttpGet("stats")]
+    public async Task<ActionResult<ProcurementStatsDto>> GetProcurementStats()
+    {
+        _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetProcurementStats called");
+        return await _mediator.Send(new GetProcurementStatsQuery());
+    }
 }
