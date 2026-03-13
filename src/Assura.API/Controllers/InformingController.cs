@@ -22,7 +22,7 @@ public class InformingController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("history")]
-    public async Task<ActionResult<List<AssetInforming>>> GetHistory()
+    public async Task<ActionResult<List<AssetInformingDto>>> GetHistory()
     {
         var result = await _mediator.Send(new GetAssetInformingsQuery());
         return Ok(result);

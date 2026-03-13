@@ -106,7 +106,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("Assets");
+                    b.ToTable("Assets", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.AssetInforming", b =>
@@ -162,7 +162,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("DivisionId");
 
-                    b.ToTable("AssetInformings");
+                    b.ToTable("AssetInformings", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.AuditLog", b =>
@@ -211,7 +211,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Category", b =>
@@ -246,7 +246,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.DiscountInfo", b =>
@@ -289,7 +289,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("PurchasingOrderId");
 
-                    b.ToTable("DiscountInfos");
+                    b.ToTable("DiscountInfos", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Division", b =>
@@ -324,7 +324,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Divisions");
+                    b.ToTable("Divisions", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.GIN", b =>
@@ -375,7 +375,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("GRNId");
 
-                    b.ToTable("GINs");
+                    b.ToTable("GINs", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.GRN", b =>
@@ -426,7 +426,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("PurchasingOrderId");
 
-                    b.ToTable("GRNs");
+                    b.ToTable("GRNs", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Maintenance", b =>
@@ -483,7 +483,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("RepairingFirmId");
 
-                    b.ToTable("Maintenances");
+                    b.ToTable("Maintenances", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Notification", b =>
@@ -533,7 +533,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Product", b =>
@@ -574,7 +574,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.PurchasingOrder", b =>
@@ -620,7 +620,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("PurchasingOrders");
+                    b.ToTable("PurchasingOrders", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.PurchasingOrderItem", b =>
@@ -690,7 +690,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("PurchasingOrderId");
 
-                    b.ToTable("PurchasingOrderItems");
+                    b.ToTable("PurchasingOrderItems", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.QRN", b =>
@@ -739,7 +739,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("AssetId");
 
-                    b.ToTable("QRNs");
+                    b.ToTable("QRNs", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.RepairingFirm", b =>
@@ -783,7 +783,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("RepairingFirms");
+                    b.ToTable("RepairingFirms", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Request", b =>
@@ -847,7 +847,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("RequesterId");
 
-                    b.ToTable("Requests");
+                    b.ToTable("Requests", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Supplier", b =>
@@ -894,7 +894,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.TIN", b =>
@@ -937,7 +937,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("AssetId");
 
-                    b.ToTable("TINs");
+                    b.ToTable("TINs", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Transfer", b =>
@@ -995,7 +995,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("TransferById");
 
-                    b.ToTable("Transfers");
+                    b.ToTable("Transfers", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.User", b =>
@@ -1077,7 +1077,7 @@ namespace Assura.Infrastructure.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Asset", b =>
@@ -1115,19 +1115,19 @@ namespace Assura.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.OwnsOne("Assura.Domain.Entities.AssetSpecifications", "Specifications", b1 =>
+                    b.OwnsOne("Assura.Domain.Entities.Asset.Specifications#Assura.Domain.Entities.AssetSpecifications", "Specifications", b1 =>
                         {
                             b1.Property<int>("AssetId")
                                 .HasColumnType("int");
 
                             b1.HasKey("AssetId");
 
-                            b1.ToTable("Assets");
+                            b1.ToTable("Assets", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("AssetId");
 
-                            b1.OwnsOne("Assura.Domain.Entities.ComputerSpecs", "Computer", b2 =>
+                            b1.OwnsOne("Assura.Domain.Entities.Asset.Specifications#Assura.Domain.Entities.AssetSpecifications.Computer#Assura.Domain.Entities.ComputerSpecs", "Computer", b2 =>
                                 {
                                     b2.Property<int>("AssetSpecificationsAssetId")
                                         .HasColumnType("int");
@@ -1149,13 +1149,13 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Assets", (string)null);
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
                                 });
 
-                            b1.OwnsOne("Assura.Domain.Entities.FurnitureSpecs", "Furniture", b2 =>
+                            b1.OwnsOne("Assura.Domain.Entities.Asset.Specifications#Assura.Domain.Entities.AssetSpecifications.Furniture#Assura.Domain.Entities.FurnitureSpecs", "Furniture", b2 =>
                                 {
                                     b2.Property<int>("AssetSpecificationsAssetId")
                                         .HasColumnType("int");
@@ -1180,13 +1180,13 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Assets", (string)null);
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
                                 });
 
-                            b1.OwnsOne("Assura.Domain.Entities.NetworkingSpecs", "Networking", b2 =>
+                            b1.OwnsOne("Assura.Domain.Entities.Asset.Specifications#Assura.Domain.Entities.AssetSpecifications.Networking#Assura.Domain.Entities.NetworkingSpecs", "Networking", b2 =>
                                 {
                                     b2.Property<int>("AssetSpecificationsAssetId")
                                         .HasColumnType("int");
@@ -1205,13 +1205,13 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Assets", (string)null);
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
                                 });
 
-                            b1.OwnsOne("Assura.Domain.Entities.PrintingSpecs", "Printing", b2 =>
+                            b1.OwnsOne("Assura.Domain.Entities.Asset.Specifications#Assura.Domain.Entities.AssetSpecifications.Printing#Assura.Domain.Entities.PrintingSpecs", "Printing", b2 =>
                                 {
                                     b2.Property<int>("AssetSpecificationsAssetId")
                                         .HasColumnType("int");
@@ -1230,13 +1230,13 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Assets", (string)null);
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
                                 });
 
-                            b1.OwnsOne("Assura.Domain.Entities.ServerSpecs", "Server", b2 =>
+                            b1.OwnsOne("Assura.Domain.Entities.Asset.Specifications#Assura.Domain.Entities.AssetSpecifications.Server#Assura.Domain.Entities.ServerSpecs", "Server", b2 =>
                                 {
                                     b2.Property<int>("AssetSpecificationsAssetId")
                                         .HasColumnType("int");
@@ -1258,7 +1258,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Assets", (string)null);
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
