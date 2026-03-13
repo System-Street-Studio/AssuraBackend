@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-[Authorize]
+[AllowAnonymous]
 [ApiController]
 [Route("api/[controller]")]
 public class InformingController : ControllerBase
@@ -20,11 +20,11 @@ public class InformingController : ControllerBase
         _mediator = mediator;
     }
 
-    [AllowAnonymous]
     [HttpGet("history")]
     public async Task<ActionResult<List<AssetInformingDto>>> GetHistory()
     {
         var result = await _mediator.Send(new GetAssetInformingsQuery());
+        Console.WriteLine($"[DEBUG] InformingController: GetHistory returned {result.Count} items.");
         return Ok(result);
     }
 
