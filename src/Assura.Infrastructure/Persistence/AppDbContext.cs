@@ -30,7 +30,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<TIN> TINs => Set<TIN>();
     public DbSet<Transfer> Transfers => Set<Transfer>();
     public DbSet<Request> Requests => Set<Request>();
-    public DbSet<Maintenance> MaintenanceRecords => Set<Maintenance>();
+    public DbSet<Maintenance> Maintenances => Set<Maintenance>();
     public DbSet<RepairingFirm> RepairingFirms => Set<RepairingFirm>();
     public DbSet<DiscountInfo> DiscountInfos => Set<DiscountInfo>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

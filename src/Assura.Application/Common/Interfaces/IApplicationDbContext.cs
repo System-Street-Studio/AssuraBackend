@@ -19,7 +19,7 @@ public interface IApplicationDbContext
     DbSet<TIN> TINs { get; }
     DbSet<Transfer> Transfers { get; }
     DbSet<Request> Requests { get; }
-    DbSet<Maintenance> MaintenanceRecords { get; }
+    DbSet<Maintenance> Maintenances { get; }
     DbSet<RepairingFirm> RepairingFirms { get; }
     DbSet<DiscountInfo> DiscountInfos { get; }
     DbSet<AuditLog> AuditLogs { get; }
