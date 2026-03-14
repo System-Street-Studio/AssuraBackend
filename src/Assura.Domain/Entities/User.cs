@@ -21,6 +21,6 @@ public class User : BaseEntity
     public UserRole Role { get; set; }
     
     public ICollection<Asset> AssignedAssets { get; set; } = new List<Asset>();
-    public ICollection<Request> Requests { get; set; } = new List<Request>();
+    public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

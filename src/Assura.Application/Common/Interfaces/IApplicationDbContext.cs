@@ -18,7 +18,7 @@ public interface IApplicationDbContext
     DbSet<QRN> QRNs { get; }
     DbSet<TIN> TINs { get; }
     DbSet<Transfer> Transfers { get; }
-    DbSet<Request> Requests { get; }
+    DbSet<AssetRequest> AssetRequests { get; }
     DbSet<Maintenance> MaintenanceRecords { get; }
     DbSet<RepairingFirm> RepairingFirms { get; }
     DbSet<DiscountInfo> DiscountInfos { get; }

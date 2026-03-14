@@ -25,7 +25,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<QRN> QRNs => Set<QRN>();
     public DbSet<TIN> TINs => Set<TIN>();
     public DbSet<Transfer> Transfers => Set<Transfer>();
-    public DbSet<Request> Requests => Set<Request>();
+    public DbSet<AssetRequest> AssetRequests => Set<AssetRequest>();
     public DbSet<Maintenance> MaintenanceRecords => Set<Maintenance>();
     public DbSet<RepairingFirm> RepairingFirms => Set<RepairingFirm>();
     public DbSet<DiscountInfo> DiscountInfos => Set<DiscountInfo>();
@@ -34,18 +34,16 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        base.OnModelCreating(modelBuilder); // මෙය මුලින් දාන්න
 
-        // Apply Soft Delete Global Query Filter
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
+                // මෙතනදී අපි හරියටම කියනවා IsDeleted false ඒවා විතරක් පෙන්වන්න කියලා
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(ConvertFilterExpression(entityType.ClrType));
             }
         }
-
-        base.OnModelCreating(modelBuilder);
     }
 
     private static System.Linq.Expressions.LambdaExpression ConvertFilterExpression(Type type)
@@ -63,10 +61,8 @@ public class AppDbContext : DbContext, IApplicationDbContext
         {
             switch (entry.State)
             {
-                case EntityState.Added:
-                    entry.Entity.CreatedAt = DateTime.UtcNow;
-                    entry.Entity.CreatedBy = "System"; // Placeholder until Auth is implemented
-                    break;
+                
+                   
 
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTime.UtcNow;

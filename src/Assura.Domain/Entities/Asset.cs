@@ -31,5 +31,5 @@ public class Asset : BaseEntity
 
     public ICollection<Maintenance> MaintenanceRecords { get; set; } = new List<Maintenance>();
     public ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
-    public ICollection<Request> Requests { get; set; } = new List<Request>();
+    public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();
 }
