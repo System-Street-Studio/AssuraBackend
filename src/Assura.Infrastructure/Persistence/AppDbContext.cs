@@ -34,13 +34,13 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder); // මෙය මුලින් දාන්න
+        base.OnModelCreating(modelBuilder); //
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
-                // මෙතනදී අපි හරියටම කියනවා IsDeleted false ඒවා විතරක් පෙන්වන්න කියලා
+                //  IsDeleted false 
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(ConvertFilterExpression(entityType.ClrType));
             }
         }

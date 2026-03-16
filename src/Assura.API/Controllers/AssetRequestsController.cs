@@ -3,6 +3,7 @@ using MediatR;
 using Assura.Application.Features.AssetRequests.Commands;
 using Assura.Domain.Entities;
 using Assura.Application.Features.AssetRequests.Queries;
+using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
@@ -25,14 +26,30 @@ public class AssetRequestsController : ControllerBase
         return Ok(id);
     }
 
-    [HttpPatch("{id}/approve")]
-    public async Task<ActionResult> Approve(int id)
+    [HttpPut("{id}/approve")]
+    public async Task<ActionResult<bool>> Approve(int id)
     {
         var result = await _mediator.Send(new ApproveAssetRequestCommand(id));
-        return result ? NoContent() : NotFound();
+        return Ok(result);
     }
 
-    [HttpGet("employee/{employeeId}")] // මේ පේළිය අනිවාර්යයි
+    [HttpPut("{id}/reject")] 
+    public async Task<ActionResult<bool>> Reject(int id)
+    {
+        
+        var result = await _mediator.Send(new RejectAssetRequestCommand(id));
+        return Ok(result);
+    }
+
+    /*[HttpPut("{id}/reject")] 
+    public async Task<ActionResult<bool>> Reject(int id, [FromBody] RejectRequestDto model)
+    {
+        
+        var result = await _mediator.Send(new RejectAssetRequestCommand(id, model.Reason));
+        return Ok(result);
+    }*/
+
+    [HttpGet("employee/{employeeId}")] 
     public async Task<IActionResult> GetByEmployee(string employeeId)
     {
         var result = await _mediator.Send(new GetAllRequestsQuery(employeeId));
@@ -42,10 +59,18 @@ public class AssetRequestsController : ControllerBase
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending()
     {
-        // මෙතනට Pending ඉල්ලීම් ගන්න query එකක් හදන්න ඕනේ
+        //  Pending requests query 
         var result = await _mediator.Send(new GetPendingRequestsQuery()); 
         return Ok(result);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] bool isDivisionHead)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        var result = await _mediator.Send(new GetAllRequestsQuery(userId, isDivisionHead));
+        return Ok(result);
+    }
     
 }

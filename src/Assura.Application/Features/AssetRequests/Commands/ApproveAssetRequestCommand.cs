@@ -17,7 +17,7 @@ public class ApproveAssetRequestHandler : IRequestHandler<ApproveAssetRequestCom
         
         if (entity == null) return false;
 
-        entity.Status = RequestStatus.Approved; // මෙන්න මෙතනයි status එක change වෙන්නේ
+        entity.Status = RequestStatus.Approved; // status  change 
         await _context.SaveChangesAsync(cancellationToken);
         return true;
     }

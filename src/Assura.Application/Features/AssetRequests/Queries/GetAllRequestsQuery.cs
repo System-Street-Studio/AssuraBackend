@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.AssetRequests.Queries;
 
-public record GetAllRequestsQuery(string EmployeeId) : IRequest<List<AssetRequest>>;
+public record GetAllRequestsQuery(string? EmployeeId = null, bool IsDivisionHead = false) : IRequest<List<AssetRequest>>;
 
 public class GetAllRequestsQueryHandler : IRequestHandler<GetAllRequestsQuery, List<AssetRequest>>
 {
@@ -15,12 +15,20 @@ public class GetAllRequestsQueryHandler : IRequestHandler<GetAllRequestsQuery, L
     {
         _context = context;
     }
-
     public async Task<List<AssetRequest>> Handle(GetAllRequestsQuery request, CancellationToken cancellationToken)
     {
-        // මෙතනදී EmployeeId එකට සමාන දත්ත විතරක් Filter කරනවා
-        return await _context.AssetRequests
-            .Where(x => x.RequesterId == request.EmployeeId) 
+       
+        var query = _context.AssetRequests.AsQueryable();
+
+        
+        if (!request.IsDivisionHead)
+        {
+           
+            query = query.Where(x => x.RequesterId == request.EmployeeId);
+        }
+
+        
+        return await query
             .OrderByDescending(x => x.SubmittedDate)
             .ToListAsync(cancellationToken);
     }
