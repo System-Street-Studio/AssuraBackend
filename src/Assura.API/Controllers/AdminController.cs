@@ -1,12 +1,13 @@
 using Assura.Application.Admin.Queries;
 using Assura.Application.DTOs;
+using Assura.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 public class AdminController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -16,7 +17,6 @@ public class AdminController : BaseApiController
         _mediator = mediator;
     }
 
-    [AllowAnonymous]
     [HttpGet("dashboard-stats")]
     public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
     {

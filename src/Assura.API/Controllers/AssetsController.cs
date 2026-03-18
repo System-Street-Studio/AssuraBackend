@@ -1,9 +1,12 @@
 using Assura.Application.Features.Assets.Queries;
+using Assura.Domain.Constants;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
+[Authorize(Roles = $"{Roles.Admin},{Roles.Procurement},{Roles.Storekeeper},{Roles.Auditor}")]
 public class AssetsController : BaseApiController
 {
     private readonly IMediator _mediator;

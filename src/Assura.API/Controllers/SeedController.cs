@@ -1,11 +1,14 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assura.API.Controllers;
 
+[Authorize(Roles = Roles.Admin)]
 [ApiController]
 [Route("api/[controller]")]
 public class SeedController : ControllerBase

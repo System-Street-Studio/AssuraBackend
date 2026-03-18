@@ -1,10 +1,13 @@
 using Assura.Application.Features.Maintenances.Queries;
 using Assura.Application.Features.Maintenances.Commands;
+using Assura.Domain.Constants;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
+[Authorize(Roles = $"{Roles.Procurement},{Roles.Admin},{Roles.Maintenance}")]
 public class MaintenancesController : BaseApiController
 {
     private readonly IMediator _mediator;

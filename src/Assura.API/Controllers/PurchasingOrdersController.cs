@@ -1,10 +1,13 @@
 using Assura.Application.PurchasingOrders.Commands;
 using Assura.Application.PurchasingOrders.Queries;
+using Assura.Domain.Constants;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
+[Authorize(Roles = $"{Roles.Procurement},{Roles.Admin}")]
 public class PurchasingOrdersController : BaseApiController
 {
     private readonly IMediator _mediator;

@@ -1,17 +1,15 @@
 using Assura.Application.DTOs;
 using Assura.Application.NewArrivals.Commands;
 using Assura.Application.NewArrivals.Queries;
-using Assura.Domain.Entities;
+using Assura.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-[AllowAnonymous]
-[ApiController]
-[Route("api/[controller]")]
-public class InformingController : ControllerBase
+[Authorize(Roles = $"{Roles.Procurement},{Roles.Admin}")]
+public class InformingController : BaseApiController
 {
     private readonly IMediator _mediator;
 
@@ -28,7 +26,6 @@ public class InformingController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
     [HttpPost("inform-stores")]
     public async Task<ActionResult<int>> InformStores(InformStoresDto dto)
     {
