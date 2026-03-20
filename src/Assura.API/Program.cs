@@ -18,6 +18,7 @@ builder.Configuration["ConnectionStrings:DefaultConnection"] =
 builder.Configuration["Jwt:Key"] = Env.GetString("JWT_SECRET_KEY");
 builder.Configuration["Jwt:Issuer"] = Env.GetString("JWT_ISSUER");
 builder.Configuration["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE");
+builder.Configuration["Jwt:ExpiryMinutes"] = Env.GetString("JWT_EXPIRY_MINUTES", "60");
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
