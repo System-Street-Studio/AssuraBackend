@@ -1,30 +1,51 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Application.DTOs;
+using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Assura.Application.Features.Assets.Queries;
+namespace Assura.Application.Features.Assets.Commands;
 
-public record GetAssetsQuery : IRequest<List<AssetDto>>;
+public record CheckinAssetCommand(int Id, string Condition, string? Notes) : IRequest<AssetDto?>;
 
-public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetDto>>
+public class CheckinAssetCommandHandler : IRequestHandler<CheckinAssetCommand, AssetDto?>
 {
     private readonly IApplicationDbContext _context;
 
-    public GetAssetsQueryHandler(IApplicationDbContext context)
+    public CheckinAssetCommandHandler(IApplicationDbContext context)
     {
         _context = context;
     }
 
-    public async Task<List<AssetDto>> Handle(GetAssetsQuery request, CancellationToken cancellationToken)
+    public async Task<AssetDto?> Handle(CheckinAssetCommand request, CancellationToken cancellationToken)
     {
-        return await _context.Assets
+        var entity = await _context.Assets
+            .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken);
+
+        if (entity == null) return null;
+
+        // Condition-based status update
+        entity.Status = request.Condition == "Damaged" ? AssetStatus.UnderMaintenance : AssetStatus.InStore;
+        entity.AssignedUserId = null;
+        
+        if (!string.IsNullOrEmpty(request.Notes))
+        {
+            entity.Notes = string.IsNullOrEmpty(entity.Notes) 
+                ? $"Check-in: {request.Notes}" 
+                : $"{entity.Notes} | Check-in: {request.Notes}";
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Fetch back with navigation properties
+        var asset = await _context.Assets
             .AsNoTracking()
             .Include(a => a.Product)
             .Include(a => a.Category)
             .Include(a => a.Division)
             .Include(a => a.Supplier)
             .Include(a => a.AssignedUser)
+            .Where(a => a.Id == entity.Id)
             .Select(a => new AssetDto
             {
                 Id = a.Id,
@@ -47,6 +68,8 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
                 AssignedUserId = a.AssignedUserId,
                 AssignedUserName = a.AssignedUser != null ? $"{a.AssignedUser.FirstName} {a.AssignedUser.LastName}" : null
             })
-            .ToListAsync(cancellationToken);
+            .FirstAsync(cancellationToken);
+
+        return asset;
     }
 }

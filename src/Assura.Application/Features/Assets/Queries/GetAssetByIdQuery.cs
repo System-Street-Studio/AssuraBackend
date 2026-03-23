@@ -5,26 +5,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Assets.Queries;
 
-public record GetAssetsQuery : IRequest<List<AssetDto>>;
+public record GetAssetByIdQuery(int Id) : IRequest<AssetDto?>;
 
-public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetDto>>
+public class GetAssetByIdQueryHandler : IRequestHandler<GetAssetByIdQuery, AssetDto?>
 {
     private readonly IApplicationDbContext _context;
 
-    public GetAssetsQueryHandler(IApplicationDbContext context)
+    public GetAssetByIdQueryHandler(IApplicationDbContext context)
     {
         _context = context;
     }
 
-    public async Task<List<AssetDto>> Handle(GetAssetsQuery request, CancellationToken cancellationToken)
+    public async Task<AssetDto?> Handle(GetAssetByIdQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Assets
+        var asset = await _context.Assets
             .AsNoTracking()
             .Include(a => a.Product)
             .Include(a => a.Category)
             .Include(a => a.Division)
             .Include(a => a.Supplier)
             .Include(a => a.AssignedUser)
+            .Where(a => a.Id == request.Id)
             .Select(a => new AssetDto
             {
                 Id = a.Id,
@@ -47,6 +48,8 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
                 AssignedUserId = a.AssignedUserId,
                 AssignedUserName = a.AssignedUser != null ? $"{a.AssignedUser.FirstName} {a.AssignedUser.LastName}" : null
             })
-            .ToListAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return asset;
     }
 }
