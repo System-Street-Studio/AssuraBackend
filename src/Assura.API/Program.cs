@@ -12,13 +12,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication();
 
 // Map Environment Variables to Configuration
-builder.Configuration["ConnectionStrings:DefaultConnection"] = 
-    $"Server={Env.GetString("DB_SERVER")};Port={Env.GetString("DB_PORT")};Database={Env.GetString("DB_NAME")};Uid={Env.GetString("DB_USER")};Pwd={Env.GetString("DB_PASSWORD")};";
+var dbServer = Env.GetString("DB_SERVER");
+var dbPort = Env.GetString("DB_PORT");
+var dbName = Env.GetString("DB_NAME");
+var dbUser = Env.GetString("DB_USER");
+var dbPassword = Env.GetString("DB_PASSWORD");
 
-builder.Configuration["Jwt:Key"] = Env.GetString("JWT_SECRET_KEY");
-builder.Configuration["Jwt:Issuer"] = Env.GetString("JWT_ISSUER");
-builder.Configuration["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE");
-builder.Configuration["Jwt:ExpiryMinutes"] = Env.GetString("JWT_EXPIRY_MINUTES", "60");
+if (!string.IsNullOrEmpty(dbServer) && dbServer != "127.0.0.1" && dbServer != "localhost")
+{
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = 
+        $"Server={dbServer};Port={dbPort};Database={dbName};Uid={dbUser};Pwd={dbPassword};";
+}
+
+builder.Configuration["Jwt:Key"] = Env.GetString("JWT_SECRET_KEY") ?? builder.Configuration["Jwt:Key"];
+builder.Configuration["Jwt:Issuer"] = Env.GetString("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"];
+builder.Configuration["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"];
+builder.Configuration["Jwt:ExpiryMinutes"] = Env.GetString("JWT_EXPIRY_MINUTES", builder.Configuration["Jwt:ExpiryMinutes"] ?? "60");
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
