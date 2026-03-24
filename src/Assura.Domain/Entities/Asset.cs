@@ -14,6 +14,7 @@ public class Asset : BaseEntity
     public decimal PurchaseValue { get; set; }
     public string? Warranty { get; set; }
     public string? Notes { get; set; }
+    public string? QrCode { get; set; }
 
     public AssetSpecifications? Specifications { get; set; }
 

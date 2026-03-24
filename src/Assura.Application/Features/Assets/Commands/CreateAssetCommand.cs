@@ -3,6 +3,7 @@ using Assura.Application.DTOs;
 using Assura.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using QRCoder;
 
 namespace Assura.Application.Features.Assets.Commands;
 
@@ -36,6 +37,15 @@ public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, Ass
             AssignedUserId = request.Asset.AssignedUserId
         };
 
+        // Generate QR Code
+        using (var qrGenerator = new QRCodeGenerator())
+        using (var qrCodeData = qrGenerator.CreateQrCode(entity.AssetCode, QRCodeGenerator.ECCLevel.Q))
+        using (var qrCode = new PngByteQRCode(qrCodeData))
+        {
+            byte[] qrCodeAsBitmapByteArr = qrCode.GetGraphic(20);
+            entity.QrCode = Convert.ToBase64String(qrCodeAsBitmapByteArr);
+        }
+
         _context.Assets.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -59,6 +69,7 @@ public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, Ass
                 PurchaseValue = a.PurchaseValue,
                 Warranty = a.Warranty,
                 Notes = a.Notes,
+                QrCode = a.QrCode,
                 CategoryId = a.CategoryId,
                 CategoryName = a.Category.Name,
                 DivisionId = a.DivisionId,
