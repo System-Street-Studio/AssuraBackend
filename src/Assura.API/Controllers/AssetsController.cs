@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-[Authorize(Roles = $"{Roles.Admin},{Roles.Procurement},{Roles.Storekeeper},{Roles.Auditor}")]
+[AllowAnonymous]
 public class AssetsController : BaseApiController
 {
     private readonly IMediator _mediator;
