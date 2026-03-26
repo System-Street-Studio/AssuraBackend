@@ -20,7 +20,7 @@ public interface IApplicationDbContext
     DbSet<Transfer> Transfers { get; }
     DbSet<Request> Requests { get; }
     DbSet<AssetRequest> AssetRequests { get; }
-    DbSet<Maintenance> MaintenanceRecords { get; }
+    DbSet<Maintenance> Maintenances { get; }
     DbSet<RepairingFirm> RepairingFirms { get; }
     DbSet<DiscountInfo> DiscountInfos { get; }
     DbSet<AuditLog> AuditLogs { get; }

@@ -55,7 +55,7 @@ public class PurchasingOrdersController : BaseApiController
     }
 
     [HttpGet("pending-requests")]
-    public async Task<ActionResult<List<AssetRequestDto>>> GetPendingRequests()
+    public async Task<ActionResult<List<Assura.Application.PurchasingOrders.Queries.AssetRequestDto>>> GetPendingRequests()
     {
         _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPendingRequests called");
         return await _mediator.Send(new GetPendingAssetRequestsQuery());

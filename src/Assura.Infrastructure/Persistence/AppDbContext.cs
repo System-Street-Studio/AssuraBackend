@@ -31,7 +31,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<Transfer> Transfers => Set<Transfer>();
     public DbSet<Request> Requests => Set<Request>();
     public DbSet<AssetRequest> AssetRequests => Set<AssetRequest>();
-    public DbSet<Maintenance> MaintenanceRecords => Set<Maintenance>();
+    public DbSet<Maintenance> Maintenances => Set<Maintenance>();
     public DbSet<RepairingFirm> RepairingFirms => Set<RepairingFirm>();
     public DbSet<DiscountInfo> DiscountInfos => Set<DiscountInfo>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
@@ -42,6 +42,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(System.Reflection.Assembly.GetExecutingAssembly());
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
