@@ -10,7 +10,7 @@ using Assura.Application.Features.Notifications.Commands;
 
 namespace Assura.API.Controllers;
 
-[AllowAnonymous]
+[Authorize]
 public class NotificationsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -24,17 +24,7 @@ public class NotificationsController : BaseApiController
     public async Task<ActionResult<List<NotificationDto>>> GetNotifications()
     {
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        int userId;
-        
-        if (int.TryParse(userIdStr, out var id))
-        {
-            userId = id;
-        }
-        else
-        {
-            // Fallback for testing
-            userId = 1;
-        }
+        if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
         
         return await _mediator.Send(new GetNotificationsQuery(userId));
     }
@@ -50,17 +40,7 @@ public class NotificationsController : BaseApiController
     public async Task<ActionResult> MarkAllAsRead()
     {
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        int userId;
-        
-        if (int.TryParse(userIdStr, out var id))
-        {
-            userId = id;
-        }
-        else
-        {
-            // Fallback for testing
-            userId = 1;
-        }
+        if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
         await _mediator.Send(new MarkAllNotificationsAsReadCommand(userId));
         return NoContent();

@@ -38,13 +38,10 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
             .Include(r => r.Asset)
             .AsQueryable();
 
-        // Temporarily disabled for testing
-        /*
-        if (request.Role != UserRole.Admin && request.Role != UserRole.Procurement && request.UserId.HasValue)
+        if (request.Role != UserRole.Admin && request.Role != UserRole.Procurement && request.Role != UserRole.Storekeeper && request.UserId.HasValue)
         {
             query = query.Where(r => r.RequesterId == request.UserId.Value);
         }
-        */
 
         return await query
             .OrderByDescending(r => r.CreatedAt)

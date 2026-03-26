@@ -23,7 +23,7 @@ public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuer
     public async Task<List<NotificationDto>> Handle(GetNotificationsQuery request, CancellationToken cancellationToken)
     {
         var notifications = await _context.Notifications
-            // .Where(n => n.UserId == request.UserId) // Temporarily disabled for testing
+            .Where(n => n.UserId == request.UserId)
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync(cancellationToken);
 

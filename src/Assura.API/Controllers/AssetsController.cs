@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-[AllowAnonymous]
+[Authorize]
 public class AssetsController : BaseApiController
 {
     private readonly IMediator _mediator;

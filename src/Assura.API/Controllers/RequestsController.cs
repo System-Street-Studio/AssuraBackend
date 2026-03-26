@@ -9,7 +9,7 @@ using Assura.Domain.Enums;
 
 namespace Assura.API.Controllers;
 
-[AllowAnonymous]
+[Authorize]
 public class RequestsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -42,9 +42,7 @@ public class RequestsController : BaseApiController
             return await _mediator.Send(finalCommand);
         }
         
-        // Fallback for testing with [AllowAnonymous]
-        var testCommand = command with { RequesterId = 1 }; 
-        return await _mediator.Send(testCommand);
+        return Unauthorized();
     }
 
     [HttpPost("{id}/process")]
