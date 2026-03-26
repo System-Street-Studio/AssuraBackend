@@ -23,13 +23,13 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
         _context = context;
     }
 
-    public async Task<Unit> Handle(ProcessRequestCommand request, CancellationToken cancellationToken)
+    public async Task Handle(ProcessRequestCommand request, CancellationToken cancellationToken)
     {
         var entity = await _context.Requests
             .Include(r => r.Requester)
             .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
-        if (entity == null) return Unit.Value;
+        if (entity == null) return;
 
         entity.Remarks = request.Remarks;
 
@@ -92,7 +92,5 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
         }
 
         await _context.SaveChangesAsync(cancellationToken);
-
-        return Unit.Value;
     }
 }

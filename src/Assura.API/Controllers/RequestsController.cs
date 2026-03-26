@@ -54,4 +54,12 @@ public class RequestsController : BaseApiController
         await _mediator.Send(command);
         return NoContent();
     }
+
+    [HttpPut("{id}/status")]
+    public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdateRequestStatusCommand command)
+    {
+        if (id != command.Id) return BadRequest();
+        await _mediator.Send(command);
+        return NoContent();
+    }
 }
