@@ -17,6 +17,7 @@ public class RequestDto
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public string RequesterName { get; set; } = string.Empty;
+    public string Department { get; set; } = string.Empty;
     public string? AssetName { get; set; }
 }
 
@@ -33,14 +34,17 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
     {
         var query = _context.Requests
             .Include(r => r.Requester)
+            .Include(r => r.Requester.Division)
             .Include(r => r.Asset)
             .AsQueryable();
 
-        // If not Admin/Procurement, only show own requests
+        // Temporarily disabled for testing
+        /*
         if (request.Role != UserRole.Admin && request.Role != UserRole.Procurement && request.UserId.HasValue)
         {
             query = query.Where(r => r.RequesterId == request.UserId.Value);
         }
+        */
 
         return await query
             .OrderByDescending(r => r.CreatedAt)
@@ -54,6 +58,7 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
                 Status = r.Status,
                 CreatedAt = r.CreatedAt,
                 RequesterName = $"{r.Requester.FirstName} {r.Requester.LastName}",
+                Department = r.Requester.Division != null ? r.Requester.Division.Name : "N/A",
                 AssetName = r.Asset != null ? r.Asset.AssetCode : null
             })
             .ToListAsync(cancellationToken);

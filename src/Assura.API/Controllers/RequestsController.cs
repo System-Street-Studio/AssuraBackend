@@ -46,4 +46,12 @@ public class RequestsController : BaseApiController
         var testCommand = command with { RequesterId = 1 }; 
         return await _mediator.Send(testCommand);
     }
+
+    [HttpPost("{id}/process")]
+    public async Task<ActionResult> ProcessRequest(int id, [FromBody] ProcessRequestCommand command)
+    {
+        if (id != command.Id) return BadRequest();
+        await _mediator.Send(command);
+        return NoContent();
+    }
 }

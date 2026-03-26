@@ -46,17 +46,17 @@ public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand,
         _context.Requests.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Notify Procurement
-        var procurementUsers = await _context.Users
-            .Where(u => u.Role == UserRole.Procurement || u.Role == UserRole.Admin)
+        // Notify Storekeepers & Admins
+        var storekeepers = await _context.Users
+            .Where(u => u.Role == UserRole.Storekeeper || u.Role == UserRole.Admin)
             .ToListAsync(cancellationToken);
 
-        foreach (var user in procurementUsers)
+        foreach (var user in storekeepers)
         {
             _context.Notifications.Add(new Notification
             {
                 Title = "New Asset Request",
-                Message = $"A new {request.Type} request ({requestNumber}) has been submitted by a user.",
+                Message = $"A new {request.Type} request ({requestNumber}) requires stock verification.",
                 UserId = user.Id,
                 Type = "Info",
                 ReferenceId = entity.Id.ToString()
