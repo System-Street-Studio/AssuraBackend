@@ -4,11 +4,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Assura.Domain.Entities;
 
-public class AssetRequest 
+public class AssetRequest : BaseEntity
 {
-    [Key]
-    public int Id { get; set; }
-
     [Required]
     public string AssetName { get; set; } = string.Empty;
 
@@ -33,9 +30,17 @@ public class AssetRequest
 
     public string RequesterName { get; set; } = string.Empty;
 
-    
     [Required]
     public string RequestType { get; set; } = string.Empty; // NewAsset, Transfer, Maintenance, Discard
 
     public DateTime SubmittedDate { get; set; } = DateTime.Now;
+
+    public int? DivisionId { get; set; }
+    public Division? Division { get; set; }
+
+    public int? UserId { get; set; }
+    public User? User { get; set; }
+
+    public int? AssetId { get; set; }
+    public Asset? Asset { get; set; }
 }

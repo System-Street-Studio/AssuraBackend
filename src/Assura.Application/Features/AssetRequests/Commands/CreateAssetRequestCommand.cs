@@ -1,7 +1,8 @@
-using MediatR;
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.AssetRequests.Commands;
 
@@ -19,13 +20,25 @@ public record CreateAssetRequestCommand : IRequest<int>
     public required string RequestType { get; set; }
     public DateTime SubmittedDate { get; set; }
 }
+
 public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestCommand, int>
 {
     private readonly IApplicationDbContext _context;
+
     public CreateAssetRequestHandler(IApplicationDbContext context) => _context = context;
 
     public async Task<int> Handle(CreateAssetRequestCommand request, CancellationToken cancellationToken)
     {
+        int? userId = int.TryParse(request.EmployeeId, out var id) ? id : null;
+        int? divisionId = null;
+
+        if (userId.HasValue)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId.Value, cancellationToken);
+            divisionId = user?.DivisionId;
+        }
+
         var entity = new AssetRequest
         {
             // Mapping 
@@ -41,7 +54,10 @@ public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestComma
             Quantity = request.Quantity,
             Priority = request.Priority,
             RequestType = request.RequestType,
-            Status = Domain.Enums.RequestStatus.Pending
+            Status = Domain.Enums.RequestStatus.Pending,
+            
+            UserId = userId,
+            DivisionId = divisionId
         };
 
         _context.AssetRequests.Add(entity);

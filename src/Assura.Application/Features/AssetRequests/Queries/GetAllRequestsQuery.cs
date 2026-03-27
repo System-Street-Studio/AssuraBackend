@@ -15,19 +15,29 @@ public class GetAllRequestsQueryHandler : IRequestHandler<GetAllRequestsQuery, L
     {
         _context = context;
     }
+
     public async Task<List<AssetRequest>> Handle(GetAllRequestsQuery request, CancellationToken cancellationToken)
     {
-       
         var query = _context.AssetRequests.AsQueryable();
 
-        
-        if (!request.IsDivisionHead)
+        if (request.IsDivisionHead && !string.IsNullOrEmpty(request.EmployeeId))
         {
-           
+            if (int.TryParse(request.EmployeeId, out var userId))
+            {
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                
+                if (user?.DivisionId != null)
+                {
+                    query = query.Where(x => x.DivisionId == user.DivisionId);
+                }
+            }
+        }
+        else if (!string.IsNullOrEmpty(request.EmployeeId))
+        {
             query = query.Where(x => x.RequesterId == request.EmployeeId);
         }
 
-        
         return await query
             .OrderByDescending(x => x.SubmittedDate)
             .ToListAsync(cancellationToken);
