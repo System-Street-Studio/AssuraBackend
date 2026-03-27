@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Assura.Application.Features.Dashboard.Queries;
 
-public record GetDashboardQuery : IRequest<DashboardDto>;
+public record GetDashboardQuery(int? UserId = null) : IRequest<DashboardDto>;
 
 public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, DashboardDto>
 {
@@ -26,7 +26,16 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
         var dashboard = new DashboardDto();
 
         // 1. KPIs
-        var allAssets = await _context.Assets.AsNoTracking().ToListAsync(cancellationToken);
+        var allAssetsQuery = _context.Assets.AsNoTracking();
+        var requestsQuery = _context.Requests.AsNoTracking().Where(r => !r.IsDeleted);
+
+        if (request.UserId.HasValue)
+        {
+            allAssetsQuery = allAssetsQuery.Where(a => a.AssignedUserId == request.UserId.Value);
+            requestsQuery = requestsQuery.Where(r => r.RequesterId == request.UserId.Value);
+        }
+
+        var allAssets = await allAssetsQuery.ToListAsync(cancellationToken);
         dashboard.Kpis.TotalAssets = allAssets.Count;
         dashboard.Kpis.CheckedOut = allAssets.Count(a => a.Status == AssetStatus.InUse);
         dashboard.Kpis.Available = allAssets.Count(a => a.Status == AssetStatus.InStore);
@@ -35,9 +44,7 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
         var totalValue = allAssets.Sum(a => a.PurchaseValue);
         dashboard.Kpis.TotalAssetValue = $"LKR {totalValue:N0}";
 
-        dashboard.Kpis.PendingRequests = await _context.Requests
-            .AsNoTracking()
-            .CountAsync(r => r.IsDeleted == false, cancellationToken);
+        dashboard.Kpis.PendingRequests = await requestsQuery.CountAsync(cancellationToken);
 
         // 2. Charts - Assets By Category
         var assetsByCategory = allAssets
@@ -83,9 +90,17 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
         dashboard.Charts.Anomalies.MaintenanceDue = dashboard.Kpis.MaintenanceDue;
 
         // 7. Recent Activity (Simplified)
-        var recentAssets = await _context.Assets
+        var recentAssetsQuery = _context.Assets
             .AsNoTracking()
             .OrderByDescending(a => a.CreatedAt)
+            .AsQueryable();
+
+        if (request.UserId.HasValue)
+        {
+            recentAssetsQuery = recentAssetsQuery.Where(a => a.AssignedUserId == request.UserId.Value);
+        }
+
+        var recentAssets = await recentAssetsQuery
             .Take(5)
             .Select(a => new RecentActivityDto
             {

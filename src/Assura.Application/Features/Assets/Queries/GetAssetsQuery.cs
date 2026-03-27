@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Assets.Queries;
 
-public record GetAssetsQuery : IRequest<List<AssetDto>>;
+public record GetAssetsQuery(int? AssignedUserId = null) : IRequest<List<AssetDto>>;
 
 public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetDto>>
 {
@@ -18,13 +18,21 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
 
     public async Task<List<AssetDto>> Handle(GetAssetsQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Assets
+        var query = _context.Assets
             .AsNoTracking()
             .Include(a => a.Product)
             .Include(a => a.Category)
             .Include(a => a.Division)
             .Include(a => a.Supplier)
             .Include(a => a.AssignedUser)
+            .AsQueryable();
+
+        if (request.AssignedUserId.HasValue)
+        {
+            query = query.Where(a => a.AssignedUserId == request.AssignedUserId.Value);
+        }
+
+        return await query
             .Select(a => new AssetDto
             {
                 Id = a.Id,

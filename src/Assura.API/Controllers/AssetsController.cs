@@ -21,6 +21,15 @@ public class AssetsController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<List<AssetDto>>> GetAssets()
     {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        int? userId = int.TryParse(userIdStr, out var id) ? id : null;
+
+        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        if (role != "Admin" && role != "Storekeeper" && role != "Procurement")
+        {
+            return await _mediator.Send(new GetAssetsQuery(userId));
+        }
+
         return await _mediator.Send(new GetAssetsQuery());
     }
 
