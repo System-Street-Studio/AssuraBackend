@@ -19,18 +19,27 @@ public class AssetsController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<AssetDto>>> GetAssets()
+    public async Task<ActionResult<List<AssetDto>>> GetAssets([FromQuery] bool onlyMine = false)
     {
-        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                        ?? User.FindFirst("sub")?.Value;
+        
         int? userId = int.TryParse(userIdStr, out var id) ? id : null;
 
-        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-        if (role != "Admin" && role != "Storekeeper" && role != "Procurement")
+        Console.WriteLine($"[DEBUG] GetAssets: onlyMine={onlyMine}, userId={userId}");
+
+        if (onlyMine)
         {
             return await _mediator.Send(new GetAssetsQuery(userId));
         }
 
-        return await _mediator.Send(new GetAssetsQuery());
+        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        if (role == Roles.Admin || role == Roles.Storekeeper || role == Roles.Procurement)
+        {
+            return await _mediator.Send(new GetAssetsQuery());
+        }
+
+        return await _mediator.Send(new GetAssetsQuery(userId));
     }
 
     [HttpGet("{id}")]

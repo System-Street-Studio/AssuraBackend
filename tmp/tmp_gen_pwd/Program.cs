@@ -1,23 +1,15 @@
 ﻿using System;
 using BCrypt.Net;
 
-class Program
+namespace HashGen
 {
-    static void Main()
+    class Program
     {
-        string[] users = { "Storekeeper", "DivHead", "Employee", "Super", "Accountant" };
-        string[] passwords = {
-            "StorekeeperPass123!",
-            "DivHeadPass123!",
-            "EmployeePass123!",
-            "SuperintendentPass123!",
-            "AccountantPass123!"
-        };
-
-        for (int i = 0; i < users.Length; i++)
+        static void Main(string[] args)
         {
-            string hash = BCrypt.Net.BCrypt.HashPassword(passwords[i]);
-            Console.WriteLine($"{users[i]}|{passwords[i]}|{hash}");
+            string password = "Password@123";
+            string hash = BCrypt.Net.BCrypt.HashPassword(password);
+            Console.WriteLine(hash);
         }
     }
 }
