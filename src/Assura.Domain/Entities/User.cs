@@ -21,6 +21,7 @@ public class User : BaseEntity
     public Division? Division { get; set; }
 
     public UserRole? Role { get; set; }
+    public string? PhoneNumber { get; set; }
     
     public ICollection<Asset> AssignedAssets { get; set; } = new List<Asset>();
     public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();

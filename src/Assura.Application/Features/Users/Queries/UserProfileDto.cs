@@ -12,4 +12,5 @@ public class UserProfileDto
     public string? Role { get; set; }
     public string? DivisionName { get; set; }
     public int? DivisionId { get; set; }
+    public string? PhoneNumber { get; set; }
 }

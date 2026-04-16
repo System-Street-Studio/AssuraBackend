@@ -32,7 +32,8 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, U
                 Email = u.Email,
                 Role = u.Role.HasValue ? u.Role.Value.ToString() : "User",
                 DivisionId = u.DivisionId,
-                DivisionName = u.Division != null ? u.Division.Name : null
+                DivisionName = u.Division != null ? u.Division.Name : null,
+                PhoneNumber = u.PhoneNumber
             })
             .FirstOrDefaultAsync(cancellationToken);
 
