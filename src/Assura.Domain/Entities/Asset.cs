@@ -33,6 +33,10 @@ public class Asset : BaseEntity
     public int? AssignedUserId { get; set; }
     public User? AssignedUser { get; set; }
 
+    public int? ReservedForUserId { get; set; }
+    public DateTime? ReservedUntilUtc { get; set; }
+    public int? ReservedByRequestId { get; set; }
+
     public ICollection<Maintenance> MaintenanceRecords { get; set; } = new List<Maintenance>();
     public ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
     public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();

@@ -1,4 +1,5 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
 using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ public record ProcessRequestCommand : IRequest
     public int? AssetId { get; init; }
     public bool IsInStock { get; init; }
     public string? Remarks { get; init; }
+    public int? ProcessedByUserId { get; init; }
 }
 
 public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestCommand>
@@ -32,18 +34,36 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
         if (entity == null) return;
 
         entity.Remarks = request.Remarks;
+        entity.StorekeeperProcessorId = request.ProcessedByUserId;
+        entity.StorekeeperProcessedAt = DateTime.UtcNow;
 
         if (request.IsInStock)
         {
-            // Flow: Found -> Notify Employee & Division Head
-            entity.Status = "Approved";
-            entity.AssetId = request.AssetId;
+            if (!request.AssetId.HasValue)
+            {
+                return;
+            }
 
-            // 1. Notify Requester
+            // In stock means reserve temporarily and wait for physical handover confirmation.
+            entity.Status = RequestWorkflowStatus.TemporaryAssigned;
+            entity.AssetId = request.AssetId;
+            entity.TemporarilyAssignedAt = DateTime.UtcNow;
+
+            var asset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.Id == request.AssetId.Value, cancellationToken);
+
+            if (asset != null)
+            {
+                asset.ReservedForUserId = entity.RequesterId;
+                asset.ReservedByRequestId = entity.Id;
+                asset.ReservedUntilUtc = DateTime.UtcNow.AddHours(48);
+            }
+
+            // Notify employee that reserved asset is ready for pickup.
             _context.Notifications.Add(new Notification
             {
-                Title = "Request Approved",
-                Message = $"Your request {entity.RequestNumber} has been approved and an asset has been allocated.",
+                Title = "Asset Reserved for Pickup",
+                Message = $"Your request {entity.RequestNumber} has a temporary reserved asset. Collect it from stores for final confirmation.",
                 UserId = entity.RequesterId,
                 Type = "Success",
                 ReferenceId = entity.Id.ToString()
@@ -60,8 +80,8 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
                 {
                     _context.Notifications.Add(new Notification
                     {
-                        Title = "Asset Allocated in Division",
-                        Message = $"An asset has been allocated for {entity.Requester.FirstName} {entity.Requester.LastName}'s request ({entity.RequestNumber}).",
+                        Title = "Temporary Asset Assigned",
+                        Message = $"Request {entity.RequestNumber} has a temporary asset reservation and is awaiting pickup confirmation.",
                         UserId = head.Id,
                         Type = "Info",
                         ReferenceId = entity.Id.ToString()
@@ -72,7 +92,7 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
         else
         {
             // Flow: Not Found -> Notify Procurement
-            entity.Status = "PendingProcurement";
+            entity.Status = RequestWorkflowStatus.PendingProcurement;
 
             var procurementUsers = await _context.Users
                 .Where(u => u.Role == UserRole.Procurement || u.Role == UserRole.Admin)

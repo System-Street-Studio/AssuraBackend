@@ -1,4 +1,5 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using MediatR;
@@ -19,6 +20,8 @@ public record CreateRequestCommand : IRequest<int>
 
 public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand, int>
 {
+    private const decimal LowValueThreshold = 100000m;
+
     private readonly IApplicationDbContext _context;
 
     public CreateRequestCommandHandler(IApplicationDbContext context)
@@ -29,6 +32,14 @@ public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand,
     public async Task<int> Handle(CreateRequestCommand request, CancellationToken cancellationToken)
     {
         var requestNumber = $"REQ-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
+        var requester = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == request.RequesterId, cancellationToken);
+
+        var bypassDivisionHeadApproval = await ShouldBypassDivisionHeadApproval(request, requester, cancellationToken);
+        var initialStatus = bypassDivisionHeadApproval
+            ? RequestWorkflowStatus.PendingStorekeeperReview
+            : RequestWorkflowStatus.PendingDivisionHeadApproval;
 
         var entity = new Request
         {
@@ -40,31 +51,98 @@ public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand,
             SpecialNote = request.SpecialNote,
             RequesterId = request.RequesterId,
             AssetId = request.AssetId,
-            Status = "Pending"
+            Status = initialStatus,
+            RequiresDivisionHeadApproval = !bypassDivisionHeadApproval
         };
 
         _context.Requests.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Notify Storekeepers & Admins
-        var storekeepers = await _context.Users
-            .Where(u => u.Role == UserRole.Storekeeper || u.Role == UserRole.Admin)
-            .ToListAsync(cancellationToken);
-
-        foreach (var user in storekeepers)
+        if (initialStatus == RequestWorkflowStatus.PendingDivisionHeadApproval && requester?.DivisionId is int divisionId)
         {
-            _context.Notifications.Add(new Notification
+            var divisionHeads = await _context.Users
+                .Where(u => u.DivisionId == divisionId && u.Role == UserRole.DivisionHead)
+                .ToListAsync(cancellationToken);
+
+            foreach (var user in divisionHeads)
             {
-                Title = "New Asset Request",
-                Message = $"A new {request.Type} request ({requestNumber}) requires stock verification.",
-                UserId = user.Id,
-                Type = "Info",
-                ReferenceId = entity.Id.ToString()
-            });
+                _context.Notifications.Add(new Notification
+                {
+                    Title = "Division Approval Required",
+                    Message = $"Request {requestNumber} is waiting for division head approval.",
+                    UserId = user.Id,
+                    Type = "Info",
+                    ReferenceId = entity.Id.ToString()
+                });
+            }
+        }
+        else
+        {
+            var storekeepers = await _context.Users
+                .Where(u => u.Role == UserRole.Storekeeper || u.Role == UserRole.Admin)
+                .ToListAsync(cancellationToken);
+
+            foreach (var user in storekeepers)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    Title = "New Asset Request",
+                    Message = $"A new {request.Type} request ({requestNumber}) requires stock verification.",
+                    UserId = user.Id,
+                    Type = "Info",
+                    ReferenceId = entity.Id.ToString()
+                });
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);
 
         return entity.Id;
+    }
+
+    private async Task<bool> ShouldBypassDivisionHeadApproval(
+        CreateRequestCommand request,
+        User? requester,
+        CancellationToken cancellationToken)
+    {
+        // Trusted roles can route directly to storekeeper.
+        if (requester?.Role is UserRole.Admin or UserRole.Procurement or UserRole.Storekeeper or UserRole.DivisionHead)
+        {
+            return true;
+        }
+
+        // Urgent and high-priority requests bypass division head.
+        if (request.Priority is PriorityType.Urgent or PriorityType.High)
+        {
+            return true;
+        }
+
+        if (!request.AssetId.HasValue)
+        {
+            return false;
+        }
+
+        var asset = await _context.Assets
+            .Include(a => a.Category)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == request.AssetId.Value, cancellationToken);
+
+        if (asset == null)
+        {
+            return false;
+        }
+
+        if (asset.PurchaseValue <= LowValueThreshold)
+        {
+            return true;
+        }
+
+        var categoryName = asset.Category?.Name ?? string.Empty;
+        if (categoryName.Contains("consumable", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 }

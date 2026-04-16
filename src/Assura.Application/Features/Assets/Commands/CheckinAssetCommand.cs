@@ -1,12 +1,55 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Application.DTOs;
+using Assura.Domain.Entities;
 using Assura.Domain.Enums;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Assura.Application.Features.Assets.Commands;
 
-public record CheckinAssetCommand(int Id, string Condition, string? Notes) : IRequest<AssetDto?>;
+public record CheckinAssetCommand(
+    int Id,
+    string Condition,
+    string? Notes,
+    string? CheckedInBy,
+    string? DamageSeverity,
+    bool RepairNeeded,
+    bool Acknowledged,
+    string? EvidenceFileName) : IRequest<AssetDto?>;
+
+public class CheckinAssetCommandValidator : AbstractValidator<CheckinAssetCommand>
+{
+    public CheckinAssetCommandValidator()
+    {
+        RuleFor(x => x.Condition)
+            .NotEmpty();
+
+        RuleFor(x => x.Acknowledged)
+            .Equal(true)
+            .WithMessage("Check-in acknowledgement is required.");
+
+        RuleFor(x => x.DamageSeverity)
+            .NotEmpty()
+            .When(x => x.Condition == "Damaged" || x.RepairNeeded)
+            .WithMessage("Damage severity is required for damaged/repair-needed check-ins.");
+    }
+}
+
+internal class CheckinCheckoutRecordMeta
+{
+    public DateOnly? DueDate { get; set; }
+    public string? Condition { get; set; }
+    public string? DamageSeverity { get; set; }
+    public bool RepairNeeded { get; set; }
+    public bool Acknowledged { get; set; }
+    public string? EvidenceFileName { get; set; }
+    public string? MaintenanceNumber { get; set; }
+    public string? CheckedOutBy { get; set; }
+    public string? CheckedInBy { get; set; }
+    public string? CheckinNotes { get; set; }
+}
 
 public class CheckinAssetCommandHandler : IRequestHandler<CheckinAssetCommand, AssetDto?>
 {
@@ -24,8 +67,10 @@ public class CheckinAssetCommandHandler : IRequestHandler<CheckinAssetCommand, A
 
         if (entity == null) return null;
 
+        var requiresMaintenance = request.Condition == "Damaged" || request.RepairNeeded;
+
         // Condition-based status update
-        entity.Status = request.Condition == "Damaged" ? AssetStatus.UnderMaintenance : AssetStatus.InStore;
+        entity.Status = requiresMaintenance ? AssetStatus.UnderMaintenance : AssetStatus.InStore;
         entity.AssignedUserId = null;
         
         if (!string.IsNullOrEmpty(request.Notes))
@@ -33,6 +78,43 @@ public class CheckinAssetCommandHandler : IRequestHandler<CheckinAssetCommand, A
             entity.Notes = string.IsNullOrEmpty(entity.Notes) 
                 ? $"Check-in: {request.Notes}" 
                 : $"{entity.Notes} | Check-in: {request.Notes}";
+        }
+
+        var checkoutRequest = await _context.Requests
+            .Where(r => r.Type == RequestType.Asset && r.AssetId == request.Id && r.Status != "Returned")
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (checkoutRequest != null)
+        {
+            var meta = ParseMeta(checkoutRequest.Remarks);
+            meta.Condition = request.Condition;
+            meta.DamageSeverity = request.DamageSeverity;
+            meta.RepairNeeded = request.RepairNeeded;
+            meta.Acknowledged = request.Acknowledged;
+            meta.EvidenceFileName = string.IsNullOrWhiteSpace(request.EvidenceFileName) ? null : request.EvidenceFileName.Trim();
+            meta.CheckedInBy = string.IsNullOrWhiteSpace(request.CheckedInBy) ? "Storekeeper" : request.CheckedInBy.Trim();
+            meta.CheckinNotes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+
+            if (requiresMaintenance)
+            {
+                var maintenanceNumber = $"MNT-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+                meta.MaintenanceNumber = maintenanceNumber;
+
+                _context.Maintenances.Add(new Maintenance
+                {
+                    MaintenanceNumber = maintenanceNumber,
+                    Type = MaintenanceType.Corrective,
+                    MaintenanceDate = DateTime.UtcNow,
+                    Description = BuildMaintenanceDescription(request),
+                    Cost = 0,
+                    Status = "Pending",
+                    AssetId = entity.Id,
+                });
+            }
+
+            checkoutRequest.Status = "Returned";
+            checkoutRequest.Remarks = JsonSerializer.Serialize(meta);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -71,5 +153,31 @@ public class CheckinAssetCommandHandler : IRequestHandler<CheckinAssetCommand, A
             .FirstAsync(cancellationToken);
 
         return asset;
+    }
+
+    private static CheckinCheckoutRecordMeta ParseMeta(string? remarks)
+    {
+        if (string.IsNullOrWhiteSpace(remarks))
+        {
+            return new CheckinCheckoutRecordMeta();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<CheckinCheckoutRecordMeta>(remarks) ?? new CheckinCheckoutRecordMeta();
+        }
+        catch
+        {
+            return new CheckinCheckoutRecordMeta();
+        }
+    }
+
+    private static string BuildMaintenanceDescription(CheckinAssetCommand request)
+    {
+        var notes = string.IsNullOrWhiteSpace(request.Notes) ? "No notes provided" : request.Notes.Trim();
+        var severity = string.IsNullOrWhiteSpace(request.DamageSeverity) ? "Unspecified" : request.DamageSeverity.Trim();
+        var evidence = string.IsNullOrWhiteSpace(request.EvidenceFileName) ? "No evidence file" : request.EvidenceFileName.Trim();
+
+        return $"Auto-created on check-in. Condition: {request.Condition}; Severity: {severity}; Evidence: {evidence}; Notes: {notes}";
     }
 }

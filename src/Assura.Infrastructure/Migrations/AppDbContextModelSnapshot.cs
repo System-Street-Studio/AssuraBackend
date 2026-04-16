@@ -74,6 +74,15 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("QrCode")
                         .HasColumnType("longtext");
 
+                    b.Property<int?>("ReservedByRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReservedForUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReservedUntilUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("SerialNumber")
                         .HasColumnType("longtext");
 
@@ -894,8 +903,17 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("DivisionHeadReviewedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("DivisionHeadReviewerId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("PickupConfirmedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
@@ -910,6 +928,9 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("RequesterId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("RequiresDivisionHeadApproval")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("SpecialNote")
                         .HasColumnType("longtext");
 
@@ -919,6 +940,15 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("StorekeeperProcessedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("StorekeeperProcessorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("TemporarilyAssignedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
