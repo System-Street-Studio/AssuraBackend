@@ -31,6 +31,25 @@ public class RequestsController : BaseApiController
         return await _mediator.Send(new GetRequestsQuery(userId, role));
     }
 
+    [HttpGet("{id}")]
+    public async Task<ActionResult<RequestDto>> GetRequestById(int id)
+    {
+        if (id <= 0) return BadRequest();
+
+        var request = await _mediator.Send(new GetRequestByIdQuery(id));
+        if (request == null) return NotFound();
+
+        return request;
+    }
+
+    [HttpGet("{id}/suggested-assets")]
+    [Authorize(Roles = "Storekeeper,Admin")]
+    public async Task<ActionResult<List<SuggestedAssetDto>>> GetSuggestedAssets(int id)
+    {
+        if (id <= 0) return BadRequest();
+        return await _mediator.Send(new GetSuggestedAssetsForRequestQuery(id));
+    }
+
     [HttpPost]
     public async Task<ActionResult<int>> CreateRequest([FromBody] CreateRequestCommand command)
     {
@@ -46,10 +65,46 @@ public class RequestsController : BaseApiController
     }
 
     [HttpPost("{id}/process")]
+    [Authorize(Roles = "Storekeeper,Admin,Procurement")]
     public async Task<ActionResult> ProcessRequest(int id, [FromBody] ProcessRequestCommand command)
     {
         if (id != command.Id) return BadRequest();
-        await _mediator.Send(command);
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var finalCommand = int.TryParse(userIdStr, out var userId)
+            ? command with { ProcessedByUserId = userId }
+            : command;
+
+        await _mediator.Send(finalCommand);
+        return NoContent();
+    }
+
+    [HttpPost("{id}/division-head-review")]
+    [Authorize(Roles = "DivisionHead,Admin")]
+    public async Task<ActionResult> ReviewByDivisionHead(int id, [FromBody] ReviewRequestByDivisionHeadCommand command)
+    {
+        if (id != command.Id) return BadRequest();
+
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var finalCommand = int.TryParse(userIdStr, out var userId)
+            ? command with { ReviewedByUserId = userId }
+            : command;
+
+        await _mediator.Send(finalCommand);
+        return NoContent();
+    }
+
+    [HttpPost("{id}/confirm-temporary-assignment")]
+    [Authorize(Roles = "Storekeeper,Admin")]
+    public async Task<ActionResult> ConfirmTemporaryAssignment(int id, [FromBody] ConfirmTemporaryAssignmentCommand command)
+    {
+        if (id != command.Id) return BadRequest();
+
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var finalCommand = int.TryParse(userIdStr, out var userId)
+            ? command with { ConfirmedByUserId = userId }
+            : command;
+
+        await _mediator.Send(finalCommand);
         return NoContent();
     }
 

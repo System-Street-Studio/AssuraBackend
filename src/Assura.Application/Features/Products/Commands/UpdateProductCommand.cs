@@ -23,10 +23,10 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
 
         if (entity == null) return null;
 
-        entity.Name = request.Product.Name;
-        entity.ModelNumber = request.Product.ModelNumber;
-        entity.Manufacturer = request.Product.Manufacturer;
-        entity.Description = request.Product.Description;
+        entity.Name = request.Product.Name.Trim();
+        entity.ModelNumber = string.IsNullOrWhiteSpace(request.Product.ModelNumber) ? null : request.Product.ModelNumber.Trim();
+        entity.Manufacturer = string.IsNullOrWhiteSpace(request.Product.Manufacturer) ? null : request.Product.Manufacturer.Trim();
+        entity.Description = string.IsNullOrWhiteSpace(request.Product.Description) ? null : request.Product.Description.Trim();
 
         await _context.SaveChangesAsync(cancellationToken);
 

@@ -20,10 +20,10 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
     {
         var entity = new Product
         {
-            Name = request.Product.Name,
-            ModelNumber = request.Product.ModelNumber,
-            Manufacturer = request.Product.Manufacturer,
-            Description = request.Product.Description
+            Name = request.Product.Name.Trim(),
+            ModelNumber = string.IsNullOrWhiteSpace(request.Product.ModelNumber) ? null : request.Product.ModelNumber.Trim(),
+            Manufacturer = string.IsNullOrWhiteSpace(request.Product.Manufacturer) ? null : request.Product.Manufacturer.Trim(),
+            Description = string.IsNullOrWhiteSpace(request.Product.Description) ? null : request.Product.Description.Trim()
         };
 
         _context.Products.Add(entity);

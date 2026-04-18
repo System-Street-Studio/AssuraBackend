@@ -16,6 +16,9 @@ public class KpiDto
     public string TotalAssetValue { get; set; } = "$0";
     public int PendingRequests { get; set; }
     public int MaintenanceDue { get; set; }
+    public int TemporaryAssignedAssets { get; set; }
+    public int AwaitingPickupConfirmations { get; set; }
+    public int ProcurementEscalations { get; set; }
 }
 
 public class RecentActivityDto

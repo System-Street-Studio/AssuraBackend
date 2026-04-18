@@ -1,8 +1,10 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Application.DTOs;
+using Assura.Domain.Constants;
 using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -45,6 +47,17 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
         dashboard.Kpis.TotalAssetValue = $"LKR {totalValue:N0}";
 
         dashboard.Kpis.PendingRequests = await requestsQuery.CountAsync(cancellationToken);
+        dashboard.Kpis.TemporaryAssignedAssets = await requestsQuery
+            .CountAsync(r => r.Status == RequestWorkflowStatus.TemporaryAssigned, cancellationToken);
+
+        var nowUtc = DateTime.UtcNow;
+        dashboard.Kpis.AwaitingPickupConfirmations = allAssets.Count(a =>
+            a.ReservedForUserId.HasValue &&
+            a.ReservedByRequestId.HasValue &&
+            (!a.ReservedUntilUtc.HasValue || a.ReservedUntilUtc.Value >= nowUtc));
+
+        dashboard.Kpis.ProcurementEscalations = await requestsQuery
+            .CountAsync(r => r.Status == RequestWorkflowStatus.PendingProcurement, cancellationToken);
 
         // 2. Charts - Assets By Category
         var assetsByCategory = allAssets

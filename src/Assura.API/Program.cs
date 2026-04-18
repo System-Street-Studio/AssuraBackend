@@ -9,20 +9,50 @@ Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
+static string? GetFirstEnvValue(params string[] keys)
+{
+    foreach (var key in keys)
+    {
+        var value = Env.GetString(key)?.Trim();
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+    }
+
+    return null;
+}
+
 // Add services
 builder.Services.AddApplication();
 
 // Map Environment Variables to Configuration
-var dbServer = Env.GetString("DB_SERVER");
-var dbPort = Env.GetString("DB_PORT");
-var dbName = Env.GetString("DB_NAME");
-var dbUser = Env.GetString("DB_USER");
-var dbPassword = Env.GetString("DB_PASSWORD");
+var dbConnectionStringFromEnv = GetFirstEnvValue("DB_CONNECTION_STRING", "MYSQL_CONNECTION_STRING");
+var dbServer = GetFirstEnvValue("DB_SERVER", "DB_HOST");
+var dbPort = GetFirstEnvValue("DB_PORT") ?? "3306";
+var dbName = GetFirstEnvValue("DB_NAME");
+var dbUser = GetFirstEnvValue("DB_USER", "DB_USERNAME");
+var dbPassword = GetFirstEnvValue("DB_PASSWORD", "DB_PASS");
+var dbSslMode = GetFirstEnvValue("DB_SSL_MODE");
 
-if (!string.IsNullOrEmpty(dbServer) && dbServer != "127.0.0.1" && dbServer != "localhost")
+var hasDbEnvConfig =
+    !string.IsNullOrWhiteSpace(dbServer) &&
+    !string.IsNullOrWhiteSpace(dbPort) &&
+    !string.IsNullOrWhiteSpace(dbName) &&
+    !string.IsNullOrWhiteSpace(dbUser) &&
+    !string.IsNullOrWhiteSpace(dbPassword);
+
+if (hasDbEnvConfig)
 {
-    builder.Configuration["ConnectionStrings:DefaultConnection"] = 
+    var dbConnectionString = dbConnectionStringFromEnv ??
         $"Server={dbServer};Port={dbPort};Database={dbName};Uid={dbUser};Pwd={dbPassword};";
+
+    if (!string.IsNullOrWhiteSpace(dbSslMode))
+    {
+        dbConnectionString += $"SslMode={dbSslMode};";
+    }
+
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = dbConnectionString;
 }
 
 builder.Configuration["Jwt:Key"] = Env.GetString("JWT_SECRET_KEY") ?? builder.Configuration["Jwt:Key"];

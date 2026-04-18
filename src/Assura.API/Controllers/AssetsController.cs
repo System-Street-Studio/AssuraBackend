@@ -5,6 +5,7 @@ using Assura.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
@@ -42,6 +43,41 @@ public class AssetsController : BaseApiController
         return await _mediator.Send(new GetAssetsQuery(userId));
     }
 
+    [HttpGet("available-for-checkout")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
+    public async Task<ActionResult<List<AvailableCheckoutAssetDto>>> GetAvailableForCheckout()
+    {
+        return await _mediator.Send(new GetAvailableAssetsForCheckoutQuery());
+    }
+
+    [HttpGet("checkout-records")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper},{Roles.Auditor}")]
+    public async Task<ActionResult<List<CheckoutRecordDto>>> GetCheckoutRecords()
+    {
+        return await _mediator.Send(new GetCheckoutRecordsQuery());
+    }
+
+    [HttpPost("{id}/checkout")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
+    public async Task<ActionResult<CheckoutRecordDto>> CheckoutAsset(int id, [FromBody] CheckoutRequest request)
+    {
+        if (id <= 0 || request.AssigneeUserId <= 0)
+        {
+            return BadRequest("Invalid asset or assignee.");
+        }
+
+        var actorName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Storekeeper";
+
+        var result = await _mediator.Send(new CheckoutAssetCommand(
+            id,
+            request.AssigneeUserId,
+            request.DueDate,
+            request.Notes,
+            actorName));
+
+        return Ok(result);
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<AssetDto>> GetAsset(int id)
     {
@@ -77,14 +113,34 @@ public class AssetsController : BaseApiController
     [HttpPost("{id}/checkin")]
     public async Task<ActionResult<AssetDto>> CheckinAsset(int id, [FromBody] CheckinRequest request)
     {
-        var result = await _mediator.Send(new CheckinAssetCommand(id, request.Condition, request.Notes));
+        var actorName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Storekeeper";
+        var result = await _mediator.Send(new CheckinAssetCommand(
+            id,
+            request.Condition,
+            request.Notes,
+            actorName,
+            request.DamageSeverity,
+            request.RepairNeeded,
+            request.Acknowledged,
+            request.EvidenceFileName));
         if (result == null) return NotFound();
         return Ok(result);
+    }
+
+    public class CheckoutRequest
+    {
+        public int AssigneeUserId { get; set; }
+        public DateOnly DueDate { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class CheckinRequest
     {
         public string Condition { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public string? DamageSeverity { get; set; }
+        public bool RepairNeeded { get; set; }
+        public bool Acknowledged { get; set; }
+        public string? EvidenceFileName { get; set; }
     }
 }

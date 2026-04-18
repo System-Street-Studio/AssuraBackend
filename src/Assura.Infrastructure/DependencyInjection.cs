@@ -19,8 +19,16 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
-            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
-                b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+            var serverVersion = configuration["Database:ServerVersion"] ?? "10.11.15-mariadb";
+            options.UseMySql(connectionString, ServerVersion.Parse(serverVersion),
+                b =>
+                {
+                    b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                    b.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorNumbersToAdd: null);
+                });
         });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());

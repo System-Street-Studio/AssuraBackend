@@ -1,5 +1,6 @@
 using Assura.Application.Features.Users.Queries;
 using Assura.Application.Features.Users.Commands.UpdateUserProfile;
+using Assura.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,14 @@ public class UserController : ControllerBase
     public UserController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpGet("assignable-users")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
+    public async Task<IActionResult> GetAssignableUsers()
+    {
+        var result = await _mediator.Send(new GetAssignableUsersQuery());
+        return Ok(result);
     }
 
     [HttpGet("profile")]

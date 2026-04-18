@@ -10,6 +10,7 @@ public record GetRequestsQuery(int? UserId = null, UserRole? Role = null) : IReq
 public class RequestDto
 {
     public int Id { get; set; }
+    public int RequesterId { get; set; }
     public string RequestNumber { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public string Priority { get; set; } = string.Empty;
@@ -38,7 +39,23 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
             .Include(r => r.Asset)
             .AsQueryable();
 
-        if (request.Role != UserRole.Admin && request.Role != UserRole.Procurement && request.Role != UserRole.Storekeeper && request.UserId.HasValue)
+        if (request.Role == UserRole.DivisionHead && request.UserId.HasValue)
+        {
+            var headDivisionId = await _context.Users
+                .Where(u => u.Id == request.UserId.Value)
+                .Select(u => u.DivisionId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (headDivisionId.HasValue)
+            {
+                query = query.Where(r => r.Requester.DivisionId == headDivisionId.Value);
+            }
+            else
+            {
+                query = query.Where(_ => false);
+            }
+        }
+        else if (request.Role != UserRole.Admin && request.Role != UserRole.Procurement && request.Role != UserRole.Storekeeper && request.UserId.HasValue)
         {
             query = query.Where(r => r.RequesterId == request.UserId.Value);
         }
@@ -48,6 +65,7 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
             .Select(r => new RequestDto
             {
                 Id = r.Id,
+                RequesterId = r.RequesterId,
                 RequestNumber = r.RequestNumber,
                 Type = r.Type.ToString(),
                 Priority = r.Priority.ToString(),
