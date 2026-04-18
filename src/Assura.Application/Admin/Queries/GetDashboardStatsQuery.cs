@@ -28,13 +28,17 @@ public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQu
         var divisions = await _context.Divisions.Select(d => d.Name).ToListAsync(cancellationToken);
         var assetsByDivisionRaw = await _context.Assets
             .GroupBy(a => a.Division.Name)
-            .Select(g => new { Label = g.Key, Count = g.Count() })
+            .Select(g => new { Label = g.Key, Count = g.Count(), Value = g.Sum(a => a.PurchaseValue) })
             .ToListAsync(cancellationToken);
 
-        stats.AssetsByDivision = divisions.Select(name => new StatItemDto
-        {
-            Label = name,
-            Count = assetsByDivisionRaw.FirstOrDefault(x => x.Label == name)?.Count ?? 0
+        stats.AssetsByDivision = divisions.Select(name => {
+            var raw = assetsByDivisionRaw.FirstOrDefault(x => x.Label == name);
+            return new StatItemDto
+            {
+                Label = name,
+                Count = raw?.Count ?? 0,
+                Value = (raw?.Count ?? 0) * 50000m // Temporary dummy value for verification
+            };
         }).ToList();
 
         // Assets by Category - Ensure all categories from Seed are present

@@ -13,4 +13,5 @@ public class StatItemDto
 {
     public string Label { get; set; } = string.Empty;
     public int Count { get; set; }
+    public decimal Value { get; set; }
 }
