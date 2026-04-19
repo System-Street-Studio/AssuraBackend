@@ -30,17 +30,20 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<TIN> TINs => Set<TIN>();
     public DbSet<Transfer> Transfers => Set<Transfer>();
     public DbSet<Request> Requests => Set<Request>();
-    public DbSet<Maintenance> MaintenanceRecords => Set<Maintenance>();
+    public DbSet<AssetRequest> AssetRequests => Set<AssetRequest>();
+    public DbSet<Maintenance> Maintenances => Set<Maintenance>();
     public DbSet<RepairingFirm> RepairingFirms => Set<RepairingFirm>();
     public DbSet<DiscountInfo> DiscountInfos => Set<DiscountInfo>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<PurchasingOrderItem> PurchasingOrderItems => Set<PurchasingOrderItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<AssetInforming> AssetInformings => Set<AssetInforming>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(System.Reflection.Assembly.GetExecutingAssembly());
 
-        // Apply Soft Delete Global Query Filter
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
@@ -48,8 +51,6 @@ public class AppDbContext : DbContext, IApplicationDbContext
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(ConvertFilterExpression(entityType.ClrType));
             }
         }
-
-        base.OnModelCreating(modelBuilder);
     }
 
     private static System.Linq.Expressions.LambdaExpression ConvertFilterExpression(Type type)
@@ -71,6 +72,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
                     entry.Entity.CreatedAt = DateTime.UtcNow;
                     entry.Entity.CreatedBy = _currentUserService.UserId ?? "System";
                     break;
+
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
                     entry.Entity.UpdatedBy = _currentUserService.UserId ?? "System";

@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Assura.Infrastructure.Persistence;
+using Assura.Infrastructure.Identity;
 using Assura.Infrastructure.Services;
 
 namespace Assura.Infrastructure;
@@ -19,13 +19,26 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
-            options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)),
-                b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+            var serverVersion = configuration["Database:ServerVersion"] ?? "10.11.15-mariadb";
+            options.UseMySql(connectionString, ServerVersion.Parse(serverVersion),
+                b =>
+                {
+                    b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                    b.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorNumbersToAdd: null);
+                });
         });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IEmailService, EmailService>();
         services.AddHttpContextAccessor();
+
+        // Custom Auth Services from feature/auth
+        services.AddScoped<IIdentifyServices, IdentityService>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
         var jwtSettings = configuration.GetSection("Jwt");
         var secretKey = jwtSettings.GetValue<string>("Key") ?? "YourDevelopmentSecretKeyChangeInProduction";

@@ -12,15 +12,18 @@ public class User : BaseEntity
     public string PasswordHash { get; set; } = string.Empty;
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
+    public string? PasswordResetToken { get; set; }
+    public DateTime? ResetTokenExpiryTime { get; set; }
     public bool IsLocked { get; set; } = false;
     public bool IsActive { get; set; } = true;
 
-    public int DivisionId { get; set; }
-    public Division Division { get; set; } = null!;
+    public int? DivisionId { get; set; }
+    public Division? Division { get; set; }
 
-    public UserRole Role { get; set; }
+    public UserRole? Role { get; set; }
+    public string? PhoneNumber { get; set; }
     
     public ICollection<Asset> AssignedAssets { get; set; } = new List<Asset>();
-    public ICollection<Request> Requests { get; set; } = new List<Request>();
+    public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

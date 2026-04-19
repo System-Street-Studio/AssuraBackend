@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using Assura.Application.Common.Behaviors;
+using AutoMapper;
 
 namespace Assura.Application;
 
@@ -11,7 +12,7 @@ public static class DependencyInjection
     {
         var assembly = Assembly.GetExecutingAssembly();
 
-        services.AddAutoMapper(assembly);
+        services.AddAutoMapper(cfg => {}, assembly);
         services.AddValidatorsFromAssembly(assembly);
         services.AddMediatR(cfg => {
             cfg.RegisterServicesFromAssembly(assembly);

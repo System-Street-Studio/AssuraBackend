@@ -3,25 +3,71 @@ using Assura.API.Middleware;
 using Assura.Application;
 using Assura.Infrastructure;
 using DotNetEnv;
+using Microsoft.OpenApi.Models;
 
 Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+static string? GetFirstEnvValue(params string[] keys)
+{
+    foreach (var key in keys)
+    {
+        var value = Env.GetString(key)?.Trim();
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+    }
+
+    return null;
+}
+
+// Add services
 builder.Services.AddApplication();
 
 // Map Environment Variables to Configuration
-builder.Configuration["ConnectionStrings:DefaultConnection"] = 
-    $"Server={Env.GetString("DB_SERVER")};Port={Env.GetString("DB_PORT")};Database={Env.GetString("DB_NAME")};Uid={Env.GetString("DB_USER")};Pwd={Env.GetString("DB_PASSWORD")};";
+var dbConnectionStringFromEnv = GetFirstEnvValue("DB_CONNECTION_STRING", "MYSQL_CONNECTION_STRING");
+var dbServer = GetFirstEnvValue("DB_SERVER", "DB_HOST");
+var dbPort = GetFirstEnvValue("DB_PORT") ?? "3306";
+var dbName = GetFirstEnvValue("DB_NAME");
+var dbUser = GetFirstEnvValue("DB_USER", "DB_USERNAME");
+var dbPassword = GetFirstEnvValue("DB_PASSWORD", "DB_PASS");
+var dbSslMode = GetFirstEnvValue("DB_SSL_MODE");
 
-builder.Configuration["Jwt:Key"] = Env.GetString("JWT_SECRET_KEY");
-builder.Configuration["Jwt:Issuer"] = Env.GetString("JWT_ISSUER");
-builder.Configuration["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE");
+var hasDbEnvConfig =
+    !string.IsNullOrWhiteSpace(dbServer) &&
+    !string.IsNullOrWhiteSpace(dbPort) &&
+    !string.IsNullOrWhiteSpace(dbName) &&
+    !string.IsNullOrWhiteSpace(dbUser) &&
+    !string.IsNullOrWhiteSpace(dbPassword);
+
+if (hasDbEnvConfig)
+{
+    var dbConnectionString = dbConnectionStringFromEnv ??
+        $"Server={dbServer};Port={dbPort};Database={dbName};Uid={dbUser};Pwd={dbPassword};";
+
+    if (!string.IsNullOrWhiteSpace(dbSslMode))
+    {
+        dbConnectionString += $"SslMode={dbSslMode};";
+    }
+
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = dbConnectionString;
+}
+
+builder.Configuration["Jwt:Key"] = Env.GetString("JWT_SECRET_KEY") ?? builder.Configuration["Jwt:Key"];
+builder.Configuration["Jwt:Issuer"] = Env.GetString("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"];
+builder.Configuration["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"];
+builder.Configuration["Jwt:ExpiryMinutes"] = Env.GetString("JWT_EXPIRY_MINUTES", builder.Configuration["Jwt:ExpiryMinutes"] ?? "60");
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {
@@ -34,21 +80,62 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure Swagger/OpenAPI
+// Configure Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "FAMS API",
+        Version = "v1",
+        Description = "Fixed Asset Management System API"
+    });
+    
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "FAMS API v1");
+        // c.RoutePrefix = string.Empty; // Swagger at root
+    });
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseHttpsRedirection();
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseHttpsRedirection();
 app.UseCors("DefaultPolicy");
 
 app.UseAuthentication();

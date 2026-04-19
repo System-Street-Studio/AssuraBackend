@@ -71,6 +71,18 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int?>("PurchasingOrderId")
                         .HasColumnType("int");
 
+                    b.Property<string>("QrCode")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("ReservedByRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReservedForUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReservedUntilUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("SerialNumber")
                         .HasColumnType("longtext");
 
@@ -107,6 +119,147 @@ namespace Assura.Infrastructure.Migrations
                     b.HasIndex("SupplierId");
 
                     b.ToTable("Assets");
+                });
+
+            modelBuilder.Entity("Assura.Domain.Entities.AssetInforming", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("DivisionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Model")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("PurchasedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("PurchasedPrice")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Warranty")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DivisionId");
+
+                    b.ToTable("AssetInformings");
+                });
+
+            modelBuilder.Entity("Assura.Domain.Entities.AssetRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AssetCategory")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("AssetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AssetName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Attachments")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("DivisionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RequesterId")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RequesterName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SubmittedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssetId");
+
+                    b.HasIndex("DivisionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AssetRequests");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.AuditLog", b =>
@@ -427,7 +580,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("RepairingFirmId");
 
-                    b.ToTable("MaintenanceRecords");
+                    b.ToTable("Maintenances");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Notification", b =>
@@ -567,6 +720,76 @@ namespace Assura.Infrastructure.Migrations
                     b.ToTable("PurchasingOrders");
                 });
 
+            modelBuilder.Entity("Assura.Domain.Entities.PurchasingOrderItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("Discount")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("DiscountedPrice")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Model")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("PurchasingOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SpecialNote")
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("VatAmount")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("VatPercentage")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<string>("Warranty")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PurchasingOrderId");
+
+                    b.ToTable("PurchasingOrderItems");
+                });
+
             modelBuilder.Entity("Assura.Domain.Entities.QRN", b =>
                 {
                     b.Property<int>("Id")
@@ -680,8 +903,17 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("DivisionHeadReviewedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("DivisionHeadReviewerId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("PickupConfirmedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
@@ -696,9 +928,27 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("RequesterId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("RequiresDivisionHeadApproval")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("SpecialNote")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Specifications")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("StorekeeperProcessedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("StorekeeperProcessorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("TemporarilyAssignedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -880,7 +1130,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("DivisionId")
+                    b.Property<int?>("DivisionId")
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
@@ -909,13 +1159,22 @@ namespace Assura.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("RefreshToken")
                         .HasColumnType("longtext");
 
                     b.Property<DateTime?>("RefreshTokenExpiryTime")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("Role")
+                    b.Property<DateTime?>("ResetTokenExpiryTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("Role")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1126,15 +1385,20 @@ namespace Assura.Infrastructure.Migrations
                                         .HasForeignKey("AssetSpecificationsAssetId");
                                 });
 
-                            b1.Navigation("Computer");
+                            b1.Navigation("Computer")
+                                .IsRequired();
 
-                            b1.Navigation("Furniture");
+                            b1.Navigation("Furniture")
+                                .IsRequired();
 
-                            b1.Navigation("Networking");
+                            b1.Navigation("Networking")
+                                .IsRequired();
 
-                            b1.Navigation("Printing");
+                            b1.Navigation("Printing")
+                                .IsRequired();
 
-                            b1.Navigation("Server");
+                            b1.Navigation("Server")
+                                .IsRequired();
                         });
 
                     b.Navigation("AssignedUser");
@@ -1149,6 +1413,38 @@ namespace Assura.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("Assura.Domain.Entities.AssetInforming", b =>
+                {
+                    b.HasOne("Assura.Domain.Entities.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Division");
+                });
+
+            modelBuilder.Entity("Assura.Domain.Entities.AssetRequest", b =>
+                {
+                    b.HasOne("Assura.Domain.Entities.Asset", "Asset")
+                        .WithMany("AssetRequests")
+                        .HasForeignKey("AssetId");
+
+                    b.HasOne("Assura.Domain.Entities.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId");
+
+                    b.HasOne("Assura.Domain.Entities.User", "User")
+                        .WithMany("AssetRequests")
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("Asset");
+
+                    b.Navigation("Division");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.DiscountInfo", b =>
@@ -1239,6 +1535,17 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("Assura.Domain.Entities.PurchasingOrderItem", b =>
+                {
+                    b.HasOne("Assura.Domain.Entities.PurchasingOrder", "PurchasingOrder")
+                        .WithMany("Items")
+                        .HasForeignKey("PurchasingOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PurchasingOrder");
+                });
+
             modelBuilder.Entity("Assura.Domain.Entities.QRN", b =>
                 {
                     b.HasOne("Assura.Domain.Entities.Asset", "Asset")
@@ -1253,11 +1560,11 @@ namespace Assura.Infrastructure.Migrations
             modelBuilder.Entity("Assura.Domain.Entities.Request", b =>
                 {
                     b.HasOne("Assura.Domain.Entities.Asset", "Asset")
-                        .WithMany("Requests")
+                        .WithMany()
                         .HasForeignKey("AssetId");
 
                     b.HasOne("Assura.Domain.Entities.User", "Requester")
-                        .WithMany("Requests")
+                        .WithMany()
                         .HasForeignKey("RequesterId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1318,17 +1625,16 @@ namespace Assura.Infrastructure.Migrations
                     b.HasOne("Assura.Domain.Entities.Division", "Division")
                         .WithMany("Users")
                         .HasForeignKey("DivisionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Division");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Asset", b =>
                 {
-                    b.Navigation("MaintenanceRecords");
+                    b.Navigation("AssetRequests");
 
-                    b.Navigation("Requests");
+                    b.Navigation("MaintenanceRecords");
 
                     b.Navigation("Transfers");
                 });
@@ -1357,6 +1663,8 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("Discounts");
 
                     b.Navigation("GRNs");
+
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.RepairingFirm", b =>
@@ -1373,11 +1681,11 @@ namespace Assura.Infrastructure.Migrations
 
             modelBuilder.Entity("Assura.Domain.Entities.User", b =>
                 {
+                    b.Navigation("AssetRequests");
+
                     b.Navigation("AssignedAssets");
 
                     b.Navigation("Notifications");
-
-                    b.Navigation("Requests");
                 });
 #pragma warning restore 612, 618
         }

@@ -14,6 +14,7 @@ public class Asset : BaseEntity
     public decimal PurchaseValue { get; set; }
     public string? Warranty { get; set; }
     public string? Notes { get; set; }
+    public string? QrCode { get; set; }
 
     public AssetSpecifications? Specifications { get; set; }
 
@@ -32,7 +33,11 @@ public class Asset : BaseEntity
     public int? AssignedUserId { get; set; }
     public User? AssignedUser { get; set; }
 
+    public int? ReservedForUserId { get; set; }
+    public DateTime? ReservedUntilUtc { get; set; }
+    public int? ReservedByRequestId { get; set; }
+
     public ICollection<Maintenance> MaintenanceRecords { get; set; } = new List<Maintenance>();
     public ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
-    public ICollection<Request> Requests { get; set; } = new List<Request>();
+    public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();
 }
