@@ -53,13 +53,23 @@ public class AssetRequestsController : ControllerBase
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending()
     {
-        //  Pending requests query 
-        var result = await _mediator.Send(new GetPendingRequestsQuery()); 
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        // If Admin/Procurement/Storekeeper, they should see all pending requests
+        if (role == "Admin" || role == "Procurement" || role == "Storekeeper")
+        {
+            return Ok(await _mediator.Send(new GetPendingRequestsQuery()));
+        }
+        
+        // Otherwise, return only the pending requests for the user
+        var isDivisionHead = role == "DivisionHead";
+        var result = await _mediator.Send(new GetPendingRequestsQuery(userId, isDivisionHead));
         return Ok(result);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] bool isDivisionHead)
+    public async Task<IActionResult> GetAll([FromQuery] string? status = null, [FromQuery] string? type = null, [FromQuery] bool isDivisionHead = false)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
@@ -67,11 +77,12 @@ public class AssetRequestsController : ControllerBase
         // If Admin/Procurement/Storekeeper, they should see all requests
         if (role == "Admin" || role == "Procurement" || role == "Storekeeper")
         {
-            return Ok(await _mediator.Send(new GetAllRequestsQuery()));
+            var result = await _mediator.Send(new GetFilteredAssetRequestsQuery(status, type));
+            return Ok(result);
         }
         
-        var result = await _mediator.Send(new GetAllRequestsQuery(userId, isDivisionHead));
-        return Ok(result);
+        var filteredResult = await _mediator.Send(new GetFilteredAssetRequestsQuery(status, type, userId, isDivisionHead));
+        return Ok(filteredResult);
     }
     
 }
