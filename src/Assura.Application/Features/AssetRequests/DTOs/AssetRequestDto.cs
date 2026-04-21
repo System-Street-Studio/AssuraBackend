@@ -1,3 +1,5 @@
+namespace Assura.Application.Features.AssetRequests.DTOs;
+
 public class AssetRequestDto 
 {
     public int Id { get; set; }

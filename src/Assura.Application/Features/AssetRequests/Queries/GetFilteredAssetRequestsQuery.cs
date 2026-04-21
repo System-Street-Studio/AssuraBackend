@@ -1,6 +1,7 @@
 using MediatR;
 using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.AssetRequests.DTOs;
+using Assura.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.AssetRequests.Queries;
@@ -42,7 +43,10 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
         // Filter by status
         if (!string.IsNullOrEmpty(request.Status))
         {
-            query = query.Where(x => x.Status.ToString() == request.Status);
+            if (Enum.TryParse<RequestStatus>(request.Status, true, out var statusEnum))
+            {
+                query = query.Where(x => x.Status == statusEnum);
+            }
         }
 
         // Filter by type
