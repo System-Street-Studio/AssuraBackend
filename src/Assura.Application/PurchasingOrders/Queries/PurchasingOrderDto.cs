@@ -8,5 +8,6 @@ public class PurchasingOrderDto
     public decimal TotalAmount { get; set; }
     public string? Status { get; set; }
     public string SupplierName { get; set; } = string.Empty;
+    public string? Comments { get; set; } = string.Empty;
     public List<PurchasingOrderItemDto> Items { get; set; } = new();
 }

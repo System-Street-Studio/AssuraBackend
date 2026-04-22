@@ -2,6 +2,7 @@ using Assura.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Assura.Domain.Entities;
 using MediatR;
+using FluentValidation;
 
 namespace Assura.Application.PurchasingOrders.Commands;
 
@@ -22,6 +23,16 @@ public record CreatePurchasingOrderItemDto
     public decimal VatPercentage { get; init; }
     public string? SpecialNote { get; init; }
 }
+
+public class CreatePurchasingOrderItemDtoValidator : AbstractValidator<CreatePurchasingOrderItemDto>
+{
+    public CreatePurchasingOrderItemDtoValidator()
+    {
+        RuleFor(x => x.ItemName).NotEmpty().WithMessage("Item name is required.");
+        RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be greater than 0.");
+    }
+}
+
 
 public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchasingOrderCommand, int>
 {
