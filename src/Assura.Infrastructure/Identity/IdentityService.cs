@@ -45,7 +45,7 @@ public class IdentityService : IIdentifyServices
     {
         Console.WriteLine($"[DEBUG] AuthenticateAsync started for user: {username}");
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == username);
+            .FirstOrDefaultAsync(u => u.Username == username || u.Email == username);
 
         if (user == null) 
         {
