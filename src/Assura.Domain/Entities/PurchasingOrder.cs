@@ -13,8 +13,7 @@ public class PurchasingOrder : BaseEntity
     public int SupplierId { get; set; }
     public Supplier Supplier { get; set; } = null!;
 
-    [MaxLength(500)]
-    public string? Comments { get; set; } = string.Empty;
+    public string? Priority { get; set; } = "Medium"; 
 
     public ICollection<Asset> Assets { get; set; } = new List<Asset>();
     public ICollection<GRN> GRNs { get; set; } = new List<GRN>();

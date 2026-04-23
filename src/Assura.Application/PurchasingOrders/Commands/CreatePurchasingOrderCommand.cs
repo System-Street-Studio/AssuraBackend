@@ -10,7 +10,7 @@ public record CreatePurchasingOrderCommand : IRequest<int>
 {
     public string SupplierName { get; init; } = string.Empty; // In a real app, you'd use SupplierId
     public List<CreatePurchasingOrderItemDto> Items { get; init; } = new();
-}
+ }
 
 public record CreatePurchasingOrderItemDto
 {
