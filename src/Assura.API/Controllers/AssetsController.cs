@@ -102,6 +102,19 @@ public class AssetsController : BaseApiController
         return Ok(result);
     }
 
+    [HttpPatch("{id}/status")]
+    public async Task<ActionResult> PatchAssetStatus(int id, [FromBody] UpdateStatusRequest request)
+    {
+        var result = await _mediator.Send(new UpdateAssetStatusCommand(id, request.Status));
+        if (!result) return NotFound();
+        return NoContent();
+    }
+
+    public class UpdateStatusRequest
+    {
+        public Assura.Domain.Enums.AssetStatus Status { get; set; }
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteAsset(int id)
     {
