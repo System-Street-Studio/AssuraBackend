@@ -27,6 +27,27 @@ public class AuthorizationTests
     }
 
     [Fact]
+    public void MaintenancesController_ShouldBeRestrictedToSpecificRoles()
+    {
+        var controllerType = typeof(MaintenancesController);
+        var authorizeAttrs = controllerType.GetCustomAttributes<AuthorizeAttribute>(inherit: true);
+
+        Assert.NotEmpty(authorizeAttrs);
+        var authHeader = authorizeAttrs.First();
+        Assert.Contains(Roles.Procurement, authHeader.Roles!);
+        Assert.Contains(Roles.Admin, authHeader.Roles!);
+        Assert.Contains(Roles.Maintenance, authHeader.Roles!);
+    }
+
+    [Fact]
+    public void InformingController_ShouldHaveAuthorizeAttribute()
+    {
+        var controllerType = typeof(InformingController);
+        var authorizeAttrs = controllerType.GetCustomAttributes<AuthorizeAttribute>(inherit: true);
+        Assert.NotEmpty(authorizeAttrs);
+    }
+
+    [Fact]
     public void DashboardController_ShouldHaveAuthorizeAttribute()
     {
         var controllerType = typeof(DashboardController);

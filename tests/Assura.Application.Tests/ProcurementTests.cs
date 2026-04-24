@@ -76,6 +76,24 @@ public class ProcurementTests
         Assert.Equal(1, stats.RepairsNotCompleted);
     }
 
+    [Fact]
+    public async Task GetPendingAssetRequests_ShouldReturnOnlyPendingRequests()
+    {
+        using var db = CreateContext();
+        var requester = new User { Id = 1, FirstName = "John", LastName = "Doe" };
+        db.Users.Add(requester);
+
+        db.Requests.Add(new Request { Status = "Pending", Requester = requester, CreatedAt = DateTime.UtcNow, Specifications = "High-end PC" });
+        db.Requests.Add(new Request { Status = "Approved", Requester = requester, CreatedAt = DateTime.UtcNow, Specifications = "Mouse" });
+        await db.SaveChangesAsync();
+
+        var handler = new GetPendingAssetRequestsQueryHandler(db);
+        var result = await handler.Handle(new GetPendingAssetRequestsQuery(), CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Equal("High-end PC", result[0].Specifications);
+    }
+
     private static TestApplicationDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<TestApplicationDbContext>()
