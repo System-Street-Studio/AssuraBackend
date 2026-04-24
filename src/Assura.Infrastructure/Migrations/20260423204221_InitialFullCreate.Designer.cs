@@ -4,6 +4,7 @@ using Assura.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Assura.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260423204221_InitialFullCreate")]
+    partial class InitialFullCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1069,7 +1072,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("AssetId")
                         .HasColumnType("int");
 
-                    b.Property<int>("AssetRequestId")
+                    b.Property<int>("AssignedToId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1077,9 +1080,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
-
-                    b.Property<int?>("CurrentHolderId")
-                        .HasColumnType("int");
 
                     b.Property<int>("FromDivisionId")
                         .HasColumnType("int");
@@ -1122,9 +1122,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("AssetId");
 
-                    b.HasIndex("AssetRequestId");
-
-                    b.HasIndex("CurrentHolderId");
+                    b.HasIndex("AssignedToId");
 
                     b.HasIndex("FromDivisionId");
 
@@ -1614,15 +1612,11 @@ namespace Assura.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Assura.Domain.Entities.AssetRequest", "AssetRequest")
+                    b.HasOne("Assura.Domain.Entities.User", "AssignedTo")
                         .WithMany()
-                        .HasForeignKey("AssetRequestId")
+                        .HasForeignKey("AssignedToId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Assura.Domain.Entities.User", "CurrentHolder")
-                        .WithMany()
-                        .HasForeignKey("CurrentHolderId");
 
                     b.HasOne("Assura.Domain.Entities.Division", "FromDivision")
                         .WithMany()
@@ -1650,9 +1644,7 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Navigation("Asset");
 
-                    b.Navigation("AssetRequest");
-
-                    b.Navigation("CurrentHolder");
+                    b.Navigation("AssignedTo");
 
                     b.Navigation("FromDivision");
 

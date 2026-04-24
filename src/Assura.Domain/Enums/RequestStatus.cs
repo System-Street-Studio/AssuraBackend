@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Assura.Domain.Enums;
 
-// [JsonConverter] එක භාවිතා කිරීමෙන් ඉලක්කම් වෙනුවට නම (String) යවනු ලැබේ
+// [JsonConverter] use String instead of int when serializing to JSON, making it more readable and maintainable.
 [JsonConverter(typeof(JsonStringEnumConverter))]
 
 public enum RequestStatus

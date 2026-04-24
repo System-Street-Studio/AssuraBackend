@@ -3,6 +3,7 @@ namespace Assura.Application.Features.Maintenances.Queries;
 public class MaintenanceDto
 {
     public int Id { get; set; }
+    public string? RequesterId { get; set; }
     public string MaintenanceNumber { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public DateTime MaintenanceDate { get; set; }

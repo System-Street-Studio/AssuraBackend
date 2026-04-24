@@ -62,6 +62,7 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
         return results.Select(x => new AssetRequestDto
         {
             Id = x.Id,
+            RequesterId = x.RequesterId,
             RequesterName = x.RequesterName,
             AssetName = x.AssetName,
             AssetCategory = x.AssetCategory,

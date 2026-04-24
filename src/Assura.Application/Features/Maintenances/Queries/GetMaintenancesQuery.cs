@@ -25,11 +25,17 @@ public class GetMaintenancesQueryHandler : IRequestHandler<GetMaintenancesQuery,
         var maintenances = await _context.Maintenances
             .Include(m => m.Asset)
                 .ThenInclude(a => a.Product)
+            .Include(m => m.Asset)
+                .ThenInclude(a => a.AssetRequests)
             .Include(m => m.RepairingFirm)
             .AsNoTracking()
             .Select(m => new MaintenanceDto
             {
                 Id = m.Id,
+                RequesterId = m.Asset.AssetRequests
+                    .Where(ar => ar.RequestType == "Maintenance" && ar.AssetId == m.AssetId)
+                    .Select(ar => ar.RequesterId)
+                    .FirstOrDefault(),
                 MaintenanceNumber = m.MaintenanceNumber,
                 Type = m.Type.ToString(),
                 MaintenanceDate = m.MaintenanceDate,
