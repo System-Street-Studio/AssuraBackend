@@ -30,7 +30,7 @@ public static class DependencyInjection
                         maxRetryDelay: TimeSpan.FromSeconds(10),
                         errorNumbersToAdd: null);
                 });
-
+        });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<ICurrentUserService, CurrentUserService>();
