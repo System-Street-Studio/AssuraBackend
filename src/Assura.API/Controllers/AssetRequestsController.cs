@@ -53,16 +53,25 @@ public class AssetRequestsController : ControllerBase
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value;
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-        // If Admin/Procurement/Storekeeper, they should see all pending requests
+        Console.WriteLine($"[DEBUG] GetPending: userId={userId}, role={role}");
+
+        // Admin/Procurement/Storekeeper see all pending requests
         if (role == "Admin" || role == "Procurement" || role == "Storekeeper")
         {
             return Ok(await _mediator.Send(new GetPendingRequestsQuery()));
         }
         
-        // Otherwise, return only the pending requests for the user
+        // Safety: if we can't identify user, return empty
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Ok(new List<object>());
+        }
+
+        // DivisionHead sees division requests, Employee sees only their own
         var isDivisionHead = role == "DivisionHead";
         var result = await _mediator.Send(new GetPendingRequestsQuery(userId, isDivisionHead));
         return Ok(result);
@@ -71,7 +80,8 @@ public class AssetRequestsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? status = null, [FromQuery] string? type = null, [FromQuery] bool isDivisionHead = false)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value;
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
         // If Admin/Procurement/Storekeeper, they should see all requests
@@ -80,8 +90,15 @@ public class AssetRequestsController : ControllerBase
             var result = await _mediator.Send(new GetFilteredAssetRequestsQuery(status, type));
             return Ok(result);
         }
+
+        // Safety: if we can't identify user, return empty
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Ok(new List<object>());
+        }
         
-        var filteredResult = await _mediator.Send(new GetFilteredAssetRequestsQuery(status, type, userId, isDivisionHead));
+        var isHead = role == "DivisionHead";
+        var filteredResult = await _mediator.Send(new GetFilteredAssetRequestsQuery(status, type, userId, isHead));
         return Ok(filteredResult);
     }
     

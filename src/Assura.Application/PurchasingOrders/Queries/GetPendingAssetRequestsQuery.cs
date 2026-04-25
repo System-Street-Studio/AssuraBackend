@@ -1,4 +1,5 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
 
@@ -20,7 +21,7 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
         return await _context.Requests
             .Include(x => x.Requester)
                 .ThenInclude(u => u.Division)
-            .Where(x => x.Status == "Pending")
+            .Where(x => x.Status == RequestWorkflowStatus.PendingProcurement)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new AssetRequestDto
             {
@@ -29,7 +30,10 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
                 DivisionName = x.Requester.Division != null ? x.Requester.Division.Name : "N/A",
                 Date = x.CreatedAt,
                 Specifications = x.Specifications,
-                SpecialNote = x.SpecialNote
+                SpecialNote = x.SpecialNote,
+                Type = x.Type.ToString(),
+                Description = x.Description,
+                AssetId = x.AssetId
             })
             .ToListAsync(cancellationToken);
     }
