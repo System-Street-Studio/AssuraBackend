@@ -38,6 +38,14 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<PurchasingOrderItem> PurchasingOrderItems => Set<PurchasingOrderItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AssetInforming> AssetInformings => Set<AssetInforming>();
+    public DbSet<DiscardedNote> DiscardedNotes => Set<DiscardedNote>();
+    public DbSet<QueueItem> QueueItems => Set<QueueItem>();
+    public DbSet<Buyer> Buyers => Set<Buyer>();
+    public DbSet<AccPendingItem> AccPendingItems => Set<AccPendingItem>();
+    public DbSet<AccDiscardedItem> AccDiscardedItems => Set<AccDiscardedItem>();
+    public DbSet<Receipt> Receipts => Set<Receipt>();
+    public DbSet<AccDiscardNote> AccDiscardNotes => Set<AccDiscardNote>();
+    public DbSet<LostItem> LostItems => Set<LostItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -90,4 +98,3 @@ public class AppDbContext : DbContext, IApplicationDbContext
         return await base.SaveChangesAsync(cancellationToken);
     }
 }
-
