@@ -24,6 +24,14 @@ public interface IApplicationDbContext
     DbSet<DiscountInfo> DiscountInfos { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<DiscardedNote> DiscardedNotes { get; }
+    DbSet<QueueItem> QueueItems { get; }
+    DbSet<Buyer> Buyers { get; }
+    DbSet<AccPendingItem> AccPendingItems { get; }
+    DbSet<AccDiscardedItem> AccDiscardedItems { get; }
+    DbSet<Receipt> Receipts { get; }
+    DbSet<AccDiscardNote> AccDiscardNotes { get; }
+    DbSet<LostItem> LostItems { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

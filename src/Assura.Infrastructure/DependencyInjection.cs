@@ -15,8 +15,8 @@ public static class DependencyInjection
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             
-            // --- MySQL (Pomelo) භාවිතා කිරීමට මෙය වෙනස් කරන්න ---
-            options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)),
+            // Auto-detect the MySQL server version for compatibility
+            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
                 b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
         });
 

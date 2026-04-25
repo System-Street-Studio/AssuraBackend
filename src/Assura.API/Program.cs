@@ -13,8 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication();
 
 // .env ගොනුවේ ඇති MySQL සහ JWT දත්ත පද්ධතියට සම්බන්ධ කිරීම
-builder.Configuration["ConnectionStrings:DefaultConnection"] = 
-    $"Server={Env.GetString("DB_SERVER")};Port={Env.GetString("DB_PORT")};Database={Env.GetString("DB_NAME")};Uid={Env.GetString("DB_USER")};Pwd={Env.GetString("DB_PASSWORD")};";
+var connStr = $"Server={Env.GetString("DB_SERVER")};Port={Env.GetString("DB_PORT")};Database={Env.GetString("DB_NAME")};Uid={Env.GetString("DB_USER")};Pwd={Env.GetString("DB_PASSWORD")};";
+Console.WriteLine($"[DEBUG] Connection String: {connStr}");
+builder.Configuration["ConnectionStrings:DefaultConnection"] = connStr;
 
 builder.Configuration["Jwt:Key"] = Env.GetString("JWT_SECRET_KEY");
 builder.Configuration["Jwt:Issuer"] = Env.GetString("JWT_ISSUER");
@@ -62,5 +63,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapGet("/apply-sql", async (Assura.Infrastructure.Persistence.AppDbContext db) => {
+    var sql = System.IO.File.ReadAllText(@"C:\temp\my_migration.sql");
+    using var transaction = await db.Database.BeginTransactionAsync();
+    try {
+        await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(db.Database, sql);
+        await transaction.CommitAsync();
+        return "Applied";
+    } catch (Exception ex) {
+        return $"Error: {ex.Message}";
+    }
+});
 
 app.Run();
