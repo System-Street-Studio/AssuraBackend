@@ -105,16 +105,13 @@ public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand,
         User? requester,
         CancellationToken cancellationToken)
     {
-        // Trusted roles can route directly to storekeeper.
-        if (requester?.Role is UserRole.Admin or UserRole.Procurement or UserRole.Storekeeper or UserRole.DivisionHead)
-        {
         // Division Heads and Admins always bypass their own division level review
         if (requester?.Role == UserRole.DivisionHead || requester?.Role == UserRole.Admin)
         {
             return true;
         }
 
-        // Strict requirement: All employee requests (even low value) should be reviewed 
+        // Strict requirement: All employee requests should be reviewed 
         // by their respective Division Head to ensure departmental oversight.
         return false;
     }

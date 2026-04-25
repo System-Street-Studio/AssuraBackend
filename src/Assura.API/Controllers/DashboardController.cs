@@ -3,6 +3,7 @@ using Assura.Application.Features.Dashboard.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
@@ -11,7 +12,8 @@ public class DashboardController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<DashboardDto>> GetDashboard()
     {
-        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                        ?? User.FindFirst("sub")?.Value;
         int? userId = int.TryParse(userIdStr, out var id) ? id : null;
 
         // If user is Employee, we should filter. 
