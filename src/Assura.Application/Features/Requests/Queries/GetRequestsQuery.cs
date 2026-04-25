@@ -20,6 +20,8 @@ public class RequestDto
     public string RequesterName { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string? AssetName { get; set; }
+    public string? AssetCode { get; set; }
+    public string? AssetDivisionName { get; set; }
 }
 
 public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<RequestDto>>
@@ -37,6 +39,7 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
             .Include(r => r.Requester)
             .Include(r => r.Requester.Division)
             .Include(r => r.Asset)
+            .Include(r => r.Asset!.Division)
             .AsQueryable();
 
         if (request.Role == UserRole.DivisionHead && request.UserId.HasValue)
@@ -48,7 +51,9 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
 
             if (headDivisionId.HasValue)
             {
-                query = query.Where(r => r.Requester.DivisionId == headDivisionId.Value);
+                query = query.Where(r => 
+                    r.Requester.DivisionId == headDivisionId.Value || 
+                    (r.Type == RequestType.Transfer && r.Asset != null && r.Asset.DivisionId == headDivisionId.Value));
             }
             else
             {
@@ -74,7 +79,9 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
                 CreatedAt = r.CreatedAt,
                 RequesterName = $"{r.Requester.FirstName} {r.Requester.LastName}",
                 Department = r.Requester.Division != null ? r.Requester.Division.Name : "N/A",
-                AssetName = r.Asset != null ? r.Asset.AssetCode : null
+                AssetName = r.Asset != null ? r.Asset.AssetCode : null,
+                AssetCode = r.Asset != null ? r.Asset.AssetCode : null,
+                AssetDivisionName = r.Asset != null && r.Asset.Division != null ? r.Asset.Division.Name : null
             })
             .ToListAsync(cancellationToken);
     }

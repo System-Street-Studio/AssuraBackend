@@ -35,9 +35,15 @@ public class AssetsController : BaseApiController
         }
 
         var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
         if (role == Roles.Admin || role == Roles.Storekeeper || role == Roles.Procurement)
         {
             return await _mediator.Send(new GetAssetsQuery());
+        }
+
+        if (role == Roles.DivisionHead && userId.HasValue)
+        {
+            return await _mediator.Send(new GetAssetsQuery(null, userId, role));
         }
 
         return await _mediator.Send(new GetAssetsQuery(userId));

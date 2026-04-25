@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Assets.Queries;
 
-public record GetAssetsQuery(int? AssignedUserId = null) : IRequest<List<AssetDto>>;
+public record GetAssetsQuery(int? AssignedUserId = null, int? RequesterUserId = null, string? Role = null) : IRequest<List<AssetDto>>;
 
 public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetDto>>
 {
@@ -27,7 +27,20 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
             .Include(a => a.AssignedUser)
             .AsQueryable();
 
-        if (request.AssignedUserId.HasValue)
+        // Division Head check: filter by their division
+        if (request.Role == "DivisionHead" && request.RequesterUserId.HasValue)
+        {
+            var userDivisionId = await _context.Users
+                .Where(u => u.Id == request.RequesterUserId.Value)
+                .Select(u => u.DivisionId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (userDivisionId.HasValue)
+            {
+                query = query.Where(a => a.DivisionId == userDivisionId.Value);
+            }
+        }
+        else if (request.AssignedUserId.HasValue)
         {
             query = query.Where(a => a.AssignedUserId == request.AssignedUserId.Value);
         }

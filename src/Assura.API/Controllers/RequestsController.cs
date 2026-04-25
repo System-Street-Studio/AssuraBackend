@@ -26,7 +26,7 @@ public class RequestsController : BaseApiController
         var roleStr = User.FindFirstValue(ClaimTypes.Role);
         
         int? userId = int.TryParse(userIdStr, out var id) ? id : 1; // Fallback to 1 for testing
-        UserRole? role = Enum.TryParse<UserRole>(roleStr, out var r) ? r : UserRole.Admin; // Fallback to Admin for testing
+        UserRole? role = Enum.TryParse<UserRole>(roleStr, out var r) ? r : UserRole.Employee; // Fallback to Employee if role missing
 
         return await _mediator.Send(new GetRequestsQuery(userId, role));
     }
