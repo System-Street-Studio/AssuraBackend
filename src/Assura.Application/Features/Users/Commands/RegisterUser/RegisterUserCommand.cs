@@ -21,6 +21,10 @@ public record RegisterUserCommand : IRequest<bool>
 
     [Required]
     public string LastName { get; init; } = string.Empty;
+
+    public string? PhoneNumber { get; init; }
+    public string? RequestedRole { get; init; }
+    public int? DivisionId { get; init; }
 }
 
 public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, bool>
@@ -39,6 +43,13 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, b
         }
         // register the user
          return await _identifyServices.RegisterAsync(
-            request.Username, request.Password, request.Email, request.FirstName, request.LastName);
+            request.Username,
+            request.Password,
+            request.Email,
+            request.FirstName,
+            request.LastName,
+            request.PhoneNumber,
+            request.RequestedRole,
+            request.DivisionId);
     }
 }
