@@ -22,4 +22,11 @@ public class BuyersController : ControllerBase
         var result = await _mediator.Send(new GetAllBuyersQuery());
         return Ok(result);
     }
+
+    [HttpPost]
+    public async Task<ActionResult<string>> Create([FromBody] Assura.Application.Features.Buyers.Commands.CreateBuyer.CreateBuyerCommand command)
+    {
+        var id = await _mediator.Send(command);
+        return Ok(id);
+    }
 }
