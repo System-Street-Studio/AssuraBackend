@@ -209,7 +209,7 @@ public class HrModuleTests
 
         var overview = await new GetHrOverviewQueryHandler(db).Handle(new GetHrOverviewQuery(), CancellationToken.None);
         var pendingUsers = await new GetPendingHrUsersQueryHandler(db).Handle(new GetPendingHrUsersQuery("pending"), CancellationToken.None);
-        var assignedUsers = await new GetAssignedHrUsersQueryHandler(db).Handle(new GetAssignedHrUsersQuery(role: "Accountant"), CancellationToken.None);
+        var assignedUsers = await new GetAssignedHrUsersQueryHandler(db).Handle(new GetAssignedHrUsersQuery(Role: "Accountant"), CancellationToken.None);
         var activityLogs = await new GetHrActivityLogsQueryHandler(db).Handle(new GetHrActivityLogsQuery("John"), CancellationToken.None);
         var userDetail = await new GetHrUserByIdQueryHandler(db).Handle(new GetHrUserByIdQuery(42), CancellationToken.None);
 
