@@ -1130,8 +1130,16 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("AssignedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int?>("DivisionId")
                         .HasColumnType("int");
+
+                    b.Property<string>("EmploymentStatus")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -1155,6 +1163,10 @@ namespace Assura.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("JobTitle")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -1163,7 +1175,12 @@ namespace Assura.Infrastructure.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("RequestedRole")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("longtext");

@@ -4,7 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.HR.Queries;
 
-public record GetAssignedHrUsersQuery : IRequest<List<AssignedHrUserDto>>;
+public record GetAssignedHrUsersQuery(
+    string? Search = null,
+    string? Division = null,
+    string? Role = null) : IRequest<List<AssignedHrUserDto>>;
 
 public class AssignedHrUserDto
 {
@@ -29,10 +32,35 @@ public class GetAssignedHrUsersQueryHandler : IRequestHandler<GetAssignedHrUsers
 
     public async Task<List<AssignedHrUserDto>> Handle(GetAssignedHrUsersQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Users
+        var query = _context.Users
             .AsNoTracking()
             .Include(u => u.Division)
             .Where(u => u.IsActive && u.Role != null)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLower();
+            query = query.Where(u =>
+                u.Username.ToLower().Contains(search) ||
+                u.FirstName.ToLower().Contains(search) ||
+                u.LastName.ToLower().Contains(search) ||
+                (u.JobTitle != null && u.JobTitle.ToLower().Contains(search)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Division))
+        {
+            var division = request.Division.Trim().ToLower();
+            query = query.Where(u => u.Division != null && u.Division.Name.ToLower() == division);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Role) &&
+            Enum.TryParse<Assura.Domain.Enums.UserRole>(request.Role, true, out var parsedRole))
+        {
+            query = query.Where(u => u.Role == parsedRole);
+        }
+
+        return await query
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .Select(u => new AssignedHrUserDto

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.HR.Queries;
 
-public record GetPendingHrUsersQuery : IRequest<List<PendingHrUserDto>>;
+public record GetPendingHrUsersQuery(string? Search = null) : IRequest<List<PendingHrUserDto>>;
 
 public class PendingHrUserDto
 {
@@ -30,10 +30,24 @@ public class GetPendingHrUsersQueryHandler : IRequestHandler<GetPendingHrUsersQu
 
     public async Task<List<PendingHrUserDto>> Handle(GetPendingHrUsersQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Users
+        var query = _context.Users
             .AsNoTracking()
             .Include(u => u.Division)
             .Where(u => u.IsActive && u.Role == null)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLower();
+            query = query.Where(u =>
+                u.Username.ToLower().Contains(search) ||
+                u.FirstName.ToLower().Contains(search) ||
+                u.LastName.ToLower().Contains(search) ||
+                u.Email.ToLower().Contains(search) ||
+                (u.RequestedRole != null && u.RequestedRole.ToLower().Contains(search)));
+        }
+
+        return await query
             .OrderByDescending(u => u.CreatedAt)
             .Select(u => new PendingHrUserDto
             {
