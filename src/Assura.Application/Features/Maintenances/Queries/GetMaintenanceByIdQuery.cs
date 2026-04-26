@@ -17,27 +17,28 @@ public class GetMaintenanceByIdQueryHandler : IRequestHandler<GetMaintenanceById
 
     public async Task<MaintenanceDto?> Handle(GetMaintenanceByIdQuery request, CancellationToken cancellationToken)
     {
-        var maintenance = await _context.Maintenances
+        var dto = await _context.Maintenances
             .Include(m => m.Asset)
                 .ThenInclude(a => a.Product)
             .Include(m => m.RepairingFirm)
-            .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
+            .AsNoTracking()
+            .Where(m => m.Id == request.Id)
+            .Select(m => new MaintenanceDto
+            {
+                Id = m.Id,
+                MaintenanceNumber = m.MaintenanceNumber,
+                Type = m.Type.ToString(),
+                MaintenanceDate = m.MaintenanceDate,
+                Description = m.Description,
+                Cost = m.Cost,
+                Status = m.Status,
+                AssetId = m.AssetId,
+                AssetName = m.Asset.Product.Name,
+                RepairingFirmId = m.RepairingFirmId,
+                RepairingFirmName = m.RepairingFirm != null ? m.RepairingFirm.Name : null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (maintenance == null) return null;
-
-        return new MaintenanceDto
-        {
-            Id = maintenance.Id,
-            MaintenanceNumber = maintenance.MaintenanceNumber,
-            Type = maintenance.Type.ToString(),
-            MaintenanceDate = maintenance.MaintenanceDate,
-            Description = maintenance.Description,
-            Cost = maintenance.Cost,
-            Status = maintenance.Status,
-            AssetId = maintenance.AssetId,
-            AssetName = maintenance.Asset?.Product?.Name ?? string.Empty,
-            RepairingFirmId = maintenance.RepairingFirmId,
-            RepairingFirmName = maintenance.RepairingFirm?.Name
-        };
+        return dto;
     }
 }
