@@ -96,7 +96,7 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
 
         var numericIds = rawValues
             .Where(value => int.TryParse(value, out _))
-            .Select(int.Parse)
+            .Select(value => int.Parse(value!))
             .ToList();
 
         var usernames = rawValues
