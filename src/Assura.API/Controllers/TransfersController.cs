@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Assura.API.Controllers;
 
-[AllowAnonymous]
+
 [ApiController]
 [Route("api/[controller]")]
 public class TransfersController : ControllerBase
@@ -58,8 +58,6 @@ public class TransfersController : ControllerBase
         Console.WriteLine(" === TRANSFER API ENDPOINT CALLED ===");
         Console.WriteLine($" GET /api/transfers called at: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
         Console.WriteLine($" API received query parameters:");
-        Console.WriteLine($"  page: {page}");
-        Console.WriteLine($"  pageSize: {pageSize}");
         Console.WriteLine($"  divisionId: {divisionId}");
         Console.WriteLine($"  status: {status}");
 
@@ -67,8 +65,6 @@ public class TransfersController : ControllerBase
         {
             var query = new GetAllTransfersQuery
             {
-                Page = page,
-                PageSize = pageSize,
                 DivisionId = divisionId,
                 Status = status
             };
@@ -245,7 +241,7 @@ public class TransfersController : ControllerBase
         
         try
         {
-            var query = new GetAllTransfersQuery { PageSize = 1000 };
+            var query = new GetAllTransfersQuery { };
             var transfers = await _mediator.Send(query);
             
             Console.WriteLine($"📊 Total transfers in database: {transfers.Count}");
