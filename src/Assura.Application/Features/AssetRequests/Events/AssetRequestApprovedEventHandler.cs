@@ -1,6 +1,6 @@
 using MediatR;
 
-using Assura.Domain.Interfaces;
+using Assura.Application.Common.Interfaces;
 
 using Assura.Domain.Entities;
 
@@ -50,30 +50,48 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
 
             if (request?.DivisionId == null)
 
-                return;
+                if (string.Equals(notification.RequestType, "Discard", StringComparison.OrdinalIgnoreCase))
 
-<<<<<<< Updated upstream
-            if (string.Equals(notification.RequestType, "Discard", StringComparison.OrdinalIgnoreCase))
             {
+
                 var divisionName = await _context.Divisions
+
                     .Where(d => d.Id == request.DivisionId.Value)
+
                     .Select(d => d.Name)
+
                     .FirstOrDefaultAsync(cancellationToken) ?? "Unknown";
 
+
+
                 var discardedNote = new DiscardedNote
+
                 {
+
                     Name = notification.AssetName,
+
                     Division = divisionName,
+
                     Date = DateTime.UtcNow,
+
                     Status = DiscardNoteStatus.Pending,
+
                     AssetType = notification.AssetCategory,
+
                     SpecialNote = notification.Reason ?? notification.Description ?? "N/A"
+
                 };
+
+
 
                 _context.DiscardedNotes.Add(discardedNote);
 
+
+
                 var superintendents = await _context.Users
+
                     .Where(u => u.Role == UserRole.Superintendent || u.Role == UserRole.Admin)
+
                     .ToListAsync(cancellationToken);
 
                 foreach (var super in superintendents)
@@ -91,9 +109,6 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                 await _context.SaveChangesAsync(cancellationToken);
                 return; // Do not proceed to create AssetInforming
             }
-=======
-
->>>>>>> Stashed changes
 
             // Create AssetInforming record (adds to inventory/new arrivals)
 

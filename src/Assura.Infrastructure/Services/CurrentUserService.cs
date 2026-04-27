@@ -1,4 +1,4 @@
-using Assura.Domain.Interfaces;
+using Assura.Application.Common.Interfaces;
 
 using Microsoft.AspNetCore.Http;
 

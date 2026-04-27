@@ -21,7 +21,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<AssetDto>>> GetAssets([FromQuery] bool onlyMine = false)
+    public async Task<ActionResult<List<Assura.Application.DTOs.AssetDto>>> GetAssets([FromQuery] bool onlyMine = false)
     {
         var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
                         ?? User.FindFirst("sub")?.Value;
@@ -86,7 +86,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<AssetDto>> GetAsset(int id)
+    public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> GetAsset(int id)
     {
         var result = await _mediator.Send(new GetAssetByIdQuery(id));
         if (result == null) return NotFound();
@@ -94,14 +94,14 @@ public class AssetsController : BaseApiController
     }
 
     [HttpPost]
-    public async Task<ActionResult<AssetDto>> CreateAsset(AssetCreateDto asset)
+    public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> CreateAsset(AssetCreateDto asset)
     {
         var result = await _mediator.Send(new CreateAssetCommand(asset));
         return CreatedAtAction(nameof(GetAsset), new { id = result.Id }, result);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<AssetDto>> UpdateAsset(int id, AssetUpdateDto asset)
+    public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> UpdateAsset(int id, AssetUpdateDto asset)
     {
         if (id != asset.Id) return BadRequest("ID mismatch");
         var result = await _mediator.Send(new UpdateAssetCommand(asset));
@@ -131,7 +131,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpPost("{id}/checkin")]
-    public async Task<ActionResult<AssetDto>> CheckinAsset(int id, [FromBody] CheckinRequest request)
+    public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> CheckinAsset(int id, [FromBody] CheckinRequest request)
     {
         var actorName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Storekeeper";
         var result = await _mediator.Send(new CheckinAssetCommand(

@@ -4,7 +4,7 @@ using System.Security.Claims;
 
 using System.Text;
 
-using Assura.Domain.Interfaces;
+using Assura.Application.Common.Interfaces;
 
 using Assura.Domain.Entities;
 
@@ -51,11 +51,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         {
 
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-<<<<<<< Updated upstream
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()), // Explicit mapping for ASP.NET Core controllers
-=======
-
->>>>>>> Stashed changes
+new(ClaimTypes.NameIdentifier, user.Id.ToString()), // Explicit mapping for ASP.NET Core controllers
             new(JwtRegisteredClaimNames.UniqueName, user.Username),
 
             new(JwtRegisteredClaimNames.Email, user.Email),

@@ -1,4 +1,4 @@
-using Assura.Domain.Interfaces;
+using Assura.Application.Common.Interfaces;
 
 using MediatR;
 
@@ -8,37 +8,25 @@ namespace Assura.Application.Features.Users.Commands.ForgotPassword;
 
 
 
-public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordCommand, string?>
+public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordCommand, string>
 
 {
 
     private readonly IIdentifyServices _identifyServices;
     private readonly IEmailService _emailService;
 
-<<<<<<< Updated upstream
     public ForgotPasswordCommandHandler(IIdentifyServices identifyServices, IEmailService emailService)
-=======
-
-
-    public ForgotPasswordCommandHandler(IIdentifyServices identifyServices)
-
->>>>>>> Stashed changes
     {
 
         _identifyServices = identifyServices;
-<<<<<<< Updated upstream
         _emailService = emailService;
-=======
-
->>>>>>> Stashed changes
     }
 
 
 
-    public async Task<string?> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
+    public async Task<string> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
 
     {
-<<<<<<< Updated upstream
         var token = await _identifyServices.GeneratePasswordResetTokenAsync(request.Email);
         
         if (token != null)
@@ -68,17 +56,6 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
         }
 
         return token;
-=======
-
-        // In a real application, you would generate the token and send an email here.
-
-        // For now, we return the token to the controller which might return it for testing,
-
-        // or we'll just return a success message.
-
-        return await _identifyServices.GeneratePasswordResetTokenAsync(request.Email);
-
->>>>>>> Stashed changes
     }
 
 }
