@@ -26,6 +26,45 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
             if (request?.DivisionId == null)
                 return;
 
+            if (string.Equals(notification.RequestType, "Discard", StringComparison.OrdinalIgnoreCase))
+            {
+                var divisionName = await _context.Divisions
+                    .Where(d => d.Id == request.DivisionId.Value)
+                    .Select(d => d.Name)
+                    .FirstOrDefaultAsync(cancellationToken) ?? "Unknown";
+
+                var discardedNote = new DiscardedNote
+                {
+                    Name = notification.AssetName,
+                    Division = divisionName,
+                    Date = DateTime.UtcNow,
+                    Status = DiscardNoteStatus.Pending,
+                    AssetType = notification.AssetCategory,
+                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A"
+                };
+
+                _context.DiscardedNotes.Add(discardedNote);
+
+                var superintendents = await _context.Users
+                    .Where(u => u.Role == UserRole.Superintendent || u.Role == UserRole.Admin)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var super in superintendents)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        Title = "Discard Request Pending Review",
+                        Message = $"Asset '{notification.AssetName}' from {divisionName} division is pending your discard review.",
+                        UserId = super.Id,
+                        Type = "Info",
+                        ReferenceId = discardedNote.Id.ToString()
+                    });
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                return; // Do not proceed to create AssetInforming
+            }
+
             // Create AssetInforming record (adds to inventory/new arrivals)
             var assetInforming = new AssetInforming
             {

@@ -54,6 +54,15 @@ public class InformStoresCommandHandler : IRequestHandler<InformStoresCommand, i
             });
         }
 
+        if (dto.PurchasingOrderId.HasValue)
+        {
+            var po = await _context.PurchasingOrders.FindAsync(new object[] { dto.PurchasingOrderId.Value }, cancellationToken);
+            if (po != null)
+            {
+                po.Status = "Completed";
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return entity.Id;

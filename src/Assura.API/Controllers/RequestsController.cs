@@ -22,11 +22,21 @@ public class RequestsController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<List<RequestDto>>> GetRequests()
     {
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var roleStr = User.FindFirstValue(ClaimTypes.Role);
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                        ?? User.FindFirst("sub")?.Value;
         
-        int? userId = int.TryParse(userIdStr, out var id) ? id : 1; // Fallback to 1 for testing
-        UserRole? role = Enum.TryParse<UserRole>(roleStr, out var r) ? r : UserRole.Admin; // Fallback to Admin for testing
+        var roleStr = User.FindFirst(ClaimTypes.Role)?.Value 
+                      ?? User.FindFirst("role")?.Value;
+        
+        int? userId = int.TryParse(userIdStr, out var id) ? id : null;
+        
+        UserRole? role = UserRole.Employee;
+        if (!string.IsNullOrEmpty(roleStr) && Enum.TryParse<UserRole>(roleStr, true, out var r))
+        {
+            role = r;
+        }
+
+        Console.WriteLine($"[DEBUG] GetRequests: userId={userId}, role={role}, roleStr={roleStr}");
 
         return await _mediator.Send(new GetRequestsQuery(userId, role));
     }
@@ -53,8 +63,7 @@ public class RequestsController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<int>> CreateRequest([FromBody] CreateRequestCommand command)
     {
-        // Force requester ID from token for security
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         if (int.TryParse(userIdStr, out var userId))
         {
             var finalCommand = command with { RequesterId = userId };
@@ -69,7 +78,7 @@ public class RequestsController : BaseApiController
     public async Task<ActionResult> ProcessRequest(int id, [FromBody] ProcessRequestCommand command)
     {
         if (id != command.Id) return BadRequest();
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         var finalCommand = int.TryParse(userIdStr, out var userId)
             ? command with { ProcessedByUserId = userId }
             : command;
@@ -84,7 +93,7 @@ public class RequestsController : BaseApiController
     {
         if (id != command.Id) return BadRequest();
 
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         var finalCommand = int.TryParse(userIdStr, out var userId)
             ? command with { ReviewedByUserId = userId }
             : command;

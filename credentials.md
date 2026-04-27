@@ -46,5 +46,7 @@
 | Procurement | `procurement` | Procurement@123 |
 | Accountant | `test_accountant` | AccountantPass123! |
 | Superintenent | `test_super` | SuperintendentPass123! |
+| HR | `test_hr` | HRPass123! |
+| Auditor | `test_auditor` | AuditorPass123! |
 
 

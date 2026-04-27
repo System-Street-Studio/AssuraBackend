@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
+
             var serverVersion = configuration["Database:ServerVersion"] ?? "10.11.15-mariadb";
             options.UseMySql(connectionString, ServerVersion.Parse(serverVersion),
                 b =>
@@ -33,6 +34,7 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IEmailService, EmailService>();
         services.AddHttpContextAccessor();
 
         // Custom Auth Services from feature/auth

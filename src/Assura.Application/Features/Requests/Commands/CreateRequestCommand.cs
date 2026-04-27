@@ -105,44 +105,14 @@ public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand,
         User? requester,
         CancellationToken cancellationToken)
     {
-        // Trusted roles can route directly to storekeeper.
-        if (requester?.Role is UserRole.Admin or UserRole.Procurement or UserRole.Storekeeper or UserRole.DivisionHead)
+        // Division Heads and Admins always bypass their own division level review
+        if (requester?.Role == UserRole.DivisionHead || requester?.Role == UserRole.Admin)
         {
             return true;
         }
 
-        // Urgent and high-priority requests bypass division head.
-        if (request.Priority is PriorityType.Urgent or PriorityType.High)
-        {
-            return true;
-        }
-
-        if (!request.AssetId.HasValue)
-        {
-            return false;
-        }
-
-        var asset = await _context.Assets
-            .Include(a => a.Category)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == request.AssetId.Value, cancellationToken);
-
-        if (asset == null)
-        {
-            return false;
-        }
-
-        if (asset.PurchaseValue <= LowValueThreshold)
-        {
-            return true;
-        }
-
-        var categoryName = asset.Category?.Name ?? string.Empty;
-        if (categoryName.Contains("consumable", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
+        // Strict requirement: All employee requests should be reviewed 
+        // by their respective Division Head to ensure departmental oversight.
         return false;
     }
 }

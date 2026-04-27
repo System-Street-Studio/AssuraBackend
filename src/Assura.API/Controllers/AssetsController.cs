@@ -36,9 +36,15 @@ public class AssetsController : BaseApiController
         }
 
         var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
         if (role == Roles.Admin || role == Roles.Storekeeper || role == Roles.Procurement)
         {
             return await _mediator.Send(new GetAssetsQuery());
+        }
+
+        if (role == Roles.DivisionHead && userId.HasValue)
+        {
+            return await _mediator.Send(new GetAssetsQuery(null, userId, role));
         }
 
         return await _mediator.Send(new GetAssetsQuery(userId));
@@ -101,6 +107,19 @@ public class AssetsController : BaseApiController
         var result = await _mediator.Send(new UpdateAssetCommand(asset));
         if (result == null) return NotFound();
         return Ok(result);
+    }
+
+    [HttpPatch("{id}/status")]
+    public async Task<ActionResult> PatchAssetStatus(int id, [FromBody] UpdateStatusRequest request)
+    {
+        var result = await _mediator.Send(new UpdateAssetStatusCommand(id, request.Status));
+        if (!result) return NotFound();
+        return NoContent();
+    }
+
+    public class UpdateStatusRequest
+    {
+        public Assura.Domain.Enums.AssetStatus Status { get; set; }
     }
 
     [HttpDelete("{id}")]

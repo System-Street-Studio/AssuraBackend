@@ -1,4 +1,5 @@
 using Assura.Domain.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace Assura.Domain.Entities;
 
@@ -11,6 +12,7 @@ public class PurchasingOrder : BaseEntity
 
     public int SupplierId { get; set; }
     public Supplier Supplier { get; set; } = null!;
+
 
     public ICollection<Asset> Assets { get; set; } = new List<Asset>();
     public ICollection<GRN> GRNs { get; set; } = new List<GRN>();
