@@ -52,6 +52,7 @@ public class TransfersController : ControllerBase
         }
     }
 
+
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int? page = 1, [FromQuery] int? pageSize = 50, [FromQuery] int? divisionId = null, [FromQuery] string? status = null)
     {

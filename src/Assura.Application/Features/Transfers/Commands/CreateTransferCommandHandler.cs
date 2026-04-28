@@ -22,13 +22,12 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
 
         // 1️⃣ Get Asset
         var asset = await _context.Assets
-            .Include(a => a.Product)
             .FirstOrDefaultAsync(a => a.Id == request.AssetId, cancellationToken);
 
         if (asset == null)
             throw new Exception($"Asset with ID {request.AssetId} not found");
 
-        Console.WriteLine($"📦 Asset: {asset.Product?.Name}");
+        Console.WriteLine($"📦 Asset: {asset.AssetTag}");
 
         
         // 2️⃣ Get AssetRequest
@@ -97,7 +96,8 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
         {
             TransferNumber = $"TRF{Guid.NewGuid():N}",
             AssetId = asset.Id,
-            AssetTag = asset.Product?.Name,
+            AssetTag = asset.AssetTag,
+            AssetName = asset.Product?.Name ?? "Unknown",
 
             FromDivisionId = currentHolder?.DivisionId ?? 0,
             FromDivision = currentHolder?.Division,
@@ -117,9 +117,10 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
             TargetUserId = targetUser.Id,
             TargetUser = targetUser,
 
-            TransferById = null,
-            TransferBy = null,
-            TransferDate = null,
+            TransferById = targetUser.Id,
+            TransferBy = targetUser,
+            
+            TransferDate = DateTime.UtcNow,
            
             Status = TransferStatus.PendingOwnerApproval,
 

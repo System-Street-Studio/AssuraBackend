@@ -1,12 +1,13 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Assura.Application.Features.Transfers.Queries;
-using Assura.Domain.Entities;
 using Assura.Application.Common.Interfaces;
+using Assura.Application.Features.Transfers.DTOs;
+using Assura.Application.Features.Transfers.Queries;
 
 namespace Assura.Application.Features.Transfers.Handlers;
 
-public class GetAllTransfersQueryHandler : IRequestHandler<GetAllTransfersQuery, List<TransferDto>>
+public class GetAllTransfersQueryHandler
+    : IRequestHandler<GetAllTransfersQuery, List<TransferDto>>
 {
     private readonly IApplicationDbContext _context;
 
@@ -15,11 +16,13 @@ public class GetAllTransfersQueryHandler : IRequestHandler<GetAllTransfersQuery,
         _context = context;
     }
 
-    public async Task<List<TransferDto>> Handle(GetAllTransfersQuery request, CancellationToken cancellationToken)
+    public async Task<List<TransferDto>> Handle(
+        GetAllTransfersQuery request,
+        CancellationToken cancellationToken)
     {
         var query = _context.Transfers
             .Include(t => t.Asset)
-            .Include(t => t.AssetRequest)
+                .ThenInclude(a => a.Product)
             .Include(t => t.FromDivision)
             .Include(t => t.ToDivision)
             .Include(t => t.TransferBy)
@@ -27,38 +30,35 @@ public class GetAllTransfersQueryHandler : IRequestHandler<GetAllTransfersQuery,
             .Include(t => t.CurrentHolder)
             .AsQueryable();
 
-        // Apply filters
+        //  FILTERS
+
+        if (request.AssetId.HasValue)
+        {
+            query = query.Where(t => t.AssetId == request.AssetId);
+        }
+
+        if (request.CurrentHolderId.HasValue)
+        {
+            query = query.Where(t => t.CurrentHolderId == request.CurrentHolderId);
+        }
+
         if (request.DivisionId.HasValue)
         {
-            query = query.Where(t => t.FromDivisionId == request.DivisionId.Value || t.ToDivisionId == request.DivisionId.Value);
+            query = query.Where(t =>
+                t.FromDivisionId == request.DivisionId ||
+                t.ToDivisionId == request.DivisionId);
         }
 
         if (!string.IsNullOrEmpty(request.Status))
         {
-            // Parse the status string to enum value
-            if (int.TryParse(request.Status, out int statusValue))
-            {
-                query = query.Where(t => (int)t.Status == statusValue);
-            }
-            else if (Enum.TryParse<Domain.Enums.TransferStatus>(request.Status, out var statusEnum))
+            if (Enum.TryParse<Domain.Enums.TransferStatus>(request.Status, out var statusEnum))
             {
                 query = query.Where(t => t.Status == statusEnum);
             }
         }
 
-        if (request.CurrentHolderId.HasValue)
-        {
-            query = query.Where(t => t.CurrentHolderId == request.CurrentHolderId.Value || t.TargetUserId == request.CurrentHolderId.Value);
-        }
-
-        if (request.AssetId.HasValue)
-        {
-            query = query.Where(t => t.AssetId == request.AssetId.Value);
-        }
-
-        // Note: Pagination removed as Page and PageSize properties are not available in GetAllTransfersQuery
-
-        var transfers = await query
+        //  DTO Mapping
+        var result = await query
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new TransferDto
             {
@@ -66,26 +66,47 @@ public class GetAllTransfersQueryHandler : IRequestHandler<GetAllTransfersQuery,
                 TransferNumber = t.TransferNumber,
                 TransferDate = t.TransferDate,
                 ReturnDate = t.ReturnDate,
+
                 Reason = t.Reason,
+                // TransferPeriod = t.TransferPeriod, // Property not in TransferDto
+
                 Status = t.Status.ToString(),
-                AssetRequestId = t.AssetRequestId,
+
+                //  Asset
                 AssetId = t.AssetId,
-                AssetTag = null, // Transfer entity doesn't have AssetTag property
+                AssetTag = t.Asset.AssetTag,
+                // AssetCode = t.Asset.AssetCode, // Property not in TransferDto
+                // ProductName = t.Asset.Product != null
+                //     ? t.Asset.Product.Name
+                //     : null, // Property not in TransferDto
+
+                //  Request
+                AssetRequestId = t.AssetRequestId,
+
+                //  From Division
                 FromDivisionId = t.FromDivisionId,
-                FromDivisionName = t.FromDivision.Name,
+                FromDivisionName = t.FromDivision != null ? t.FromDivision.Name : null,
+
+                //  To Division
                 ToDivisionId = t.ToDivisionId,
-                ToDivisionName = t.ToDivision.Name,
+                ToDivisionName = t.ToDivision != null ? t.ToDivision.Name : null,
+
+                //  Users
                 TransferById = t.TransferById,
-                TransferByName = t.TransferBy.Username,
+                TransferByName = t.TransferBy != null ? t.TransferBy.Username : null,
+
                 TargetUserId = t.TargetUserId,
-                TargetUserName = t.TargetUser.Username,
+                TargetUserName = t.TargetUser != null ? t.TargetUser.Username : null,
+
                 CurrentHolderId = t.CurrentHolderId,
                 CurrentHolderName = t.CurrentHolder != null ? t.CurrentHolder.Username : null,
+
+                //  Audit
                 CreatedAt = t.CreatedAt,
-                UpdatedAt = t.UpdatedAt ?? DateTime.MinValue
+                UpdatedAt = t.UpdatedAt
             })
             .ToListAsync(cancellationToken);
 
-        return transfers;
+        return result;
     }
 }

@@ -4,6 +4,7 @@ using Assura.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Assura.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260428080840_UpdateTransfercolumns")]
+    partial class UpdateTransfercolumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1532,14 +1535,8 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("AssetId")
                         .HasColumnType("int");
 
-                    b.Property<string>("AssetName")
-                        .HasColumnType("longtext");
-
                     b.Property<int>("AssetRequestId")
                         .HasColumnType("int");
-
-                    b.Property<string>("AssetTag")
-                        .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -1550,7 +1547,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int?>("CurrentHolderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("FromDivisionId")
+                    b.Property<int>("FromDivisionId")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
@@ -1565,13 +1562,13 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TargetUserId")
+                    b.Property<int>("TargetUserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ToDivisionId")
+                    b.Property<int>("ToDivisionId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TransferById")
+                    b.Property<int>("TransferById")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("TransferDate")
@@ -2098,19 +2095,27 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasOne("Assura.Domain.Entities.Division", "FromDivision")
                         .WithMany()
-                        .HasForeignKey("FromDivisionId");
+                        .HasForeignKey("FromDivisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Assura.Domain.Entities.User", "TargetUser")
                         .WithMany()
-                        .HasForeignKey("TargetUserId");
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Assura.Domain.Entities.Division", "ToDivision")
                         .WithMany()
-                        .HasForeignKey("ToDivisionId");
+                        .HasForeignKey("ToDivisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Assura.Domain.Entities.User", "TransferBy")
                         .WithMany()
-                        .HasForeignKey("TransferById");
+                        .HasForeignKey("TransferById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Asset");
 

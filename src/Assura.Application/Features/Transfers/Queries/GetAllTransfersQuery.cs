@@ -23,16 +23,17 @@ public class TransferDto
     public int AssetRequestId { get; set; }
     public int AssetId { get; set; }
     public string? AssetTag { get; set; }
-    public int FromDivisionId { get; set; }
+    public string? AssetName { get; set; }
+    public int? FromDivisionId { get; set; }
     public string? FromDivisionName { get; set; }
-    public int ToDivisionId { get; set; }
+    public int? ToDivisionId { get; set; }
     public string? ToDivisionName { get; set; }
-    public int TransferById { get; set; }
+    public int? TransferById { get; set; }
     public string? TransferByName { get; set; }
-    public int TargetUserId { get; set; }
+    public int? TargetUserId { get; set; }
     public string? TargetUserName { get; set; }
     public int? CurrentHolderId { get; set; }
     public string? CurrentHolderName { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }
