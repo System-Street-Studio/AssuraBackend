@@ -68,17 +68,16 @@ public class GetAllTransfersQueryHandler
                 ReturnDate = t.ReturnDate,
 
                 Reason = t.Reason,
-                // TransferPeriod = t.TransferPeriod, // Property not in TransferDto
+                TransferPeriod = t.TransferPeriod,
 
                 Status = t.Status.ToString(),
 
                 //  Asset
                 AssetId = t.AssetId,
                 AssetTag = t.Asset.AssetTag,
-                // AssetCode = t.Asset.AssetCode, // Property not in TransferDto
-                // ProductName = t.Asset.Product != null
-                //     ? t.Asset.Product.Name
-                //     : null, // Property not in TransferDto
+                AssetCode = t.Asset.AssetCode,
+                AssetStatus = t.Asset.Status.ToString(),
+                ProductName = t.Asset.Product != null ? t.Asset.Product.Name : null, 
 
                 //  Request
                 AssetRequestId = t.AssetRequestId,

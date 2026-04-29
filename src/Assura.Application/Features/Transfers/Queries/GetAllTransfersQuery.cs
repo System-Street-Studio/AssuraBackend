@@ -19,11 +19,15 @@ public class TransferDto
     public DateTime TransferDate { get; set; }
     public DateTime? ReturnDate { get; set; }
     public string? Reason { get; set; }
+    public string? TransferPeriod { get; set; }
     public string Status { get; set; } = string.Empty;
     public int AssetRequestId { get; set; }
     public int AssetId { get; set; }
     public string? AssetTag { get; set; }
     public string? AssetName { get; set; }
+    public string? AssetCode { get; set; }
+    public string? AssetStatus { get; set; }
+    public string? ProductName { get; set; }
     public int? FromDivisionId { get; set; }
     public string? FromDivisionName { get; set; }
     public int? ToDivisionId { get; set; }
