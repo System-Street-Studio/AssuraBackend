@@ -28,7 +28,7 @@ public class Transfer : BaseEntity
 
 
 
-    public int AssetRequestId { get; set; }
+    public int? AssetRequestId { get; set; }
 
     public AssetRequest? AssetRequest { get; set; } 
 
@@ -37,10 +37,6 @@ public class Transfer : BaseEntity
     public int AssetId { get; set; }
 
     public Asset Asset { get; set; } = null!;
-
-    public string? AssetTag { get; set; }
-
-    public string? AssetName { get; set; }
 
 
     public int? FromDivisionId { get; set; }
@@ -61,9 +57,9 @@ public class Transfer : BaseEntity
 
 
 
-    public int? TargetUserId { get; set; }
+    public int TargetUserId { get; set; }
 
-    public User? TargetUser { get; set; } 
+    public User TargetUser { get; set; } 
 
 
 

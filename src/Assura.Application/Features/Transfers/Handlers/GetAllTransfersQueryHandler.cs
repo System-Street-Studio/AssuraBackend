@@ -49,6 +49,17 @@ public class GetAllTransfersQueryHandler
                 t.ToDivisionId == request.DivisionId);
         }
 
+        if (request.DivisionHeadUserId.HasValue)
+        {
+            query = query.Where(t => 
+                _context.Users.Any(u => 
+                    u.Id == request.DivisionHeadUserId.Value && 
+                    u.DivisionId == t.FromDivisionId && 
+                    u.Role == Domain.Enums.UserRole.DivisionHead
+                )
+            );
+        }
+
         if (!string.IsNullOrEmpty(request.Status))
         {
             if (Enum.TryParse<Domain.Enums.TransferStatus>(request.Status, out var statusEnum))

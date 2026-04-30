@@ -1,8 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.Transfers.Commands;
 using Assura.Domain.Entities;
-using Assura.Application.Common.Interfaces;
 using Assura.Domain.Enums;
 
 namespace Assura.Application.Features.Transfers.Handlers;
@@ -18,42 +18,31 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
 
     public async Task<int> Handle(CreateTransferCommand request, CancellationToken cancellationToken)
     {
-        Console.WriteLine("🔄 === TRANSFER CREATION STARTED ===");
-
         // 1️⃣ Get Asset
         var asset = await _context.Assets
+            .Include (a => a.Product)
             .FirstOrDefaultAsync(a => a.Id == request.AssetId, cancellationToken);
 
         if (asset == null)
             throw new Exception($"Asset with ID {request.AssetId} not found");
 
-        Console.WriteLine($"📦 Asset: {asset.AssetTag}");
-
-        
-        // 2️⃣ Get AssetRequest
+        // 2️⃣ Get Asset Request (Optional)
         AssetRequest? assetRequest = null;
 
-        if (request.AssetRequestId > 0)
+        if (request.AssetRequestId.HasValue)
         {
             assetRequest = await _context.AssetRequests
-                .FirstOrDefaultAsync(a => a.Id == request.AssetRequestId, cancellationToken);
+                .FirstOrDefaultAsync(a => a.Id == request.AssetRequestId.Value, cancellationToken);
 
             if (assetRequest == null)
                 throw new Exception($"AssetRequest with ID {request.AssetRequestId} not found");
         }
 
-        
-        // 3️⃣ Extract Reason & TransferPeriod
+        // 3️⃣ Extract Reason & Period
         string? reason = assetRequest?.Reason;
         string? transferPeriod = ExtractTransferPeriod(reason);
         string? cleanedReason = CleanReason(reason, transferPeriod);
 
-        Console.WriteLine($"📝 Original Reason: {reason}");
-        Console.WriteLine($"⏳ Transfer Period: {transferPeriod}");
-        Console.WriteLine($"🧹 Cleaned Reason: {cleanedReason}");
-
-        
-        
         // 4️⃣ Current Holder
         User? currentHolder = null;
 
@@ -64,17 +53,19 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
                 .FirstOrDefaultAsync(u => u.Id == asset.AssignedUserId.Value, cancellationToken);
         }
 
-        
-        // 5 Target User
-        int targetUserId;
+        // 5️⃣ Target User (Requester)
+        if (assetRequest == null)
+            throw new Exception("Transfer must be linked to an AssetRequest");
 
-        if (assetRequest != null && int.TryParse(assetRequest.RequesterId, out int parsedId))
+        // Parse RequesterId - it might be stored as a string
+        int targetUserId;
+        if (int.TryParse(assetRequest.RequesterId.ToString(), out int parsedId))
         {
             targetUserId = parsedId;
         }
         else
         {
-            throw new Exception("Target user cannot be determined from request");
+            throw new Exception($"Invalid RequesterId value: {assetRequest.RequesterId}");
         }
 
         var targetUser = await _context.Users
@@ -82,46 +73,49 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
             .FirstOrDefaultAsync(u => u.Id == targetUserId, cancellationToken);
 
         if (targetUser == null)
-        {
-            Console.WriteLine($" Target user not found for ID: {targetUserId}");
             throw new Exception("Target user not found");
+
+        //  Transfer By
+         User? transferBy = null;
+
+        if (request.UserId.HasValue)
+        {
+            transferBy = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == request.UserId.Value, cancellationToken);
         }
 
-        Console.WriteLine($"👤 Target User: {targetUser.FirstName}");
+            
 
-
-
-        // 6 Create Transfer
+        // 6️⃣ Create Transfer
         var transfer = new Transfer
         {
-            TransferNumber = $"TRF{Guid.NewGuid():N}",
-            AssetId = asset.Id,
-            AssetTag = asset.AssetTag,
-            AssetName = asset.Product?.Name ?? "Unknown",
+            TransferNumber = GenerateTransferNumber(),
 
-            FromDivisionId = currentHolder?.DivisionId ?? 0,
+            AssetId = asset.Id,
+
+            FromDivisionId = currentHolder?.DivisionId,
             FromDivision = currentHolder?.Division,
 
             CurrentHolderId = currentHolder?.Id,
             CurrentHolder = currentHolder,
 
-            AssetRequestId = assetRequest?.Id ?? 0,
+            AssetRequestId = assetRequest.Id,
             AssetRequest = assetRequest,
-            Reason = cleanedReason,
 
+            Reason = cleanedReason,
             TransferPeriod = transferPeriod,
 
-            ToDivisionId = targetUser.DivisionId ?? 0,
+            ToDivisionId = targetUser.DivisionId,
             ToDivision = targetUser.Division,
 
             TargetUserId = targetUser.Id,
             TargetUser = targetUser,
 
-            TransferById = targetUser.Id,
-            TransferBy = targetUser,
             
+            TransferById = request.UserId,
+            TransferBy = transferBy,
+
             TransferDate = DateTime.UtcNow,
-           
             Status = TransferStatus.PendingOwnerApproval,
 
             CreatedAt = DateTime.UtcNow,
@@ -132,13 +126,14 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
         _context.Transfers.Add(transfer);
         await _context.SaveChangesAsync(cancellationToken);
 
-        Console.WriteLine($"✅ Transfer Created ID: {transfer.Id}");
-
         return transfer.Id;
     }
 
-
-
+    // 🔢 Generate Transfer Number
+    private string GenerateTransferNumber()
+    {
+        return $"TRF-{DateTime.UtcNow:yyyyMMddHHmmss}";
+    }
 
     // 🔍 Extract Transfer Period
     private string? ExtractTransferPeriod(string? reason)
@@ -154,7 +149,8 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
 
         foreach (var pattern in patterns)
         {
-            var match = System.Text.RegularExpressions.Regex.Match(reason, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var match = System.Text.RegularExpressions.Regex.Match(
+                reason, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             if (match.Success)
             {

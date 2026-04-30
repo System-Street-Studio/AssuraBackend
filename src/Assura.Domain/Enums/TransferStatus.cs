@@ -8,13 +8,13 @@ public enum TransferStatus
 
     WaitingForFinalConfirmation = 3,  // Previous Division Head confirmation
 
-    ReadyForHandover = 4,  // Ready for asset handover
+    //ReadyForHandover = 4,  // Ready for asset handover
 
-    Active = 5,      // Active Transfers 
+    Active = 4,      // Active Transfers 
 
-    Completed = 6,   // after returning the asset
+    Completed = 5,   // after returning the asset
 
-    Rejected = 7,
+    Rejected = 6,
 
-    Cancelled = 8
+    Cancelled = 7
 }
