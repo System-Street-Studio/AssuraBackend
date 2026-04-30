@@ -43,55 +43,34 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
             // Get the approved request to find its division
 
             var request = await _context.AssetRequests
-
                 .FirstOrDefaultAsync(x => x.Id == notification.Id, cancellationToken);
 
-
-
-            if (request?.DivisionId == null)
-
-                if (string.Equals(notification.RequestType, "Discard", StringComparison.OrdinalIgnoreCase))
-
+            if (request == null || !request.DivisionId.HasValue)
             {
+                return;
+            }
 
+            if (string.Equals(notification.RequestType, "Discard", StringComparison.OrdinalIgnoreCase))
+            {
                 var divisionName = await _context.Divisions
-
                     .Where(d => d.Id == request.DivisionId.Value)
-
                     .Select(d => d.Name)
-
                     .FirstOrDefaultAsync(cancellationToken) ?? "Unknown";
 
-
-
                 var discardedNote = new DiscardedNote
-
                 {
-
                     Name = notification.AssetName,
-
                     Division = divisionName,
-
                     Date = DateTime.UtcNow,
-
                     Status = DiscardNoteStatus.Pending,
-
                     AssetType = notification.AssetCategory,
-
                     SpecialNote = notification.Reason ?? notification.Description ?? "N/A"
-
                 };
-
-
 
                 _context.DiscardedNotes.Add(discardedNote);
 
-
-
                 var superintendents = await _context.Users
-
                     .Where(u => u.Role == UserRole.Superintendent || u.Role == UserRole.Admin)
-
                     .ToListAsync(cancellationToken);
 
                 foreach (var super in superintendents)
@@ -111,73 +90,39 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
             }
 
             // Create AssetInforming record (adds to inventory/new arrivals)
-
             var assetInforming = new AssetInforming
-
             {
-
                 ItemName = notification.AssetName,
-
                 Model = notification.AssetCategory,
-
                 Warranty = "N/A",
-
                 Quantity = notification.Quantity,
-
                 PurchasedDate = notification.SubmittedDate,
-
                 PurchasedPrice = 0, // Can be updated later
-
                 DivisionId = request.DivisionId.Value,
-
                 Status = "Pending"
-
             };
 
-
-
             _context.AssetInformings.Add(assetInforming);
-
             await _context.SaveChangesAsync(cancellationToken);
-
-
 
             // Notify Storekeepers about the new approved request
-
             var storekeepers = await _context.Users
-
                 .Where(u => u.Role == UserRole.Storekeeper)
-
                 .ToListAsync(cancellationToken);
 
-
-
             foreach (var storekeeper in storekeepers)
-
             {
-
                 _context.Notifications.Add(new Notification
-
                 {
-
                     Title = "Asset Request Approved",
-
                     Message = $"Request for '{notification.AssetName}' (Qty: {notification.Quantity}) has been approved and is awaiting procurement.",
-
                     UserId = storekeeper.Id,
-
                     Type = "Info",
-
                     ReferenceId = assetInforming.Id.ToString()
-
                 });
-
             }
 
-
-
             await _context.SaveChangesAsync(cancellationToken);
-
         }
 
         catch (Exception ex)

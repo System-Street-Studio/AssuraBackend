@@ -1,14 +1,28 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Assura.Infrastructure.Migrations
 {
-    public partial class AddHrUserWorkflowFields : Migration
+    /// <inheritdoc />
+    public partial class AddUserWorkflowFields : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AlterColumn<string>(
+                name: "PhoneNumber",
+                table: "Users",
+                type: "varchar(30)",
+                maxLength: 30,
+                nullable: true,
+                oldClrType: typeof(string),
+                oldType: "longtext",
+                oldNullable: true)
+                .Annotation("MySql:CharSet", "utf8mb4")
+                .OldAnnotation("MySql:CharSet", "utf8mb4");
+
             migrationBuilder.AddColumn<DateTime>(
                 name: "AssignedAt",
                 table: "Users",
@@ -21,7 +35,7 @@ namespace Assura.Infrastructure.Migrations
                 type: "varchar(40)",
                 maxLength: 40,
                 nullable: false,
-                defaultValue: "PendingAssignment")
+                defaultValue: "")
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.AddColumn<string>(
@@ -41,6 +55,7 @@ namespace Assura.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
         }
 
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
@@ -58,6 +73,18 @@ namespace Assura.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "RequestedRole",
                 table: "Users");
+
+            migrationBuilder.AlterColumn<string>(
+                name: "PhoneNumber",
+                table: "Users",
+                type: "longtext",
+                nullable: true,
+                oldClrType: typeof(string),
+                oldType: "varchar(30)",
+                oldMaxLength: 30,
+                oldNullable: true)
+                .Annotation("MySql:CharSet", "utf8mb4")
+                .OldAnnotation("MySql:CharSet", "utf8mb4");
         }
     }
 }
