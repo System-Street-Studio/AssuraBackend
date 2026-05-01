@@ -37,6 +37,10 @@ public class Asset : BaseEntity
     public DateTime? ReservedUntilUtc { get; set; }
     public int? ReservedByRequestId { get; set; }
 
+    public DateTime? LastVerifiedAt { get; set; }
+    public int? LastVerifiedByUserId { get; set; }
+    public User? LastVerifiedByUser { get; set; }
+
     public ICollection<Maintenance> MaintenanceRecords { get; set; } = new List<Maintenance>();
     public ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
     public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();

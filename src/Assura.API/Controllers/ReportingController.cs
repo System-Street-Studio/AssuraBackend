@@ -1,5 +1,6 @@
 using Assura.Application.Features.Reporting.DTOs;
 using Assura.Application.Features.Reporting.Queries;
+using Assura.Application.Features.Assets.Commands;
 using Assura.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -42,6 +43,13 @@ public class ReportingController : BaseApiController
     public async Task<ActionResult<ReportingReportsPageDto>> GetReports()
     {
         var result = await _mediator.Send(new GetReportingReportsQuery());
+        return Ok(result);
+    }
+
+    [HttpPost("assets/{id}/verify")]
+    public async Task<ActionResult<bool>> VerifyAsset(int id)
+    {
+        var result = await _mediator.Send(new VerifyAssetCommand(id));
         return Ok(result);
     }
 }

@@ -5,7 +5,7 @@ public class ReportingDashboardDto
     public List<ReportingMetricDto> Metrics { get; set; } = [];
     public List<ReportingLegendItemDto> CategoryLegend { get; set; } = [];
     public List<ReportingBarItemDto> StatusBars { get; set; } = [];
-    public List<ReportingBarItemDto> DepartmentBars { get; set; } = [];
+    public List<ReportingBarItemDto> DivisionBars { get; set; } = [];
     public List<ReportingBarItemDto> ValueBars { get; set; } = [];
     public ReportingAnomaliesDto Anomalies { get; set; } = new();
 }

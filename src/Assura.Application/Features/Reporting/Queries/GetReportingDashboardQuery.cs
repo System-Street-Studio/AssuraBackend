@@ -111,7 +111,7 @@ public class GetReportingDashboardQueryHandler : IRequestHandler<GetReportingDas
                     Color = ReportingQueryHelpers.GetColor(index)
                 })
                 .ToList(),
-            DepartmentBars = divisionGroups
+            DivisionBars = divisionGroups
                 .Select((group, index) => new ReportingBarItemDto
                 {
                     Label = group.Key,
