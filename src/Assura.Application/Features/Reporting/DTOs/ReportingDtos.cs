@@ -68,6 +68,9 @@ public class ReportingAuditLogEntryDto
 public class ReportingAssetsPageDto
 {
     public int SelectedCount { get; set; }
+    public int TotalCount { get; set; }
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
     public List<ReportingAssetRowDto> Assets { get; set; } = [];
 }
 

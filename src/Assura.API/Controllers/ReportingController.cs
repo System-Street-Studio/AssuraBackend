@@ -33,9 +33,9 @@ public class ReportingController : BaseApiController
     }
 
     [HttpGet("assets")]
-    public async Task<ActionResult<ReportingAssetsPageDto>> GetAssets()
+    public async Task<ActionResult<ReportingAssetsPageDto>> GetAssets([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
     {
-        var result = await _mediator.Send(new GetReportingAssetsQuery());
+        var result = await _mediator.Send(new GetReportingAssetsQuery(pageNumber, pageSize));
         return Ok(result);
     }
 

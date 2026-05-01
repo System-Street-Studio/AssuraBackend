@@ -153,28 +153,28 @@ public class SeedController : ControllerBase
                 _context.Users.Add(procurement);
             }
 
-            var empIt = await _context.Users.FirstOrDefaultAsync(u => u.Username == "emp_it");
-            if (empIt != null)
+            var auditor = await _context.Users.FirstOrDefaultAsync(u => u.Username == "auditor");
+            if (auditor != null)
             {
-                empIt.PasswordHash = passwordHash;
-                empIt.Role = UserRole.Employee;
-                empIt.IsActive = true;
-                _context.Users.Update(empIt);
+                auditor.PasswordHash = passwordHash;
+                auditor.Role = UserRole.Auditor;
+                auditor.IsActive = true;
+                _context.Users.Update(auditor);
             }
             else
             {
-                empIt = new User
+                auditor = new User
                 {
-                    Username = "emp_it",
+                    Username = "auditor",
                     PasswordHash = passwordHash,
-                    Email = "empit@assura.com",
-                    FirstName = "IT",
-                    LastName = "Employee",
-                    Role = UserRole.Employee,
+                    Email = "auditor@assura.com",
+                    FirstName = "System",
+                    LastName = "Auditor",
+                    Role = UserRole.Auditor,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
-                _context.Users.Add(empIt);
+                _context.Users.Add(auditor);
             }
 
             await _context.SaveChangesAsync(default);

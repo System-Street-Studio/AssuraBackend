@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Reporting.Queries;
 
-public record GetReportingAssetsQuery : IRequest<ReportingAssetsPageDto>;
+public record GetReportingAssetsQuery(int PageNumber = 1, int PageSize = 20) : IRequest<ReportingAssetsPageDto>;
 
 public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssetsQuery, ReportingAssetsPageDto>
 {
@@ -19,14 +19,19 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
 
     public async Task<ReportingAssetsPageDto> Handle(GetReportingAssetsQuery request, CancellationToken cancellationToken)
     {
-        var assets = await _context.Assets
+        var query = _context.Assets
             .AsNoTracking()
-            .Where(a => !a.IsDeleted)
+            .Where(a => !a.IsDeleted);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var assets = await query
             .Include(a => a.Product)
             .Include(a => a.Division)
             .Include(a => a.AssignedUser)
             .OrderByDescending(a => a.CreatedAt)
-            .Take(200)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
         var assetReferences = assets
@@ -62,15 +67,15 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
             {
                 Id = asset.Id,
                 AssetId = asset.AssetCode,
-                Selected = index < 2,
+                Selected = false,
                 Swatch = ReportingQueryHelpers.GetColor(index),
-                ImageClass = ReportingQueryHelpers.ResolveImageClass(asset.Product.Name),
-                Product = asset.Product.Name,
+                ImageClass = ReportingQueryHelpers.ResolveImageClass(asset.Product?.Name ?? "unknown"),
+                Product = asset.Product?.Name ?? "Unknown Product",
                 Status = ReportingQueryHelpers.FormatAssetStatus(asset.Status),
                 CheckedBy = latestLog is null ? null : ReportingQueryHelpers.ResolveActorDisplay(actor, latestLog.CreatedBy),
                 CheckedRole = latestLog is null ? null : ReportingQueryHelpers.ResolveRoleDisplay(actor),
                 AssuraName = asset.AssignedUser is null
-                    ? asset.Division.Name
+                    ? (asset.Division?.Name ?? "N/A")
                     : $"{asset.AssignedUser.FirstName} {asset.AssignedUser.LastName}".Trim(),
                 Serial = string.IsNullOrWhiteSpace(asset.SerialNumber) ? "--" : asset.SerialNumber,
                 Warranty = string.IsNullOrWhiteSpace(asset.Warranty) ? "Unavailable" : asset.Warranty,
@@ -81,7 +86,10 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
 
         return new ReportingAssetsPageDto
         {
-            SelectedCount = rows.Count(r => r.Selected),
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            SelectedCount = 0,
             Assets = rows
         };
     }

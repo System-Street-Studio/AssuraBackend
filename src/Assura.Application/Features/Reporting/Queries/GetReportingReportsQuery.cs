@@ -57,7 +57,7 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
             new()
             {
                 Id = $"RPT-{now:yyyyMM}-002",
-                Title = "Department Variance Register",
+                Title = "Division Variance Register",
                 Owner = "System",
                 Type = "Exception",
                 Period = $"Q{((now.Month - 1) / 3) + 1} {now.Year}",
