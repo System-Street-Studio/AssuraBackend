@@ -6,6 +6,13 @@ namespace Assura.Application.Features.HR.Queries;
 
 public record GetHrUserByIdQuery(int UserId) : IRequest<HrUserDetailDto?>;
 
+public class UserDivisionRoleDto
+{
+    public int DivisionId { get; set; }
+    public string DivisionName { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+}
+
 public class HrUserDetailDto
 {
     public int Id { get; set; }
@@ -24,6 +31,7 @@ public class HrUserDetailDto
     public string? JobTitle { get; set; }
     public string JoinedDate { get; set; } = string.Empty;
     public string? AssignedAt { get; set; }
+    public List<UserDivisionRoleDto> Assignments { get; set; } = new();
 }
 
 public class GetHrUserByIdQueryHandler : IRequestHandler<GetHrUserByIdQuery, HrUserDetailDto?>
@@ -37,29 +45,40 @@ public class GetHrUserByIdQueryHandler : IRequestHandler<GetHrUserByIdQuery, HrU
 
     public async Task<HrUserDetailDto?> Handle(GetHrUserByIdQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Users
+        var user = await _context.Users
             .AsNoTracking()
             .Include(u => u.Division)
+            .Include(u => u.DivisionRoles)
+                .ThenInclude(dr => dr.Division)
             .Where(u => u.Id == request.UserId && u.IsActive)
-            .Select(u => new HrUserDetailDto
-            {
-                Id = u.Id,
-                UserId = u.Username,
-                Username = u.Username,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                Name = (u.FirstName + " " + u.LastName).Trim(),
-                Email = u.Email,
-                PhoneNumber = u.PhoneNumber,
-                RequestedRole = u.RequestedRole,
-                AssignedRole = u.Role.HasValue ? u.Role.Value.ToString() : null,
-                EmploymentStatus = u.EmploymentStatus,
-                DivisionId = u.DivisionId,
-                Division = u.Division != null ? u.Division.Name : "Unassigned",
-                JobTitle = u.JobTitle,
-                JoinedDate = u.CreatedAt.ToString("yyyy-MM-dd"),
-                AssignedAt = u.AssignedAt.HasValue ? u.AssignedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : null
-            })
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (user == null) return null;
+
+        return new HrUserDetailDto
+        {
+            Id = user.Id,
+            UserId = user.Username,
+            Username = user.Username,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Name = (user.FirstName + " " + user.LastName).Trim(),
+            Email = user.Email,
+            PhoneNumber = user.PhoneNumber,
+            RequestedRole = user.RequestedRole,
+            AssignedRole = user.Role.HasValue ? user.Role.Value.ToString() : null,
+            EmploymentStatus = user.EmploymentStatus,
+            DivisionId = user.DivisionId,
+            Division = user.Division != null ? user.Division.Name : "Unassigned",
+            JobTitle = user.JobTitle,
+            JoinedDate = user.CreatedAt.ToString("yyyy-MM-dd"),
+            AssignedAt = user.AssignedAt.HasValue ? user.AssignedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : null,
+            Assignments = user.DivisionRoles.Select(dr => new UserDivisionRoleDto
+            {
+                DivisionId = dr.DivisionId,
+                DivisionName = dr.Division.Name,
+                Role = dr.Role.ToString()
+            }).ToList()
+        };
     }
 }

@@ -50,8 +50,11 @@ public class HrController : BaseApiController
         var command = new AssignHrRoleCommand
         {
             UserId = userId,
-            Role = request.Role,
-            DivisionId = request.DivisionId,
+            Assignments = request.Assignments.Select(a => new DivisionRoleAssignment
+            {
+                DivisionId = a.DivisionId,
+                Role = a.Role
+            }).ToList(),
             JobTitle = request.JobTitle,
             Notes = request.Notes,
             ActorName = ResolveActorName(),
@@ -71,8 +74,11 @@ public class HrController : BaseApiController
         var command = new UpdateHrUserCommand
         {
             UserId = userId,
-            DivisionId = request.DivisionId,
-            Role = request.Role,
+            Assignments = request.Assignments?.Select(a => new DivisionRoleAssignment
+            {
+                DivisionId = a.DivisionId,
+                Role = a.Role
+            }).ToList() ?? new List<DivisionRoleAssignment>(),
             JobTitle = request.JobTitle,
             PhoneNumber = request.PhoneNumber,
             RequestedRole = request.RequestedRole,
@@ -117,17 +123,22 @@ public class HrController : BaseApiController
     }
 }
 
+public class DivisionAssignmentDto
+{
+    public int DivisionId { get; set; }
+    public string Role { get; set; } = string.Empty;
+}
+
 public class AssignHrRoleRequest
 {
-    public string Role { get; set; } = string.Empty;
-    public int? DivisionId { get; set; }
+    public List<DivisionAssignmentDto> Assignments { get; set; } = new();
     public string? JobTitle { get; set; }
     public string? Notes { get; set; }
 }
 
 public class UpdateHrUserRequest
 {
-    public int? DivisionId { get; set; }
+    public List<DivisionAssignmentDto>? Assignments { get; set; }
     public string? Role { get; set; }
     public string? JobTitle { get; set; }
     public string? PhoneNumber { get; set; }

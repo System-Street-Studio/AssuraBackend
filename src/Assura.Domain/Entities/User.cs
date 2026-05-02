@@ -27,6 +27,7 @@ public class User : BaseEntity
     public string? JobTitle { get; set; }
     public DateTime? AssignedAt { get; set; }
     
+    public ICollection<UserDivisionRole> DivisionRoles { get; set; } = new List<UserDivisionRole>();
     public ICollection<Asset> AssignedAssets { get; set; } = new List<Asset>();
     public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();

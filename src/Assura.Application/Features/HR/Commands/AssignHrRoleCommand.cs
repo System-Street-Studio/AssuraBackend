@@ -7,11 +7,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.HR.Commands;
 
+public record DivisionRoleAssignment
+{
+    public int DivisionId { get; init; }
+    public string Role { get; init; } = string.Empty;
+}
+
 public record AssignHrRoleCommand : IRequest<bool>
 {
     public int UserId { get; init; }
-    public string Role { get; init; } = string.Empty;
-    public int? DivisionId { get; init; }
+    public List<DivisionRoleAssignment> Assignments { get; init; } = new();
     public string? JobTitle { get; init; }
     public string? Notes { get; init; }
     public string? ActorName { get; init; }
@@ -31,34 +36,46 @@ public class AssignHrRoleCommandHandler : IRequestHandler<AssignHrRoleCommand, b
     public async Task<bool> Handle(AssignHrRoleCommand request, CancellationToken cancellationToken)
     {
         var user = await _context.Users
+            .Include(u => u.DivisionRoles)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
-        if (user == null || !Enum.TryParse<UserRole>(request.Role, true, out var parsedRole))
+        if (user == null || request.Assignments.Count == 0)
         {
             return false;
         }
 
-        string divisionName = "Unassigned";
+        // Clear existing assignments if any
+        user.DivisionRoles.Clear();
 
-        if (request.DivisionId.HasValue)
+        foreach (var assignment in request.Assignments)
         {
-            var division = await _context.Divisions
-                .FirstOrDefaultAsync(d => d.Id == request.DivisionId.Value, cancellationToken);
-
-            if (division == null)
+            if (!Enum.TryParse<UserRole>(assignment.Role, true, out var parsedRole))
             {
-                return false;
+                continue;
             }
 
-            user.DivisionId = division.Id;
-            divisionName = division.Name;
-        }
-        else
-        {
-            user.DivisionId = null;
+            var division = await _context.Divisions
+                .FirstOrDefaultAsync(d => d.Id == assignment.DivisionId, cancellationToken);
+
+            if (division == null) continue;
+
+            user.DivisionRoles.Add(new UserDivisionRole
+            {
+                UserId = user.Id,
+                DivisionId = division.Id,
+                Role = parsedRole,
+                JobTitle = request.JobTitle,
+                Notes = request.Notes,
+                AssignedAt = DateTime.UtcNow
+            });
         }
 
-        user.Role = parsedRole;
+        if (user.DivisionRoles.Count == 0) return false;
+
+        // Set primary role/division for compatibility
+        var primary = user.DivisionRoles.First();
+        user.Role = primary.Role;
+        user.DivisionId = primary.DivisionId;
         user.JobTitle = request.JobTitle;
         user.EmploymentStatus = "Assigned";
         user.AssignedAt = DateTime.UtcNow;
@@ -67,15 +84,14 @@ public class AssignHrRoleCommandHandler : IRequestHandler<AssignHrRoleCommand, b
         {
             EntityName = "HR",
             EntityId = user.Id.ToString(),
-            Action = "Assigned Role",
+            Action = "Assigned Roles",
             CreatedBy = request.ActorName,
             IpAddress = request.IpAddress,
             NewValues = JsonSerializer.Serialize(new
             {
                 employee = $"{user.FirstName} {user.LastName}".Trim(),
-                department = divisionName,
-                role = parsedRole.ToString(),
-                notes = request.Notes ?? "Role assigned by HR",
+                assignments = request.Assignments.Select(a => new { a.DivisionId, a.Role }),
+                notes = request.Notes ?? "Role(s) assigned by HR",
                 result = "Success",
                 device = request.Device
             })

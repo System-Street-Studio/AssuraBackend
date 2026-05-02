@@ -11,8 +11,7 @@ namespace Assura.Application.Features.HR.Commands;
 public record UpdateHrUserCommand : IRequest<bool>
 {
     public int UserId { get; init; }
-    public int? DivisionId { get; init; }
-    public string? Role { get; init; }
+    public List<DivisionRoleAssignment> Assignments { get; init; } = new();
     public string? JobTitle { get; init; }
     public string? PhoneNumber { get; init; }
     public string? RequestedRole { get; init; }
@@ -47,7 +46,7 @@ public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, b
     public async Task<bool> Handle(UpdateHrUserCommand request, CancellationToken cancellationToken)
     {
         var user = await _context.Users
-            .Include(u => u.Division)
+            .Include(u => u.DivisionRoles)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
         if (user == null)
@@ -55,28 +54,40 @@ public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, b
             return false;
         }
 
-        string divisionName = user.Division?.Name ?? "Unassigned";
-
-        if (request.DivisionId.HasValue)
+        if (request.Assignments is not null && request.Assignments.Count > 0)
         {
-            var division = await _context.Divisions.FirstOrDefaultAsync(d => d.Id == request.DivisionId.Value, cancellationToken);
-            if (division == null)
+            // Update assignments
+            user.DivisionRoles.Clear();
+
+            foreach (var assignment in request.Assignments)
             {
-                return false;
+                if (!Enum.TryParse<UserRole>(assignment.Role, true, out var parsedRole))
+                {
+                    continue;
+                }
+
+                var division = await _context.Divisions
+                    .FirstOrDefaultAsync(d => d.Id == assignment.DivisionId, cancellationToken);
+
+                if (division == null) continue;
+
+                user.DivisionRoles.Add(new UserDivisionRole
+                {
+                    UserId = user.Id,
+                    DivisionId = division.Id,
+                    Role = parsedRole,
+                    JobTitle = request.JobTitle,
+                    Notes = request.Notes,
+                    AssignedAt = DateTime.UtcNow
+                });
             }
 
-            user.DivisionId = division.Id;
-            divisionName = division.Name;
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Role))
-        {
-            if (!Enum.TryParse<UserRole>(request.Role, true, out var parsedRole))
+            if (user.DivisionRoles.Count > 0)
             {
-                return false;
+                var primary = user.DivisionRoles.First();
+                user.Role = primary.Role;
+                user.DivisionId = primary.DivisionId;
             }
-
-            user.Role = parsedRole;
         }
 
         if (request.JobTitle is not null)
@@ -109,8 +120,7 @@ public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, b
             NewValues = JsonSerializer.Serialize(new
             {
                 employee = $"{user.FirstName} {user.LastName}".Trim(),
-                department = divisionName,
-                role = user.Role?.ToString() ?? "Unassigned",
+                assignments = request.Assignments?.Select(a => new { a.DivisionId, a.Role }),
                 notes = request.Notes ?? "Employee details updated by HR",
                 result = "Success",
                 device = request.Device

@@ -35,6 +35,7 @@ public interface IApplicationDbContext
     DbSet<Receipt> Receipts { get; }
     DbSet<AccDiscardNote> AccDiscardNotes { get; }
     DbSet<LostItem> LostItems { get; }
+    DbSet<UserDivisionRole> UserDivisionRoles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
