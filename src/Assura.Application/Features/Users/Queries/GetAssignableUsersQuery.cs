@@ -1,45 +1,27 @@
 using Assura.Application.Common.Interfaces;
-
 using Assura.Domain.Enums;
-
 using MediatR;
-
 using Microsoft.EntityFrameworkCore;
-
-
 
 namespace Assura.Application.Features.Users.Queries;
 
-
-
 public record GetAssignableUsersQuery : IRequest<List<AssignableUserDto>>;
-
-
-
 public class AssignableUserDto
-
 {
 
     public int Id { get; set; }
-
     public string FullName { get; set; } = string.Empty;
-
     public string Email { get; set; } = string.Empty;
-
     public string Department { get; set; } = string.Empty;
+    public int? DivisionId { get; set; }
+    public string? DivisionName { get; set; }
 
 }
 
-
-
 public class GetAssignableUsersQueryHandler : IRequestHandler<GetAssignableUsersQuery, List<AssignableUserDto>>
-
 {
 
     private readonly IApplicationDbContext _context;
-
-
-
     public GetAssignableUsersQueryHandler(IApplicationDbContext context)
 
     {
@@ -47,9 +29,6 @@ public class GetAssignableUsersQueryHandler : IRequestHandler<GetAssignableUsers
         _context = context;
 
     }
-
-
-
     public async Task<List<AssignableUserDto>> Handle(GetAssignableUsersQuery request, CancellationToken cancellationToken)
 
     {
@@ -76,7 +55,11 @@ public class GetAssignableUsersQueryHandler : IRequestHandler<GetAssignableUsers
 
                 Email = u.Email,
 
-                Department = u.Division != null ? u.Division.Name : "N/A"
+                Department = u.Division != null ? u.Division.Name : "N/A",
+
+                DivisionId = u.DivisionId,
+
+                DivisionName = u.Division != null ? u.Division.Name : null
 
             })
 
