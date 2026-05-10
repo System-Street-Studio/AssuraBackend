@@ -40,6 +40,7 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
             query = query.Where(x => x.RequesterId == request.EmployeeId);
         }
 
+
         // Filter by status
         if (!string.IsNullOrEmpty(request.Status))
         {

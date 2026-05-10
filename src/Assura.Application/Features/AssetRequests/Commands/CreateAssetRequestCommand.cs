@@ -36,7 +36,7 @@ public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestComma
         {
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == userId.Value, cancellationToken);
-            divisionId = user?.DivisionId;
+            divisionId = user?.DivisionId;  // Get user's division if available
         }
 
         var entity = new AssetRequest

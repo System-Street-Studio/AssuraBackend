@@ -20,6 +20,7 @@ public class GetAllRequestsQueryHandler : IRequestHandler<GetAllRequestsQuery, L
     {
         var query = _context.AssetRequests.AsQueryable();
 
+        //division head can see all requests from their division
         if (request.IsDivisionHead && !string.IsNullOrEmpty(request.EmployeeId))
         {
             if (int.TryParse(request.EmployeeId, out var userId))
@@ -33,6 +34,8 @@ public class GetAllRequestsQueryHandler : IRequestHandler<GetAllRequestsQuery, L
                 }
             }
         }
+
+        //regular employee can only see their own requests
         else if (!string.IsNullOrEmpty(request.EmployeeId))
         {
             query = query.Where(x => x.RequesterId == request.EmployeeId);
