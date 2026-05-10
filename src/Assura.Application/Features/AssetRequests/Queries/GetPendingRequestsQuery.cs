@@ -19,10 +19,10 @@ public class GetPendingRequestsQueryHandler : IRequestHandler<GetPendingRequests
     public async Task<List<AssetRequest>> Handle(GetPendingRequestsQuery request, CancellationToken cancellationToken)
     {
         var query = _context.AssetRequests
-            .Where(x => x.Status == RequestStatus.Pending)
+            .Where(x => x.Status == RequestStatus.Pending) // Only fetch pending requests
             .AsQueryable();
 
-        // Filter by user if provided
+        // Filter by employee or division head
         if (request.IsDivisionHead && !string.IsNullOrEmpty(request.EmployeeId))
         {
             if (int.TryParse(request.EmployeeId, out var userId))
