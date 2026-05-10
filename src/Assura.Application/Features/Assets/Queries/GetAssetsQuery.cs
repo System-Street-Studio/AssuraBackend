@@ -28,6 +28,7 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
             .AsQueryable();
 
         // Division Head check: filter by their division
+
         if (request.Role == "DivisionHead" && request.RequesterUserId.HasValue)
         {
             var userDivisionId = await _context.Users
@@ -40,6 +41,8 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
                 query = query.Where(a => a.DivisionId == userDivisionId.Value);
             }
         }
+
+        //employees get their own assets
         else if (request.AssignedUserId.HasValue)
         {
             query = query.Where(a => a.AssignedUserId == request.AssignedUserId.Value);
