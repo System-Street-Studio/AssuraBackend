@@ -984,7 +984,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -1009,6 +1009,9 @@ namespace Assura.Infrastructure.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("Description")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("longtext");
 
                     b.Property<bool>("IsDeleted")
@@ -1532,14 +1535,8 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("AssetId")
                         .HasColumnType("int");
 
-                    b.Property<string>("AssetName")
-                        .HasColumnType("longtext");
-
                     b.Property<int>("AssetRequestId")
                         .HasColumnType("int");
-
-                    b.Property<string>("AssetTag")
-                        .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -1736,7 +1733,7 @@ namespace Assura.Infrastructure.Migrations
 
                             b1.HasKey("AssetId");
 
-                            b1.ToTable("Assets");
+                            b1.ToTable("Specifications");
 
                             b1.WithOwner()
                                 .HasForeignKey("AssetId");
@@ -1763,7 +1760,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Specifications");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -1794,7 +1791,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Specifications");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -1819,7 +1816,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Specifications");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -1844,7 +1841,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Specifications");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -1872,7 +1869,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Assets");
+                                    b2.ToTable("Specifications");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -2010,9 +2007,7 @@ namespace Assura.Infrastructure.Migrations
                 {
                     b.HasOne("Assura.Domain.Entities.User", "User")
                         .WithMany("Notifications")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("UserId");
 
                     b.Navigation("User");
                 });
