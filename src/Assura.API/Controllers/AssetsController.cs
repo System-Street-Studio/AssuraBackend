@@ -1,7 +1,6 @@
 using Assura.Application.DTOs;
 using Assura.Application.Features.Assets.Commands;
 using Assura.Application.Features.Assets.Queries;
-using Assura.Application.Features.Assets.DTOs;
 using Assura.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +9,7 @@ using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
-// [Authorize] // Temporarily disabled for testing
+ [Authorize] 
 public class AssetsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -20,35 +19,37 @@ public class AssetsController : BaseApiController
         _mediator = mediator;
     }
 
+    // Retrieves a list of assets with optional filters for ownership a
     [HttpGet]
-    public async Task<ActionResult<List<Assura.Application.DTOs.AssetDto>>> GetAssets([FromQuery] bool onlyMine = false)
+    public async Task<ActionResult<List<AssetDto>>> GetAssets()
     {
-        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
                         ?? User.FindFirst("sub")?.Value;
         
         int? userId = int.TryParse(userIdStr, out var id) ? id : null;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-        Console.WriteLine($"[DEBUG] GetAssets: onlyMine={onlyMine}, userId={userId}");
 
-        if (onlyMine)
-        {
-            return await _mediator.Send(new GetAssetsQuery(userId));
-        }
-
-        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-
+        
         if (role == Roles.Admin || role == Roles.Storekeeper || role == Roles.Procurement)
         {
             return await _mediator.Send(new GetAssetsQuery());
         }
 
+        
         if (role == Roles.DivisionHead && userId.HasValue)
         {
+            
+           
+            
             return await _mediator.Send(new GetAssetsQuery(null, userId, role));
         }
 
+       
         return await _mediator.Send(new GetAssetsQuery(userId));
     }
+    
+    
 
     [HttpGet("available-for-checkout")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
@@ -85,7 +86,8 @@ public class AssetsController : BaseApiController
         return Ok(result);
     }
 
-    [HttpGet("{id}")]
+    // Retrieves a specific asset by its ID.
+     [HttpGet("{id}")]
     public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> GetAsset(int id)
     {
         var result = await _mediator.Send(new GetAssetByIdQuery(id));
@@ -164,11 +166,6 @@ public class AssetsController : BaseApiController
         public string? EvidenceFileName { get; set; }
     }
 
-    [AllowAnonymous]
-    [HttpGet("all-with-assignments")]
-    public async Task<ActionResult<List<AssetWithAssignmentDto>>> GetAllAssetsWithAssignments()
-    {
-        var assets = await _mediator.Send(new GetAllAssetsWithAssignmentsQuery());
-        return Ok(assets);
-    }
+
+
 }

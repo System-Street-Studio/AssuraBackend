@@ -1,17 +1,25 @@
 using Assura.Application.DTOs;
 using Assura.Application.Features.Divisions.Queries;
 using Microsoft.AspNetCore.Mvc;
-
-using Microsoft.AspNetCore.Authorization;
+using MediatR;
 
 namespace Assura.API.Controllers;
 
-[AllowAnonymous]
-public class DivisionsController : BaseApiController
+[ApiController]
+[Route("api/[controller]")]
+public class DivisionsController : ControllerBase
 {
+    private readonly IMediator _mediator;
+
+    public DivisionsController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+    
+// Retrieves a list of all divisions
     [HttpGet]
     public async Task<ActionResult<List<DivisionDto>>> GetDivisions()
     {
-        return await Mediator.Send(new GetDivisionsQuery());
+        return await _mediator.Send(new GetDivisionsQuery());
     }
 }

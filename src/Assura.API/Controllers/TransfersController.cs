@@ -20,40 +20,116 @@ public class TransfersController : ControllerBase
         _mediator = mediator;
     }
 
-   // Create transfer endpoint
-    [HttpPost]
+  
+    /// POST /api/transfers
+    /// Creates a new transfer record linking a specific asset to an approved transfer request
+   
+   [HttpPost]
     public async Task<IActionResult> CreateTransfer([FromBody] CreateTransferDto dto)
     {
         try
         {
-        
+            // Validate request
+            if (dto.AssetId <= 0 || dto.AssetRequestId <= 0 || dto.UserId <= 0)
+                return BadRequest(new
+                {
+                    success = false,
+                    error = "Invalid IDs",
+                    message = "AssetId, AssetRequestId, and UserId must be positive integers"
+                });
+
             var command = new CreateTransferCommand
             {
                 AssetId = dto.AssetId,
                 AssetRequestId = dto.AssetRequestId,
-                
+                UserId = dto.UserId
             };
 
-            var result = await _mediator.Send(command);
+            var transferId = await _mediator.Send(command);
 
-            return Ok(new
+            // Retrieve the created transfer with full details
+            var transfer = await _mediator.Send(new GetTransferByIdQuery(transferId));
+
+            return CreatedAtAction(nameof(GetTransfer), new { id = transfer.Id },
+                new
+                {
+                    success = true,
+                    message = "Transfer record created successfully",
+                    data = transfer
+                });
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($" Validation error creating transfer: {ex.Message}");
+            return BadRequest(new
             {
-                success = true,
-                message = "Transfer created successfully",
-                transferId = result
+                success = false,
+                error = ex.Message,
+                details = ex.InnerException?.Message
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            Console.WriteLine($" Resource not found: {ex.Message}");
+            return NotFound(new
+            {
+                success = false,
+                error = ex.Message
             });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error creating transfer: {ex.Message}");
-            return BadRequest(new
+            Console.WriteLine($" Error creating transfer: {ex.Message}");
+           Console.WriteLine($"FULL ERROR: {ex.ToString()}"); 
+    
+    return StatusCode(500, new
+    {
+        success = false,
+        error = ex.Message,
+        innerError = ex.InnerException?.Message // Inner Exception එකත් බලන්න
+    });
+        }
+    }
+
+    
+    /// GET /api/transfers/{id}
+    /// Retrieves a specific transfer by ID
+   
+    [HttpGet("{id}")]
+    [Authorize]
+    public async Task<IActionResult> GetTransfer(int id)
+    {
+        try
+        {
+            var transfer = await _mediator.Send(new GetTransferByIdQuery(id));
+            return Ok(new
+            {
+                success = true,
+                data = transfer
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new
             {
                 success = false,
+                error = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($" Error retrieving transfer: {ex.Message}");
+            return StatusCode(500, new
+            {
+                success = false,
+                error = "Internal server error",
                 message = ex.Message
             });
         }
     }
 
+    // GET /api/transfers?tab={tab}
+    // Retrieves transfers for the logged-in user based on the specified tab
     [HttpGet]
     public async Task<IActionResult> GetTransfers([FromQuery] string tab)
     {
@@ -67,6 +143,7 @@ public class TransfersController : ControllerBase
         return Ok(result);
     }
 
+    // Accept transfer endpoint
     [HttpPost("{id}/accept")]
     public async Task<IActionResult> AcceptTransfer(int id)
     {
@@ -106,6 +183,7 @@ public class TransfersController : ControllerBase
         }
     }
 
+    // Get division head transfers endpoint
     [HttpGet("division-head")]
     public async Task<IActionResult> GetDivisionHeadTransfers([FromQuery] string tab)
     {
@@ -117,6 +195,7 @@ public class TransfersController : ControllerBase
         return Ok(result);
     }
 
+    // Approve transfer by division head endpoint
     [HttpPost("{id}/approve-head")]
     public async Task<IActionResult> ApproveByHead(int id)
     {
@@ -133,6 +212,7 @@ public class TransfersController : ControllerBase
         }
     }
 
+    // Confirm transfer by division head endpoint
     [HttpPost("{id}/confirm-head")]
     public async Task<IActionResult> ConfirmByHead(int id)
     {
@@ -149,213 +229,13 @@ public class TransfersController : ControllerBase
         }
     }
 
-    /*[HttpGet("incoming")]
-    public async Task<IActionResult> GetIncomingTransfers( [FromQuery] int? userId = null)
-    {
-        Console.WriteLine("=== GET INCOMING TRANSFERS ===");
-        Console.WriteLine($"GET /api/transfers/incoming called at: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
-        Console.WriteLine($"API received query parameters:");
-       
-        Console.WriteLine($"  userId: {userId}");
-        Console.WriteLine($" Filtering for status = 1 (PendingOwnerApproval)");
-
-        try
-        {
-            var query = new GetAllTransfersQuery
-            {
-                CurrentHolderId = _currentUserService.UserId, // Current logged-in user as current holder
-                Status = TransferStatus.PendingOwnerApproval.ToString() // Status = PendingOwnerApproval
-            };
-
-            var transfers = await _mediator.Send(query);
-            
-            Console.WriteLine($" Found {transfers.Count} incoming transfers with status = 1");
-            
-            if (transfers.Count > 0)
-            {
-                Console.WriteLine(" Incoming transfers:");
-                for (int i = 0; i < Math.Min(5, transfers.Count); i++)
-                {
-                    var t = transfers[i];
-                    Console.WriteLine($"  {i+1}. ID:{t.Id} | {t.TransferNumber} | Asset:{t.AssetId} | From:{t.FromDivisionName} | To:{t.ToDivisionName} | Target:{t.TargetUserName} | Status:{t.Status}");
-                }
-            }
-            else
-            {
-                Console.WriteLine(" No incoming transfers found with status = 1");
-            }
-            
-            return Ok(new 
-            { 
-                success = true,
-                message = "Incoming transfers retrieved successfully",
-                data = transfers
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error retrieving incoming transfers: {ex.Message}");
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error retrieving incoming transfers: {ex.Message}" 
-            });
-        }
-    }
-*/
-    /*[HttpGet("incomingApprovals")]
-    public async Task<IActionResult> GetIncomingApprovalsTransfers( [FromQuery] int? userId = null)
-    {
-        Console.WriteLine("=== GET INCOMING TRANSFERS ===");
-        Console.WriteLine($"GET /api/transfers/incoming called at: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
-        Console.WriteLine($"API received query parameters:");
-       
-        Console.WriteLine($"  userId: {userId}");
-        Console.WriteLine($" Filtering for status = 1 (PendingOwnerApproval)");
-
-        try
-        {
-            var query = new GetAllTransfersQuery
-            {
-                FromDivision.DivisionHeadId = _currentUserService.UserId, // Current logged-in user as current holder
-                Status = TransferStatus.PendingOwnerDivisionHeadApproval.ToString()  
-            };
-
-            var transfers = await _mediator.Send(query);
-            
-            Console.WriteLine($" Found {transfers.Count} incoming transfers with status = 1");
-            
-            if (transfers.Count > 0)
-            {
-                Console.WriteLine(" Incoming transfers:");
-                for (int i = 0; i < Math.Min(5, transfers.Count); i++)
-                {
-                    var t = transfers[i];
-                    Console.WriteLine($"  {i+1}. ID:{t.Id} | {t.TransferNumber} | Asset:{t.AssetId} | From:{t.FromDivisionName} | To:{t.ToDivisionName} | Target:{t.TargetUserName} | Status:{t.Status}");
-                }
-            }
-            else
-            {
-                Console.WriteLine(" No incoming transfers found with status = 1");
-            }
-            
-            return Ok(new 
-            { 
-                success = true,
-                message = "Incoming transfers retrieved successfully",
-                data = transfers
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error retrieving incoming transfers: {ex.Message}");
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error retrieving incoming transfers: {ex.Message}" 
-            });
-        }
-    }
-*/
-    // Get user transfers endpoint
-   /* [HttpGet("user-transfers")]
-    public async Task<IActionResult> GetUserTransfers([FromQuery] int? currentHolderId = null)
-    {
-        Console.WriteLine("=== GET USER TRANSFERS ===");
-        Console.WriteLine($"GET /api/transfers/user-transfers called at: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
-        Console.WriteLine($"API received query parameters:");
-        Console.WriteLine($"  currentHolderId: {currentHolderId}");
-        Console.WriteLine($"🔍 Filtering transfers for currentHolderId: {currentHolderId}");
-
-        try
-        {
-            var query = new GetAllTransfersQuery
-            {
-                CurrentHolderId = currentHolderId
-            };
-
-            var transfers = await _mediator.Send(query);
-            
-            Console.WriteLine($"📊 Found {transfers.Count} transfers for currentHolderId: {currentHolderId}");
-            
-            if (transfers.Count > 0)
-            {
-                Console.WriteLine("📋 User transfers:");
-                for (int i = 0; i < Math.Min(5, transfers.Count); i++)
-                {
-                    var t = transfers[i];
-                    Console.WriteLine($"  {i+1}. ID:{t.Id} | {t.TransferNumber} | Asset:{t.AssetId} | From:{t.FromDivisionName} | To:{t.ToDivisionName} | Status:{t.Status} | CurrentHolder:{t.CurrentHolderName}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("❌ No transfers found for this user");
-            }
-            
-            return Ok(new 
-            { 
-                success = true,
-                message = "User transfers retrieved successfully",
-                data = transfers
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error retrieving user transfers: {ex.Message}");
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error retrieving user transfers: {ex.Message}" 
-            });
-        }
-    }*/
-
-    // Get transfer by ID endpoint
-    /*[HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        Console.WriteLine($"=== GET TRANSFER BY ID ===");
-        Console.WriteLine($"GET /api/transfers/{id} called");
-        
-        try
-        {
-            var query = new GetAllTransfersQuery { AssetId = id };
-            var transfers = await _mediator.Send(query);
-            var transfer = transfers.FirstOrDefault(t => t.Id == id);
-
-            if (transfer == null)
-            {
-                Console.WriteLine($"❌ Transfer with ID {id} not found");
-                return NotFound(new 
-                { 
-                    success = false, 
-                    message = "Transfer not found" 
-                });
-            }
-
-            Console.WriteLine($"✅ Found transfer: {transfer.TransferNumber}");
-            return Ok(new 
-            { 
-                success = true, 
-                data = transfer 
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error retrieving transfer: {ex.Message}");
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error retrieving transfer: {ex.Message}" 
-            });
-        }
-    }*/
+   
 
     // Verify transfers endpoint
     [HttpGet("verify")]
     public async Task<IActionResult> VerifyTransfers()
     {
-        Console.WriteLine("=== VERIFY TRANSFER TABLE ===");
+    
         Console.WriteLine("GET /api/transfers/verify called");
         
         try
@@ -363,11 +243,11 @@ public class TransfersController : ControllerBase
             var query = new GetAllTransfersQuery { };
             var transfers = await _mediator.Send(query);
             
-            Console.WriteLine($"📊 Total transfers in database: {transfers.Count}");
+            Console.WriteLine($" Total transfers in database: {transfers.Count}");
             
             if (transfers.Count > 0)
             {
-                Console.WriteLine("📋 Recent transfers:");
+                Console.WriteLine(" Recent transfers:");
                 for (int i = 0; i < Math.Min(5, transfers.Count); i++)
                 {
                     var t = transfers[i];
@@ -376,7 +256,7 @@ public class TransfersController : ControllerBase
             }
             else
             {
-                Console.WriteLine("❌ No transfers found in database!");
+                Console.WriteLine(" No transfers found in database!");
             }
             
             return Ok(new 
@@ -393,7 +273,7 @@ public class TransfersController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error verifying transfers: {ex.Message}");
+            Console.WriteLine($" Error verifying transfers: {ex.Message}");
             return BadRequest(new 
             { 
                 success = false, 
@@ -401,12 +281,6 @@ public class TransfersController : ControllerBase
             });
         }
     }
-
-    // Approve transfer endpoint
-    
-
-    // Approve transfer endpoint
-    
 
     
 }

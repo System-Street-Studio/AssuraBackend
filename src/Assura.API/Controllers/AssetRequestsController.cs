@@ -20,7 +20,7 @@ public class AssetRequestsController : ControllerBase
         _mediator = mediator;
     }
 
-    
+    // Creates a new asset request.
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateAssetRequestCommand command)
     {
@@ -28,6 +28,7 @@ public class AssetRequestsController : ControllerBase
         return Ok(id);
     }
 
+    // Approves an asset request by its ID.
     [HttpPut("{id}/approve")]
     public async Task<ActionResult<bool>> Approve(int id)
     {
@@ -35,6 +36,7 @@ public class AssetRequestsController : ControllerBase
         return Ok(result);
     }
 
+    // Rejects an asset request by its ID.
     [HttpPut("{id}/reject")] 
     public async Task<ActionResult<bool>> Reject(int id)
     {
@@ -43,6 +45,7 @@ public class AssetRequestsController : ControllerBase
         return Ok(result);
     }
 
+    // Retrieves all asset requests made by a specific employee.
     [HttpGet("employee/{employeeId}")] 
     public async Task<IActionResult> GetByEmployee(string employeeId)
     {
@@ -50,6 +53,7 @@ public class AssetRequestsController : ControllerBase
         return Ok(result);
     }
 
+    // Retrieves all asset requests that are pending approval for a specific division head.
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending()
     {
@@ -57,7 +61,6 @@ public class AssetRequestsController : ControllerBase
                      ?? User.FindFirst("sub")?.Value;
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-        Console.WriteLine($"[DEBUG] GetPending: userId={userId}, role={role}");
 
         // Admin/Procurement/Storekeeper see all pending requests
         if (role == "Admin" || role == "Procurement" || role == "Storekeeper")
@@ -77,6 +80,7 @@ public class AssetRequestsController : ControllerBase
         return Ok(result);
     }
 
+    // Retrieves all asset requests with optional filters for status and type.
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? status = null, [FromQuery] string? type = null, [FromQuery] bool isDivisionHead = false)
     {
@@ -102,6 +106,15 @@ public class AssetRequestsController : ControllerBase
         return Ok(filteredResult);
     }
 
+        // Retrieves all approved asset transfer requests for a specific division.
+    [HttpGet("approved-transfers")]
+    public async Task<IActionResult> GetApprovedTransfers([FromQuery] int? headId = null)
+    {
+        var result = await _mediator.Send(new GetApprovedTransfersQuery(headId));
+        return Ok(result);
+    }
+
+    // Retrieves a specific asset request by its ID.
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
