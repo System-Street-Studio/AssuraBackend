@@ -22,8 +22,10 @@ public class TransferDto
     public int? ToDivisionId { get; set; }
     public string ToDivisionName { get; set; } = string.Empty;
     
-    public string TransferByName { get; set; } = string.Empty;    public int? TransferById { get; set; }    public int TargetUserId { get; set; }
-    public string TargetUserName { get; set; } = string.Empty;
+    public string TransferByName { get; set; } = string.Empty;  
+    public int? TransferById { get; set; }   
+    public int TargetUserId { get; set; }
+    public string? TargetUserName { get; set; } = string.Empty;
     public int? CurrentHolderId { get; set; }
     public string? CurrentHolderName { get; set; }
     

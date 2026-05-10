@@ -11,6 +11,9 @@ public class CreateTransferDto
     [Required]
     public int AssetRequestId { get; set; }
     
+    [Required]
+    public int UserId { get; set; }
+    
    
 
 }

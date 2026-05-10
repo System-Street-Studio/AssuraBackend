@@ -11,7 +11,7 @@ public class CreateTransferCommandValidator : AbstractValidator<CreateTransferCo
             .GreaterThan(0).WithMessage("Asset ID is required.");
 
         RuleFor(x => x.AssetRequestId)
-            .GreaterThan(0).When(x => x.AssetRequestId.HasValue)
+            .GreaterThan(0).When(x => x.AssetRequestId != 0)
             .WithMessage("Asset Request ID must be greater than 0 if provided.");
     }
 }
