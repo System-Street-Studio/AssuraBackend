@@ -5,10 +5,7 @@ using Assura.Domain.Enums;
 
 namespace Assura.Application.Features.Transfers.Commands;
 
-/// <summary>
-/// Division Head approves a pending transfer.
-/// Changes status from PendingOwnerDivisionHeadApproval → WaitingForFinalConfirmation
-/// </summary>
+
 public record ApproveTransferByHeadCommand(int TransferId) : IRequest<bool>;
 
 public class ApproveTransferByHeadCommandHandler : IRequestHandler<ApproveTransferByHeadCommand, bool>
@@ -20,6 +17,7 @@ public class ApproveTransferByHeadCommandHandler : IRequestHandler<ApproveTransf
         _context = context;
     }
 
+// Handle the command to approve a transfer by the division head
     public async Task<bool> Handle(ApproveTransferByHeadCommand request, CancellationToken cancellationToken)
     {
         var transfer = await _context.Transfers

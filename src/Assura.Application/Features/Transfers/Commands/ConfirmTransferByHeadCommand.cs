@@ -5,11 +5,6 @@ using Assura.Domain.Enums;
 
 namespace Assura.Application.Features.Transfers.Commands;
 
-/// <summary>
-/// Receiving Division Head confirms a transfer.
-/// Changes status from WaitingForFinalConfirmation → Active
-/// Also updates asset status to Transferred
-/// </summary>
 public record ConfirmTransferByHeadCommand(int TransferId) : IRequest<bool>;
 
 public class ConfirmTransferByHeadCommandHandler : IRequestHandler<ConfirmTransferByHeadCommand, bool>

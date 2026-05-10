@@ -5,7 +5,7 @@ using Assura.Domain.Enums;
 
 namespace Assura.Application.Features.Transfers.Commands;
 
-// Command එක අර්ථ දැක්වීම
+
 public record AcceptTransferCommand(int TransferId) : IRequest<bool>;
 
 public class AcceptTransferCommandHandler : IRequestHandler<AcceptTransferCommand, bool>
@@ -16,7 +16,7 @@ public class AcceptTransferCommandHandler : IRequestHandler<AcceptTransferComman
     {
         _context = context;
     }
-
+// Handle the command to accept a transfer
     public async Task<bool> Handle(AcceptTransferCommand request, CancellationToken cancellationToken)
     {
         
