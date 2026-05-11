@@ -8,7 +8,7 @@ namespace Assura.Application.Features.Users.Commands.ForgotPassword;
 
 
 
-public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordCommand, string>
+public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordCommand, string?>
 
 {
 
@@ -24,7 +24,7 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
 
 
 
-    public async Task<string> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
+    public async Task<string?> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
 
     {
         var token = await _identifyServices.GeneratePasswordResetTokenAsync(request.Email);

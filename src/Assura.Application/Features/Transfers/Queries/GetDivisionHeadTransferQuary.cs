@@ -22,6 +22,10 @@ public class GetDivisionHeadTransferQueryHandler : IRequestHandler<GetDivisionHe
     public async Task<List<TransferDto>> Handle(GetDivisionHeadTransferQuery request, CancellationToken cancellationToken)
     {
         var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.LoginUserId);
+        
+        if (currentUser == null)
+            return new List<TransferDto>();
+        
         var headDivisionId = currentUser.DivisionId;
 
         var query = _context.Transfers

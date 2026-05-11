@@ -24,12 +24,12 @@ public class GetAssignedEmployeesQueryHandler : IRequestHandler<GetAssignedEmplo
 
             var employees = await _context.Assets
                 .AsNoTracking()
-                .Where(a => a.AssignedUserId != null)
+                .Where(a => a.AssignedUserId != null && a.AssignedUser != null)
                 .Select(a => new
                 {
-                    Id = a.AssignedUserId.Value,
-                    FirstName = a.AssignedUser.FirstName,
-                    LastName = a.AssignedUser.LastName
+                    Id = a.AssignedUserId!.Value,
+                    FirstName = a.AssignedUser!.FirstName,
+                    LastName = a.AssignedUser!.LastName
                 })
                 .Distinct()
                 .OrderBy(e => e.FirstName)

@@ -29,14 +29,13 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
     {
         //  Get Asset
         var asset = await _context.Assets
-            .Include (a => a.Product)
             .FirstOrDefaultAsync(a => a.Id == request.AssetId, cancellationToken);
 
         if (asset == null)
             throw new Exception($"Asset not found or not assigned");
 
         // Validation: Asset must be assigned
-        if (!asset.AssignedUserId.HasValue)
+        if (asset.AssignedUserId == null)
             throw new InvalidOperationException($"AssetId {request.AssetId} does not exist or is not assigned to an employee");
 
 
@@ -58,14 +57,12 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
  
  
         // Current Holder
-        User? currentHolder = null;
-
-        if (asset.AssignedUserId.HasValue)
-        {
-            currentHolder = await _context.Users
+       
+        var currentHolder = await _context.Users
+                .AsNoTracking()
                 .Include(u => u.Division)
                 .FirstOrDefaultAsync(u => u.Id == asset.AssignedUserId.Value, cancellationToken);
-        }
+        
 
 
        // Targert user
@@ -81,6 +78,7 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
         }
 
         var targetUser = await _context.Users
+            .AsNoTracking()
             .Include(u => u.Division)
             .FirstOrDefaultAsync(u => u.Id == targetUserId, cancellationToken);
 

@@ -61,7 +61,7 @@ public class GetEmployeeTransferQueryHandler : IRequestHandler<GetEmployeeTransf
             TargetUserId = t.TargetUser != null ? t.TargetUser.Id : 0,
             TargetUserName = t.TargetUser != null ? t.TargetUser.Username : "N/A",
             CurrentHolderId = t.CurrentHolderId,
-            CurrentHolderName = t.CurrentHolder != null ? t.CurrentHolder.Username : "N/A",
+            CurrentHolderName = t.CurrentHolder != null ? t.CurrentHolder.Username : null,
             Reason = t.Reason,
             TransferPeriod = t.TransferPeriod,
             Status = t.Status.ToString(),

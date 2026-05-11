@@ -96,10 +96,10 @@ public class GetAllTransfersQueryHandler
 
                 //  Asset
                 AssetId = t.AssetId,
-                AssetTag = t.Asset.AssetTag,
-                AssetCode = t.Asset.AssetCode,
-                AssetStatus = t.Asset.Status.ToString(),
-                ProductName =  t.Asset.Product.Name , 
+                AssetTag = t.Asset != null ? t.Asset.AssetTag : "N/A",
+                AssetCode = t.Asset != null ? t.Asset.AssetCode : "N/A",
+                AssetStatus = t.Asset != null ? t.Asset.Status.ToString() : "N/A",
+                ProductName = t.Asset != null && t.Asset.Product != null ? t.Asset.Product.Name : "N/A",
 
                 //  Request
                 AssetRequestId = t.AssetRequestId,
