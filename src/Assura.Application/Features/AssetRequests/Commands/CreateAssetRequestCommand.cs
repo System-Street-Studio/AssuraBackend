@@ -62,6 +62,26 @@ public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestComma
 
         _context.AssetRequests.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify division heads if divisionId is available
+        if (divisionId.HasValue)
+        {
+            var divisionHeads = await _context.Users
+                .Where(u => u.DivisionId == divisionId.Value && u.Role == UserRole.DivisionHead)
+                .ToListAsync(cancellationToken);
+            foreach (var head in divisionHeads)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    Title = "New Asset Request Submitted",
+                    Message = $"A new asset request ({entity.AssetName}) has been submitted and requires your review.",
+                    UserId = head.Id,
+                    Type = "Info",
+                    ReferenceId = entity.Id.ToString()
+                });
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
         return entity.Id;
     }
 }
