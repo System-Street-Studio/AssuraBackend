@@ -19,6 +19,7 @@ public class GetPendingRequestsQueryHandler : IRequestHandler<GetPendingRequests
     public async Task<List<AssetRequest>> Handle(GetPendingRequestsQuery request, CancellationToken cancellationToken)
     {
         var query = _context.AssetRequests
+            .Include(x => x.Asset)
             .Where(x => x.Status == RequestStatus.Pending) // Only fetch pending requests
             .AsQueryable();
 
@@ -28,6 +29,7 @@ public class GetPendingRequestsQueryHandler : IRequestHandler<GetPendingRequests
             if (int.TryParse(request.EmployeeId, out var userId))
             {
                 var user = await _context.Users
+            
                     .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
                 
                 if (user?.DivisionId != null)

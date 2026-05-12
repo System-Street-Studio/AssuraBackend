@@ -96,7 +96,7 @@ public class GetAllTransfersQueryHandler
 
                 //  Asset
                 AssetId = t.AssetId,
-                AssetTag = t.Asset != null ? t.Asset.AssetTag : "N/A",
+                AssetTag = (t.Asset != null ? t.Asset.AssetTag : null) ?? "N/A",
                 AssetCode = t.Asset != null ? t.Asset.AssetCode : "N/A",
                 AssetStatus = t.Asset != null ? t.Asset.Status.ToString() : "N/A",
                 ProductName = t.Asset != null && t.Asset.Product != null ? t.Asset.Product.Name : "N/A",
@@ -106,15 +106,15 @@ public class GetAllTransfersQueryHandler
 
                 //  From Division
                 FromDivisionId = t.FromDivisionId,
-                FromDivisionName = t.FromDivision != null ? t.FromDivision.Name : null,
+                FromDivisionName = (t.FromDivision != null ? t.FromDivision.Name : null) ?? string.Empty,
 
                 //  To Division
                 ToDivisionId = t.ToDivisionId,
-                ToDivisionName = t.ToDivision != null ? t.ToDivision.Name : null,
+                ToDivisionName = (t.ToDivision != null ? t.ToDivision.Name : null) ?? string.Empty,
 
                 //  Users
                 TransferById = t.TransferById,
-                TransferByName = t.TransferBy != null ? t.TransferBy.Username : null,
+                TransferByName = (t.TransferBy != null ? t.TransferBy.Username : null) ?? string.Empty,
 
                 TargetUserId = t.TargetUserId ?? 0,
                 TargetUserName = t.TargetUser != null ? t.TargetUser.Username : null,

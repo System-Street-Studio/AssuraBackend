@@ -22,4 +22,12 @@ public class DivisionsController : ControllerBase
     {
         return await _mediator.Send(new GetDivisionsQuery());
     }
+
+    // GET: api/divisions/{divisionId}/overview-summary
+    [HttpGet("{divisionId}/overview-summary")]
+    public async Task<ActionResult<DivisionOverviewSummaryDto>> GetDivisionOverviewSummary(int divisionId)
+    {
+        var summary = await _mediator.Send(new GetDivisionOverviewSummaryQuery(divisionId));
+        return Ok(summary);
+    }
 }

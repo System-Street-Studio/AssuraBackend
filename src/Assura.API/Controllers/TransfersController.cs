@@ -128,8 +128,8 @@ public class TransfersController : ControllerBase
         }
     }
 
-    // GET /api/transfers?tab={tab}
-    // Retrieves transfers for the logged-in user based on the specified tab
+    // GET /api/transfers?tab={tab} or /api/transfers?divisionId={divisionId}
+    // Retrieves transfers for the logged-in user based on the specified tab, or transfers by division
     [HttpGet]
     public async Task<IActionResult> GetTransfers([FromQuery] string tab)
     {
@@ -193,6 +193,30 @@ public class TransfersController : ControllerBase
         var userId = int.Parse(userIdClaim);
         var result = await _mediator.Send(new GetDivisionHeadTransferQuery(tab, userId));
         return Ok(result);
+    }
+
+    // Get transfers filtered by division
+    [HttpGet("by-division")]
+    public async Task<IActionResult> GetTransfersByDivision([FromQuery] int divisionId)
+    {
+        try
+        {
+            if (divisionId <= 0)
+                return BadRequest(new { success = false, message = "Invalid division ID" });
+
+            var result = await _mediator.Send(new GetAllTransfersQuery { DivisionId = divisionId });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving transfers by division: {ex.Message}");
+            return StatusCode(500, new 
+            { 
+                success = false, 
+                message = "Error retrieving transfers",
+                error = ex.Message 
+            });
+        }
     }
 
     // Approve transfer by division head endpoint
