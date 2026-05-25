@@ -22,11 +22,104 @@ public class AssetRequestsController : ControllerBase
 
     // Creates a new asset request.
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateAssetRequestCommand command)
+    public async Task<IActionResult> Create([FromForm] CreateAssetRequestApiInput input)
     {
-        var id = await _mediator.Send(command);
-        return Ok(id);
+        try
+        {
+            // Validate model state
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(new { message = "Validation failed", errors });
+            }
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(input.EmployeeId))
+                return BadRequest(new { message = "EmployeeId is required" });
+            if (string.IsNullOrWhiteSpace(input.SubmittedBy))
+                return BadRequest(new { message = "SubmittedBy is required" });
+            if (string.IsNullOrWhiteSpace(input.AssetName))
+                return BadRequest(new { message = "AssetName is required" });
+            if (string.IsNullOrWhiteSpace(input.Priority))
+                return BadRequest(new { message = "Priority is required" });
+            if (string.IsNullOrWhiteSpace(input.RequestType))
+                return BadRequest(new { message = "RequestType is required" });
+
+            var savedAttachments = new List<AttachmentUploadModel>();
+
+            
+            if (input.Files != null && input.Files.Count > 0)
+            {
+                var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                if (!Directory.Exists(uploadFolder)) Directory.CreateDirectory(uploadFolder);
+
+                foreach (var file in input.Files)
+                {
+                    if (file.Length > 0)
+                    {
+                        var uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
+                        var filePath = Path.Combine(uploadFolder, uniqueFileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+
+                        savedAttachments.Add(new AttachmentUploadModel
+                        {
+                            FileName = file.FileName,
+                            FileUrl = $"/uploads/{uniqueFileName}",
+                            FileSize = file.Length,
+                            FileType = file.ContentType
+                        });
+                    }
+                }
+            }
+
+           
+            var command = new CreateAssetRequestCommand
+            {
+                EmployeeId = input.EmployeeId,
+                SubmittedBy = input.SubmittedBy,
+                AssetCategory = input.AssetCategory ?? string.Empty,
+                AssetName = input.AssetName,
+                Description = input.Description ?? string.Empty,
+                Reason = input.Reason ?? string.Empty,
+                Quantity = input.Quantity,
+                Priority = input.Priority,
+                RequestType = input.RequestType,
+                SubmittedDate = input.SubmittedDate == default ? DateTime.Now : input.SubmittedDate,
+                UploadedAttachments = savedAttachments
+            };
+
+            var id = await _mediator.Send(command);
+            return Ok(new { id, message = "Asset request created successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while creating the asset request", error = ex.Message });
+        }
     }
+
+
+
+    public class CreateAssetRequestApiInput
+    {
+        public string? EmployeeId { get; set; }
+        public string? SubmittedBy { get; set; }
+        public string? AssetCategory { get; set; }
+        public string? AssetName { get; set; }
+        public string? Description { get; set; }
+        public string? Reason { get; set; }
+        public int Quantity { get; set; }
+        public string? Priority { get; set; }
+        public string? RequestType { get; set; }
+        public DateTime SubmittedDate { get; set; }
+        public List<IFormFile>? Files { get; set; }
+    }
+
 
     // Approves an asset request by its ID.
     [HttpPut("{id}/approve")]

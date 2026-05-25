@@ -3,6 +3,7 @@ using Assura.Application.Common.Interfaces;
 using Assura.Domain.Enums;
 using Assura.Application.Features.AssetRequests.Events;
 using Assura.Domain.Entities;
+using System.Text.Json;
 
 namespace Assura.Application.Features.AssetRequests.Commands;
 
@@ -52,7 +53,9 @@ public class ApproveAssetRequestHandler : IRequestHandler<ApproveAssetRequestCom
             entity.Status .ToString(),
             entity.RequesterName,
             entity.RequesterId,
-            entity.Attachments ?? "N/A",
+            entity.Attachments?.Count > 0 
+                ? JsonSerializer.Serialize(entity.Attachments.Select(a => new { a.FileName, a.FileUrl }).ToList())
+                : "N/A",
             entity.SubmittedDate,
             entity.Description ?? "N/A",
             entity.Reason ?? "N/A"

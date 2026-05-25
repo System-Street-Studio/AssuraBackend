@@ -16,4 +16,15 @@ public class AssetRequestDto
     public string Email { get; set; } = string.Empty;
     public int? Quantity { get; set; }
     public string RequestType { get; set; } = string.Empty;
+    public List<AttachmentDto> Attachments { get; set; } = new();
+}
+
+public class AttachmentDto
+{
+    public int Id { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string FileType { get; set; } = string.Empty;
+    public string FileUrl { get; set; } = string.Empty;
+    public DateTime UploadedDate { get; set; }
 }

@@ -26,6 +26,7 @@ public class GetAssetRequestByIdQueryHandler : IRequestHandler<GetAssetRequestBy
             .Include(ar => ar.User)
             .Include(ar => ar.Asset)
             .Include(ar => ar.Division)
+            .Include(ar => ar.Attachments)
             .FirstOrDefaultAsync(ar => ar.Id == request.Id, cancellationToken);
     }
 }
