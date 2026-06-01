@@ -13,11 +13,24 @@ public static class DependencyInjection
     {
         services.AddDbContext<AppDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            
-            // Auto-detect the MySQL server version for compatibility
-            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
-                b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+            var baseConn = configuration.GetConnectionString("DefaultConnection");
+
+            // Add keep-alive and connection lifetime params to handle remote-hosted DB restrictions
+            var connectionString = baseConn!.TrimEnd(';')
+                + ";Connection Timeout=60;Default Command Timeout=60;Keepalive=60;"
+                + "Connection Lifetime=300;Pooling=true;Min Pool Size=1;Max Pool Size=10;";
+
+            // Hardcoded MySQL 8.0 — avoids AutoDetect opening an extra TCP connection per request
+            var serverVersion = new MySqlServerVersion(new Version(8, 0, 0));
+            options.UseMySql(connectionString, serverVersion, b =>
+            {
+                b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                // Automatically retry transient failures (dropped connections, timeouts)
+                b.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null);
+            });
         });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());

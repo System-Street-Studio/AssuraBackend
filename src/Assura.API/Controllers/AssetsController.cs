@@ -22,4 +22,11 @@ public class AssetsController : ControllerBase
         var result = await _mediator.Send(new GetAllAssetsQuery());
         return Ok(result);
     }
+
+    [HttpPost]
+    public async Task<ActionResult<string>> Create([FromBody] Assura.Application.Features.Assets.Commands.Create.CreateAssetCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
 }

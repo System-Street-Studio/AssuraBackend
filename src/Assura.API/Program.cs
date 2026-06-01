@@ -4,7 +4,7 @@ using Assura.Application;
 using Assura.Infrastructure;
 using DotNetEnv;
 
-// .env ගොනුවේ ඇති දත්ත පද්ධතියට ලබා ගැනීම
+// Load environment variables from .env file
 Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddApplication();
 
-// .env ගොනුවේ ඇති MySQL සහ JWT දත්ත පද්ධතියට සම්බන්ධ කිරීම
+// Map MySQL and JWT data from .env file to connection strings
 var connStr = $"Server={Env.GetString("DB_SERVER")};Port={Env.GetString("DB_PORT")};Database={Env.GetString("DB_NAME")};Uid={Env.GetString("DB_USER")};Pwd={Env.GetString("DB_PASSWORD")};";
 Console.WriteLine($"[DEBUG] Connection String: {connStr}");
 builder.Configuration["ConnectionStrings:DefaultConnection"] = connStr;
@@ -21,7 +21,7 @@ builder.Configuration["Jwt:Key"] = Env.GetString("JWT_SECRET_KEY");
 builder.Configuration["Jwt:Issuer"] = Env.GetString("JWT_ISSUER");
 builder.Configuration["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE");
 
-// Infrastructure සේවාවන් එක් කිරීම (Database ඇතුළුව)
+// Add Infrastructure services (including Database)
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
@@ -31,7 +31,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DefaultPolicy", policy =>
     {
-        // .env හි ඇති ALLOWED_ORIGINS භාවිතා කිරීම
+        // Use ALLOWED_ORIGINS from .env
         var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"]?.Split(',') ?? new[] { "http://localhost:4200" };
         policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
@@ -52,7 +52,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// දෝෂ හැසිරවීමේ Middleware එක
+// Exception handling middleware
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseHttpsRedirection();
