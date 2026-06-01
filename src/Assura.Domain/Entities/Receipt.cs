@@ -13,4 +13,5 @@ public class Receipt : BaseEntity
     public DateTime Date { get; set; }
     public string Amount { get; set; } = string.Empty;
     public ReceiptStatus Status { get; set; } = ReceiptStatus.Pending;
+    public string? FileUrl { get; set; }
 }

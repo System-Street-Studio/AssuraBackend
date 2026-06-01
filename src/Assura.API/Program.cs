@@ -62,6 +62,8 @@ app.UseCors("DefaultPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseStaticFiles(); // Serve uploaded receipt files from wwwroot
+
 app.MapControllers();
 
 app.MapGet("/apply-sql", async (Assura.Infrastructure.Persistence.AppDbContext db) => {

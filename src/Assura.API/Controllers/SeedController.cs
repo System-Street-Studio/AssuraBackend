@@ -118,6 +118,56 @@ public class SeedController : ControllerBase
         return Ok($"Seeded {lost.Count} LostItems.");
     }
 
+    // ─── POST api/seed/queue-items ─────────────────────────────────────────────
+    [HttpPost("queue-items")]
+    public async Task<IActionResult> SeedQueueItems()
+    {
+        if (_context.QueueItems.Any())
+        {
+            _context.QueueItems.RemoveRange(_context.QueueItems);
+            await _context.SaveChangesAsync();
+        }
+
+        var items = new List<QueueItem>
+        {
+            // 5 Pending
+            new QueueItem { Name = "MacBook Pro 16", Division = "Engineering", Date = DateTime.UtcNow.AddDays(-1), Status = QueueItemStatus.Pending, Time = new TimeSpan(10, 0, 0), AssetType = "Laptop", SpecialNote = "Need it urgently" },
+            new QueueItem { Name = "Dell Ultrasharp Monitor", Division = "Design", Date = DateTime.UtcNow.AddDays(-1), Status = QueueItemStatus.Pending, Time = new TimeSpan(11, 0, 0), AssetType = "Monitor", SpecialNote = "" },
+            new QueueItem { Name = "Logitech MX Master 3", Division = "HR", Date = DateTime.UtcNow.AddDays(-1), Status = QueueItemStatus.Pending, Time = new TimeSpan(12, 0, 0), AssetType = "Peripheral", SpecialNote = "" },
+            new QueueItem { Name = "Ergonomic Office Chair", Division = "Sales", Date = DateTime.UtcNow.AddDays(-1), Status = QueueItemStatus.Pending, Time = new TimeSpan(13, 0, 0), AssetType = "Furniture", SpecialNote = "" },
+            new QueueItem { Name = "Standing Desk", Division = "IT", Date = DateTime.UtcNow.AddDays(-1), Status = QueueItemStatus.Pending, Time = new TimeSpan(14, 0, 0), AssetType = "Furniture", SpecialNote = "" },
+
+            // 4 Discarded
+            new QueueItem { Name = "Old Lenovo ThinkPad", Division = "Engineering", Date = DateTime.UtcNow.AddDays(-2), Status = QueueItemStatus.Discarded, Time = new TimeSpan(9, 0, 0), AssetType = "Laptop", SpecialNote = "Broken beyond repair" },
+            new QueueItem { Name = "Broken Chair", Division = "HR", Date = DateTime.UtcNow.AddDays(-2), Status = QueueItemStatus.Discarded, Time = new TimeSpan(10, 0, 0), AssetType = "Furniture", SpecialNote = "Leg snapped" },
+            new QueueItem { Name = "Dead Dell Monitor", Division = "IT", Date = DateTime.UtcNow.AddDays(-2), Status = QueueItemStatus.Discarded, Time = new TimeSpan(11, 0, 0), AssetType = "Monitor", SpecialNote = "Doesn't power on" },
+            new QueueItem { Name = "Faulty Mouse", Division = "Sales", Date = DateTime.UtcNow.AddDays(-2), Status = QueueItemStatus.Discarded, Time = new TimeSpan(12, 0, 0), AssetType = "Peripheral", SpecialNote = "Double clicks" },
+
+            // 4 Unread
+            new QueueItem { Name = "iPad Pro", Division = "Marketing", Date = DateTime.UtcNow, Status = QueueItemStatus.Unread, Time = new TimeSpan(8, 0, 0), AssetType = "Tablet", SpecialNote = "For new campaign" },
+            new QueueItem { Name = "Sony Headphones", Division = "Engineering", Date = DateTime.UtcNow, Status = QueueItemStatus.Unread, Time = new TimeSpan(9, 0, 0), AssetType = "Peripheral", SpecialNote = "Noise cancelling" },
+            new QueueItem { Name = "Logitech Webcam", Division = "HR", Date = DateTime.UtcNow, Status = QueueItemStatus.Unread, Time = new TimeSpan(10, 0, 0), AssetType = "Peripheral", SpecialNote = "For remote interviews" },
+            new QueueItem { Name = "Whiteboard Markers", Division = "Design", Date = DateTime.UtcNow, Status = QueueItemStatus.Unread, Time = new TimeSpan(11, 0, 0), AssetType = "Stationery", SpecialNote = "Run out of ink" },
+
+            // 5 Rejected
+            new QueueItem { Name = "Gaming PC", Division = "Engineering", Date = DateTime.UtcNow.AddDays(-3), Status = QueueItemStatus.Rejected, Time = new TimeSpan(14, 0, 0), AssetType = "Desktop", SpecialNote = "Not approved for work" },
+            new QueueItem { Name = "Herman Miller Chair", Division = "Sales", Date = DateTime.UtcNow.AddDays(-3), Status = QueueItemStatus.Rejected, Time = new TimeSpan(15, 0, 0), AssetType = "Furniture", SpecialNote = "Over budget" },
+            new QueueItem { Name = "85 inch 4K TV", Division = "Marketing", Date = DateTime.UtcNow.AddDays(-3), Status = QueueItemStatus.Rejected, Time = new TimeSpan(16, 0, 0), AssetType = "Electronics", SpecialNote = "Not needed" },
+            new QueueItem { Name = "Custom Mechanical Keyboard", Division = "IT", Date = DateTime.UtcNow.AddDays(-3), Status = QueueItemStatus.Rejected, Time = new TimeSpan(17, 0, 0), AssetType = "Peripheral", SpecialNote = "Too expensive" },
+            new QueueItem { Name = "Samsung Galaxy Tab", Division = "HR", Date = DateTime.UtcNow.AddDays(-3), Status = QueueItemStatus.Rejected, Time = new TimeSpan(18, 0, 0), AssetType = "Tablet", SpecialNote = "Use existing ones" },
+
+            // 4 Approved
+            new QueueItem { Name = "Ergonomic Mouse", Division = "Engineering", Date = DateTime.UtcNow.AddDays(-4), Status = QueueItemStatus.Approved, Time = new TimeSpan(9, 0, 0), AssetType = "Peripheral", SpecialNote = "" },
+            new QueueItem { Name = "Large Whiteboard", Division = "HR", Date = DateTime.UtcNow.AddDays(-4), Status = QueueItemStatus.Approved, Time = new TimeSpan(10, 0, 0), AssetType = "Furniture", SpecialNote = "" },
+            new QueueItem { Name = "Epson Projector", Division = "Sales", Date = DateTime.UtcNow.AddDays(-4), Status = QueueItemStatus.Approved, Time = new TimeSpan(11, 0, 0), AssetType = "Electronics", SpecialNote = "" },
+            new QueueItem { Name = "Dell Docking Station", Division = "IT", Date = DateTime.UtcNow.AddDays(-4), Status = QueueItemStatus.Approved, Time = new TimeSpan(12, 0, 0), AssetType = "Peripheral", SpecialNote = "" }
+        };
+
+        _context.QueueItems.AddRange(items);
+        await _context.SaveChangesAsync();
+        return Ok($"Seeded {items.Count} QueueItems.");
+    }
+
     // ─── POST api/seed/all ─────────────────────────────────────────────────────
     [HttpPost("all")]
     public async Task<IActionResult> SeedAll()
@@ -125,6 +175,7 @@ public class SeedController : ControllerBase
         await SeedAccPendingItems();
         await SeedReceipts();
         await SeedLostItems();
-        return Ok("Seeded AccPendingItems, Receipts, and LostItems successfully.");
+        await SeedQueueItems();
+        return Ok("Seeded AccPendingItems, Receipts, LostItems, and QueueItems successfully.");
     }
 }

@@ -29,4 +29,13 @@ public class AssetsController : ControllerBase
         var result = await _mediator.Send(command);
         return Ok(result);
     }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult> Update(int id, [FromBody] Assura.Application.Features.Assets.Commands.Update.UpdateAssetCommand command)
+    {
+        if (id != command.Id) return BadRequest("ID mismatch");
+        var result = await _mediator.Send(command);
+        if (!result) return NotFound();
+        return NoContent();
+    }
 }
