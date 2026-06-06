@@ -23,9 +23,9 @@ public class AssetsController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<List<Assura.Application.DTOs.AssetDto>>> GetAssets([FromQuery] bool onlyMine = false)
     {
-        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                         ?? User.FindFirst("sub")?.Value;
-        
+
         int? userId = int.TryParse(userIdStr, out var id) ? id : null;
 
         Console.WriteLine($"[DEBUG] GetAssets: onlyMine={onlyMine}, userId={userId}");
@@ -85,7 +85,6 @@ public class AssetsController : BaseApiController
         return Ok(result);
     }
 
-<<<<<<< HEAD
     [HttpGet("{id}")]
     public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> GetAsset(int id)
     {

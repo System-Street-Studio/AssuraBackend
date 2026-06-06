@@ -34,8 +34,7 @@ public class HrModuleTests
         var result = await handler.Handle(new AssignHrRoleCommand
         {
             UserId = user.Id,
-            Role = UserRole.Accountant.ToString(),
-            DivisionId = division.Id,
+            Assignments = new List<DivisionRoleAssignment> { new() { DivisionId = division.Id, Role = UserRole.Accountant.ToString() } },
             JobTitle = "Accountant",
             Notes = "Approved by HR",
             ActorName = "HR Manager",
@@ -51,7 +50,7 @@ public class HrModuleTests
         Assert.Equal("Assigned", updated.EmploymentStatus);
         Assert.Equal("Accountant", updated.JobTitle);
         Assert.NotNull(updated.AssignedAt);
-        Assert.Equal("Assigned Role", auditLog.Action);
+        Assert.Equal("Assigned Roles", auditLog.Action);
     }
 
     [Fact]
@@ -82,8 +81,7 @@ public class HrModuleTests
         var result = await handler.Handle(new UpdateHrUserCommand
         {
             UserId = user.Id,
-            DivisionId = newDivision.Id,
-            Role = UserRole.HR.ToString(),
+            Assignments = new List<DivisionRoleAssignment> { new() { DivisionId = newDivision.Id, Role = UserRole.HR.ToString() } },
             JobTitle = "HR Assistant",
             PhoneNumber = "0771234567",
             EmploymentStatus = "Assigned",
