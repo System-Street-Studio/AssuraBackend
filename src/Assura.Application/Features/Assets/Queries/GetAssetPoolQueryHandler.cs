@@ -115,7 +115,7 @@ public class GetAssetPoolQueryHandler : IRequestHandler<GetAssetPoolQuery, Asset
                         : string.Empty,
                     DivisionId = a.Division != null ? a.Division.Id : 0,
                     DivisionName = a.Division != null ? a.Division.Name : string.Empty,
-                    Status = a.Status.ToString(), // Enum එක String එකක් විදිහට මෙතනදීම ගන්නවා
+                    Status = a.Status.ToString(), 
                     SerialNumber = a.SerialNumber ?? string.Empty,
                     Notes = a.Notes ?? string.Empty,
                     CreatedDate = a.CreatedAt,

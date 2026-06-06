@@ -86,7 +86,7 @@ public class TransfersController : ControllerBase
     {
         success = false,
         error = ex.Message,
-        innerError = ex.InnerException?.Message // Inner Exception එකත් බලන්න
+        innerError = ex.InnerException?.Message 
     });
         }
     }
