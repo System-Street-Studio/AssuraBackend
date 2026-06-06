@@ -8,6 +8,7 @@ public class ReceiptDto
     public string Date { get; set; } = string.Empty;
     public string Amount { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public string? FileUrl { get; set; }
 }
 
 public class CreateReceiptDto

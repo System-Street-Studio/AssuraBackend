@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Assura.Application.Features.Buyers.Queries.GetAll;
+using Assura.Application.Features.Buyers.Commands.Create;
 using Assura.Application.Features.Buyers.DTOs;
 
 namespace Assura.API.Controllers;
@@ -24,9 +25,10 @@ public class BuyersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<string>> Create([FromBody] Assura.Application.Features.Buyers.Commands.CreateBuyer.CreateBuyerCommand command)
+    public async Task<ActionResult<int>> Create([FromBody] CreateBuyerCommand command)
     {
         var id = await _mediator.Send(command);
-        return Ok(id);
+        return CreatedAtAction(nameof(GetAll), new { id }, id);
     }
 }
+

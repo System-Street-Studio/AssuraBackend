@@ -85,6 +85,7 @@ public class AssetsController : BaseApiController
         return Ok(result);
     }
 
+<<<<<<< HEAD
     [HttpGet("{id}")]
     public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> GetAsset(int id)
     {
