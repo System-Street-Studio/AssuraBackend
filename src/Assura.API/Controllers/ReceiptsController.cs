@@ -65,7 +65,7 @@ public class ReceiptsController : ControllerBase
         // Update receipt
         receipt.FileUrl = $"/uploads/receipts/{fileName}";
         receipt.Status = ReceiptStatus.Uploaded;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(default);
 
         return Ok(new ReceiptDto
         {

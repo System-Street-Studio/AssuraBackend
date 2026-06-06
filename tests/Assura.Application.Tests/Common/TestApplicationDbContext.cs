@@ -39,6 +39,7 @@ public class TestApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<AccDiscardNote> AccDiscardNotes => Set<AccDiscardNote>();
     public DbSet<LostItem> LostItems => Set<LostItem>();
+    public DbSet<UserDivisionRole> UserDivisionRoles => Set<UserDivisionRole>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

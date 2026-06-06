@@ -12,7 +12,7 @@ public class CreateAssetCommand : IRequest<string>
     public string Type { get; set; } = string.Empty;
     public string SerialNumber { get; set; } = string.Empty;
     public string Division { get; set; } = string.Empty;
-    public string Status { get; set; } = "Active";
+    public string Status { get; set; } = "InUse";
 }
 
 public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, string>
@@ -58,8 +58,8 @@ public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, str
             _context.Suppliers.Add(supplier);
         }
 
-        // Parse status safely
-        AssetStatus assetStatus = AssetStatus.Active;
+        // Parse status safely (default to InUse)
+        AssetStatus assetStatus = AssetStatus.InUse;
         Enum.TryParse(request.Status, true, out assetStatus);
 
         var asset = new Asset
