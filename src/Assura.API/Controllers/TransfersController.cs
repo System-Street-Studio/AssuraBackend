@@ -54,20 +54,22 @@ public class TransfersController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int? page = 1, [FromQuery] int? pageSize = 50, [FromQuery] int? divisionId = null, [FromQuery] string? status = null)
+    public async Task<IActionResult> GetAll([FromQuery] int? page = 1, [FromQuery] int? pageSize = 50, [FromQuery] int? divisionId = null, [FromQuery] string? status = null, [FromQuery] int? employeeId = null)
     {
         Console.WriteLine(" === TRANSFER API ENDPOINT CALLED ===");
         Console.WriteLine($" GET /api/transfers called at: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
         Console.WriteLine($" API received query parameters:");
         Console.WriteLine($"  divisionId: {divisionId}");
         Console.WriteLine($"  status: {status}");
+        Console.WriteLine($"  employeeId: {employeeId}");
 
         try
         {
             var query = new GetAllTransfersQuery
             {
                 DivisionId = divisionId,
-                Status = status
+                Status = status,
+                EmployeeId = employeeId
             };
 
             var transfers = await _mediator.Send(query);

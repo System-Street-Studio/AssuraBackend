@@ -10,6 +10,7 @@ public class GetAllTransfersQuery : IRequest<List<TransferDto>>
     public string? Status { get; set; }
     public int? AssetId { get; set; }
     public int? CurrentHolderId { get; set; }
+    public int? EmployeeId { get; set; }
 }
 
 public class TransferDto

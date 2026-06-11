@@ -42,6 +42,13 @@ public class GetAllTransfersQueryHandler
             query = query.Where(t => t.CurrentHolderId == request.CurrentHolderId);
         }
 
+        if (request.EmployeeId.HasValue)
+        {
+            query = query.Where(t => t.CurrentHolderId == request.EmployeeId || 
+                                     t.TargetUserId == request.EmployeeId ||
+                                     t.TransferById == request.EmployeeId);
+        }
+
         if (request.DivisionId.HasValue)
         {
             query = query.Where(t =>
