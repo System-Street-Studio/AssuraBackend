@@ -22,7 +22,7 @@ public class AssetRequestsController : ControllerBase
 
     
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateAssetRequestCommand command)
+    public async Task<IActionResult> Create([FromForm] CreateAssetRequestCommand command)
     {
         var id = await _mediator.Send(command);
         return Ok(id);
