@@ -20,6 +20,7 @@ public class AssetRequest : BaseEntity
 
     public string? Reason { get; set; } = string.Empty;
 
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public string? Attachments { get; set; }
 
     // Enum 

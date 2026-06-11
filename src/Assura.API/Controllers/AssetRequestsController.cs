@@ -46,8 +46,16 @@ public class AssetRequestsController : ControllerBase
     [HttpGet("employee/{employeeId}")] 
     public async Task<IActionResult> GetByEmployee(string employeeId)
     {
-        var result = await _mediator.Send(new GetAllRequestsQuery(employeeId));
-        return Ok(result);
+        try
+        {
+            var result = await _mediator.Send(new GetFilteredAssetRequestsQuery(null, null, employeeId, false));
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DEBUG] Error in GetByEmployee: {ex.Message}\n{ex.StackTrace}");
+            return StatusCode(500, new { Message = "Server Error", Detail = ex.Message, Stack = ex.StackTrace });
+        }
     }
 
     [HttpGet("pending")]
