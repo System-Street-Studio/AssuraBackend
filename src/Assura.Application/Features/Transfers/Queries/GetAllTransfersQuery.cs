@@ -116,7 +116,7 @@ public class GetAllTransfersQueryHandler
                 TransferById = t.TransferById,
                 TransferByName = (t.TransferBy != null ? t.TransferBy.Username : null) ?? string.Empty,
 
-                TargetUserId = t.TargetUserId ?? 0,
+                TargetUserId = t.TargetUserId ,
                 TargetUserName = t.TargetUser != null ? t.TargetUser.Username : null,
 
                 CurrentHolderId = t.CurrentHolderId,

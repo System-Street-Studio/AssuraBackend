@@ -76,7 +76,7 @@ public class GetTransferByIdQueryHandler : IRequestHandler<GetTransferByIdQuery,
             TransferByName = transfer.TransferBy?.Username ?? string.Empty,
 
             // Target User
-            TargetUserId = transfer.TargetUserId ?? 0,
+            TargetUserId = transfer.TargetUserId ,
             TargetUserName = transfer.TargetUser?.Username ?? string.Empty,
 
             // Current Holder

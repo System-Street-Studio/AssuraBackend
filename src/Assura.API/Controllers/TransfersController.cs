@@ -306,5 +306,26 @@ public class TransfersController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/return")]
+    public async Task<IActionResult> ReturnActiveTransfer(int id)
+    {
+        try
+        {
+            
+            var result = await _mediator.Send(new ReturnActiveTransferCommand(id));
+            
+            if (!result)
+            {
+                return NotFound(new { success = false, message = $"Transfer record with ID {id} not found, already completed, or not active." });
+            }
+
+            return Ok(new { success = true, message = "Asset returned successfully. Transfer marked as Completed and Asset status updated to In Use." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during asset return: {ex.Message}");
+            return StatusCode(500, new { success = false, message = "An error occurred while returning the asset.", error = ex.Message });
+        }
+    }
     
 }

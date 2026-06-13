@@ -35,6 +35,7 @@ public class ConfirmTransferByHeadCommandHandler : IRequestHandler<ConfirmTransf
         // Update transfer status
         transfer.Status = TransferStatus.Active;
         transfer.UpdatedAt = DateTime.UtcNow;
+        transfer.TransferDate =  DateTime.UtcNow;
 
         // Update asset status
         transfer.Asset.Status = AssetStatus.Transferred;

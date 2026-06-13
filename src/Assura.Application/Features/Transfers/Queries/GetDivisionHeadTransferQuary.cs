@@ -4,6 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Enums;
 using Assura.Application.DTOs;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Linq;
 
 
 namespace Assura.Application.Features.Transfers.Queries;
@@ -40,7 +44,7 @@ public class GetDivisionHeadTransferQueryHandler : IRequestHandler<GetDivisionHe
        // Apply filters based on the selected tab and the division head's division
         query = request.Tab.ToLower() switch
         {
-            "outgoing" => query.Where(t => t.FromDivisionId == headDivisionId 
+            "outgoing" => query.Where(t => t.ToDivisionId == headDivisionId 
                                         && t.Status == TransferStatus.PendingOwnerApproval),
 
             "incoming" => query.Where(t => t.FromDivisionId == headDivisionId 
@@ -65,15 +69,24 @@ public class GetDivisionHeadTransferQueryHandler : IRequestHandler<GetDivisionHe
             AssetCode = t.Asset != null ? t.Asset.AssetCode : "N/A",
             ProductName = t.Asset != null && t.Asset.Product != null ? t.Asset.Product.Name : "N/A",
             ToDivisionName = (t.ToDivision != null ? t.ToDivision.Name : null) ?? "N/A",
+            ToDivisionId = t.ToDivisionId,
+            FromDivisionName = (t.FromDivision != null ? t.FromDivision.Name : null) ?? "N/A",
+            FromDivisionId = t.FromDivisionId,
+            TransferById = t.TransferBy != null ? t.TransferBy.Id : 0,
             TransferByName = (t.TransferBy != null ? t.TransferBy.Username : null) ?? "N/A",
             TargetUserId = t.TargetUser != null ? t.TargetUser.Id : 0,
             TargetUserName = t.TargetUser != null ? t.TargetUser.Username : "N/A",
-            CurrentHolderId = t.CurrentHolderId,
-            CurrentHolderName = t.CurrentHolder != null ? t.CurrentHolder.Username : string.Empty,
+        
+          
+            CurrentHolderId = t.CurrentHolder != null ? t.CurrentHolder.Id : 0,
+            CurrentHolderName = t.CurrentHolder != null ? t.CurrentHolder.Username : "N/A",
+            
             Reason = t.Reason,
             TransferPeriod = t.TransferPeriod,
+            TransferDate = t.TransferDate,
+            ReturnDate = t.ReturnDate,
             Status = t.Status.ToString(),
             CreatedAt = t.CreatedAt
-        }).ToListAsync();
+        }).ToListAsync(cancellationToken);
     }
 }
