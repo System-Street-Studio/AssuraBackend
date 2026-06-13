@@ -331,4 +331,43 @@ public class TransfersController : ControllerBase
             });
         }
     }
+
+    [HttpGet("division-head")]
+    public async Task<IActionResult> GetDivisionHeadTransfers([FromQuery] string tab)
+    {
+        try
+        {
+            var query = new GetAllTransfersQuery();
+            // In the future: apply filtering based on the 'tab' value
+            var transfers = await _mediator.Send(query);
+            return Ok(transfers); 
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/approve-head")]
+    public async Task<IActionResult> ApproveByHead(int id)
+    {
+        return Ok(new { success = true, message = "Approved by head successfully" });
+    }
+
+    [HttpPost("{id}/confirm-head")]
+    public async Task<IActionResult> ConfirmByHead(int id)
+    {
+        return Ok(new { success = true, message = "Confirmed by head successfully" });
+    }
+
+    [HttpPost("{id}/reject-head")]
+    public async Task<IActionResult> RejectByHead(int id, [FromBody] RejectHeadDto dto)
+    {
+        return Ok(new { success = true, message = "Rejected by head successfully" });
+    }
+}
+
+public class RejectHeadDto 
+{ 
+    public string Reason { get; set; } = string.Empty; 
 }
