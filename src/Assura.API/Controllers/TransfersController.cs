@@ -337,8 +337,13 @@ public class TransfersController : ControllerBase
     {
         try
         {
-            var query = new GetAllTransfersQuery();
-            // In the future: apply filtering based on the 'tab' value
+            // Extract DivisionId from claims
+            var divisionIdClaim = User.FindFirst("DivisionId")?.Value;
+            int? divisionId = !string.IsNullOrEmpty(divisionIdClaim) ? int.Parse(divisionIdClaim) : null;
+
+            var query = new GetAllTransfersQuery { DivisionId = divisionId };
+            // In the future: apply filtering based on the 'tab' value if needed, 
+            // but returning all for the division allows frontend KPI cards to work.
             var transfers = await _mediator.Send(query);
             return Ok(transfers); 
         }
