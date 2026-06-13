@@ -356,19 +356,55 @@ public class TransfersController : ControllerBase
     [HttpPost("{id}/approve-head")]
     public async Task<IActionResult> ApproveByHead(int id)
     {
-        return Ok(new { success = true, message = "Approved by head successfully" });
+        try
+        {
+            var headIdClaim = User.FindFirst("UserId")?.Value ?? "0";
+            int headId = int.Parse(headIdClaim);
+
+            var command = new ApproveTransferByHeadCommand(id, headId);
+            var result = await _mediator.Send(command);
+            return Ok(new { success = result, message = "Approved by head successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
     }
 
     [HttpPost("{id}/confirm-head")]
     public async Task<IActionResult> ConfirmByHead(int id)
     {
-        return Ok(new { success = true, message = "Confirmed by head successfully" });
+        try
+        {
+            var headIdClaim = User.FindFirst("UserId")?.Value ?? "0";
+            int headId = int.Parse(headIdClaim);
+
+            var command = new ConfirmTransferByHeadCommand(id, headId);
+            var result = await _mediator.Send(command);
+            return Ok(new { success = result, message = "Confirmed by head successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
     }
 
     [HttpPost("{id}/reject-head")]
     public async Task<IActionResult> RejectByHead(int id, [FromBody] RejectHeadDto dto)
     {
-        return Ok(new { success = true, message = "Rejected by head successfully" });
+        try
+        {
+            var headIdClaim = User.FindFirst("UserId")?.Value ?? "0";
+            int headId = int.Parse(headIdClaim);
+
+            var command = new RejectTransferByHeadCommand(id, headId, dto.Reason);
+            var result = await _mediator.Send(command);
+            return Ok(new { success = result, message = "Rejected by head successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
     }
 }
 
