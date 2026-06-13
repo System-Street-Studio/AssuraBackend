@@ -195,29 +195,6 @@ public class TransfersController : ControllerBase
         return Ok(result);
     }
 
-    // Get transfers filtered by division
-    [HttpGet("by-division")]
-    public async Task<IActionResult> GetTransfersByDivision([FromQuery] int divisionId)
-    {
-        try
-        {
-            if (divisionId <= 0)
-                return BadRequest(new { success = false, message = "Invalid division ID" });
-
-            var result = await _mediator.Send(new GetAllTransfersQuery { DivisionId = divisionId });
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error retrieving transfers by division: {ex.Message}");
-            return StatusCode(500, new 
-            { 
-                success = false, 
-                message = "Error retrieving transfers",
-                error = ex.Message 
-            });
-        }
-    }
 
     // Approve transfer by division head endpoint
     [HttpPost("{id}/approve-head")]
@@ -254,58 +231,6 @@ public class TransfersController : ControllerBase
     }
 
    
-
-    // Verify transfers endpoint
-    [HttpGet("verify")]
-    public async Task<IActionResult> VerifyTransfers()
-    {
-    
-        Console.WriteLine("GET /api/transfers/verify called");
-        
-        try
-        {
-            var query = new GetAllTransfersQuery { };
-            var transfers = await _mediator.Send(query);
-            
-            Console.WriteLine($" Total transfers in database: {transfers.Count}");
-            
-            if (transfers.Count > 0)
-            {
-                Console.WriteLine(" Recent transfers:");
-                for (int i = 0; i < Math.Min(5, transfers.Count); i++)
-                {
-                    var t = transfers[i];
-                    Console.WriteLine($"  {i+1}. ID:{t.Id} | {t.TransferNumber} | Asset:{t.AssetId} | From:{t.FromDivisionName} | To:{t.ToDivisionName} | Status:{t.Status} | Created:{t.CreatedAt:yyyy-MM-dd HH:mm:ss}");
-                }
-            }
-            else
-            {
-                Console.WriteLine(" No transfers found in database!");
-            }
-            
-            return Ok(new 
-            { 
-                success = true,
-                message = "Transfer verification completed",
-                data = new 
-                { 
-                    totalTransfers = transfers.Count,
-                    recentTransfers = transfers.Take(5).ToList(),
-                    databaseStatus = transfers.Count > 0 ? "Populated" : "Empty"
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($" Error verifying transfers: {ex.Message}");
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error verifying transfers: {ex.Message}" 
-            });
-        }
-    }
-
     [HttpPost("{id}/return")]
     public async Task<IActionResult> ReturnActiveTransfer(int id)
     {

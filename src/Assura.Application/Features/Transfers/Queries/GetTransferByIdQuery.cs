@@ -5,7 +5,7 @@ using Assura.Application.Common.Interfaces;
 
 namespace Assura.Application.Features.Transfers.Queries;
 
-//  Query to get a specific transfer by its ID
+// Query to get a specific transfer by its ID
 public class GetTransferByIdQuery : IRequest<TransferDto>
 {
     public int Id { get; set; }
@@ -16,7 +16,7 @@ public class GetTransferByIdQuery : IRequest<TransferDto>
     }
 }
 
-//  Handler for GetTransferByIdQuery to retrieve a specific transfer by its ID
+// Handler for GetTransferByIdQuery to retrieve a specific transfer by its ID
 public class GetTransferByIdQueryHandler : IRequestHandler<GetTransferByIdQuery, TransferDto>
 {
     private readonly IApplicationDbContext _context;
@@ -28,64 +28,58 @@ public class GetTransferByIdQueryHandler : IRequestHandler<GetTransferByIdQuery,
 
     public async Task<TransferDto> Handle(GetTransferByIdQuery request, CancellationToken cancellationToken)
     {
-        var transfer = await _context.Transfers
-            .Include(t => t.Asset)
-                .ThenInclude(a => a.Product)
-            .Include(t => t.FromDivision)
-            .Include(t => t.ToDivision)
-            .Include(t => t.TransferBy)
-            .Include(t => t.TargetUser)
-            .Include(t => t.CurrentHolder)
-            .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+       
+        var transferDto = await _context.Transfers
+            .Where(t => t.Id == request.Id)
+            .Select(t => new TransferDto
+            {
+                Id = t.Id,
+                TransferNumber = t.TransferNumber,
+                TransferDate = t.TransferDate,
+                ReturnDate = t.ReturnDate,
+                Reason = t.Reason,
+                TransferPeriod = t.TransferPeriod,
+                Status = t.Status.ToString(),
 
-        if (transfer == null)
+                
+                AssetId = t.AssetId,
+                AssetTag = t.Asset.AssetTag ?? string.Empty,
+                AssetCode = t.Asset.AssetCode,
+                AssetStatus = t.Asset.Status.ToString(),
+                ProductName = t.Asset.Product != null ? t.Asset.Product.Name : string.Empty,
+
+                // Request
+                AssetRequestId = t.AssetRequestId,
+
+                // From Division
+                FromDivisionId = t.FromDivisionId,
+                FromDivisionName = t.FromDivision != null ? t.FromDivision.Name : string.Empty,
+
+                // To Division
+                ToDivisionId = t.ToDivisionId,
+                ToDivisionName = t.ToDivision != null ? t.ToDivision.Name : string.Empty,
+
+                // Users (Transfer By)
+                TransferById = t.TransferById,
+                TransferByName = t.TransferBy != null ? t.TransferBy.Username : string.Empty,
+
+                // Target User
+                TargetUserId = t.TargetUserId,
+                TargetUserName = t.TargetUser != null ? t.TargetUser.Username : string.Empty,
+
+                // Current Holder
+                CurrentHolderId = t.CurrentHolderId,
+                CurrentHolderName = t.CurrentHolder != null ? t.CurrentHolder.Username : string.Empty,
+
+                // Audit
+                CreatedAt = t.CreatedAt,
+                UpdatedAt = t.UpdatedAt
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (transferDto == null)
             throw new KeyNotFoundException($"Transfer with ID {request.Id} not found");
 
-        return new TransferDto
-        {
-            Id = transfer.Id,
-            TransferNumber = transfer.TransferNumber,
-            TransferDate = transfer.TransferDate,
-            ReturnDate = transfer.ReturnDate,
-
-            Reason = transfer.Reason,
-            TransferPeriod = transfer.TransferPeriod,
-
-            Status = transfer.Status.ToString(),
-
-            // Asset
-            AssetId = transfer.AssetId,
-            AssetTag = transfer.Asset.AssetTag ?? string.Empty,
-            AssetCode = transfer.Asset.AssetCode,
-            AssetStatus = transfer.Asset.Status.ToString(),
-            ProductName = transfer.Asset.Product?.Name ?? string.Empty,
-
-            // Request
-            AssetRequestId = transfer.AssetRequestId,
-
-            // From Division
-            FromDivisionId = transfer.FromDivisionId,
-            FromDivisionName = transfer.FromDivision?.Name ?? string.Empty,
-
-            // To Division
-            ToDivisionId = transfer.ToDivisionId,
-            ToDivisionName = transfer.ToDivision?.Name ?? string.Empty,
-
-            // Users
-            TransferById = transfer.TransferById,
-            TransferByName = transfer.TransferBy?.Username ?? string.Empty,
-
-            // Target User
-            TargetUserId = transfer.TargetUserId ,
-            TargetUserName = transfer.TargetUser?.Username ?? string.Empty,
-
-            // Current Holder
-            CurrentHolderId = transfer.CurrentHolderId,
-            CurrentHolderName = transfer.CurrentHolder?.Username ?? string.Empty,
-
-            // Audit
-            CreatedAt = transfer.CreatedAt,
-            UpdatedAt = transfer.UpdatedAt
-        };
+        return transferDto;
     }
 }
