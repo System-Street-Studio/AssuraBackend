@@ -104,8 +104,8 @@ public class TransfersController : ControllerBase
         var result = await _mediator.Send(query); 
         return Ok(result);
     }
-       
-        
+
+
     /// GET /api/transfers/{id}
     /// Retrieves a specific transfer by ID
    
@@ -226,6 +226,24 @@ public class TransfersController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    // Cancel transfer by division head endpoint
+    [HttpPost("{id}/cancel-head")]
+    public async Task<IActionResult> CancelByHead(int id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new CancelTransferByHeadCommand(id));
+            if (result)
+                return Ok(new { message = "Transfer cancelled by division head" });
+            return BadRequest("Failed to cancel transfer");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
 
     // Confirm transfer by division head endpoint
     [HttpPost("{id}/confirm-head")]
