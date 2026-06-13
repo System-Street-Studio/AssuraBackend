@@ -11,6 +11,7 @@ namespace Assura.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TransfersController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -91,7 +92,20 @@ public class TransfersController : ControllerBase
         }
     }
 
-    
+    // GET /api/transfers/counts
+    // Retrieves counts of transfers for the logged-in user's division head dashboard
+    /// GET /api/transfers/counts?userId=77
+    [HttpGet("counts")]
+    public async Task<ActionResult<TransferCountsDto>> GetTransferCounts([FromQuery] int userId)
+    {
+        if (userId <= 0) return BadRequest("Invalid User ID");
+
+        var query = new GetTransferCountsQuery(userId);
+        var result = await _mediator.Send(query); 
+        return Ok(result);
+    }
+       
+        
     /// GET /api/transfers/{id}
     /// Retrieves a specific transfer by ID
    
