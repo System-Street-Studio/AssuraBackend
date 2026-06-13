@@ -37,7 +37,7 @@ public class ApproveAssetRequestHandler : IRequestHandler<ApproveAssetRequestCom
             entity.Status .ToString(),
             entity.RequesterName,
             entity.RequesterId,
-            entity.Attachments ?? "N/A",
+            entity.AttachmentUrls ?? "N/A",
             entity.SubmittedDate,
             entity.Description ?? "N/A",
             entity.Reason ?? "N/A"

@@ -19,6 +19,7 @@ public record CreateAssetRequestCommand : IRequest<int>
     public string? Priority { get; set; }
     public string? RequestType { get; set; }
     public DateTime SubmittedDate { get; set; }
+    public string? AttachmentUrls { get; set; }
 }
 
 public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestCommand, int>
@@ -57,7 +58,8 @@ public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestComma
             Status = Domain.Enums.RequestStatus.Pending,
             
             UserId = userId,
-            DivisionId = divisionId
+            DivisionId = divisionId,
+            AttachmentUrls = request.AttachmentUrls
         };
 
         _context.AssetRequests.Add(entity);

@@ -14,16 +14,38 @@ namespace Assura.API.Controllers;
 public class AssetRequestsController : ControllerBase
 {
    private readonly IMediator _mediator;
+   private readonly IWebHostEnvironment _env;
 
-    public AssetRequestsController(IMediator mediator)
+    public AssetRequestsController(IMediator mediator, IWebHostEnvironment env)
     {
         _mediator = mediator;
+        _env = env;
     }
 
     
     [HttpPost]
-    public async Task<IActionResult> Create([FromForm] CreateAssetRequestCommand command)
+    public async Task<IActionResult> Create([FromForm] CreateAssetRequestCommand command, [FromForm] List<IFormFile> files)
     {
+        if (files != null && files.Count > 0)
+        {
+            var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", "requests");
+            Directory.CreateDirectory(uploadsDir);
+            
+            var fileUrls = new List<string>();
+            foreach(var file in files)
+            {
+                var ext = Path.GetExtension(file.FileName);
+                var fileName = $"{Guid.NewGuid()}{ext}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+                fileUrls.Add($"/uploads/requests/{fileName}");
+            }
+            command.AttachmentUrls = string.Join(",", fileUrls);
+        }
+
         var id = await _mediator.Send(command);
         return Ok(id);
     }

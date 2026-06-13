@@ -14,4 +14,10 @@ public class DivisionsController : BaseApiController
     {
         return await Mediator.Send(new GetDivisionsQuery());
     }
+
+    [HttpGet("{id}/overview-summary")]
+    public async Task<ActionResult<DivisionOverviewSummaryDto>> GetOverviewSummary(int id)
+    {
+        return await Mediator.Send(new GetDivisionOverviewSummaryQuery(id));
+    }
 }
