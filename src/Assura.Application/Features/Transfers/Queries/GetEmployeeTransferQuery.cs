@@ -62,8 +62,11 @@ public class GetEmployeeTransferQueryHandler : IRequestHandler<GetEmployeeTransf
             TargetUserName = t.TargetUser != null ? t.TargetUser.Username : "N/A",
             CurrentHolderId = t.CurrentHolderId,
             CurrentHolderName = t.CurrentHolder != null ? t.CurrentHolder.Username : string.Empty,
+            FromDivisionName = (t.FromDivision != null ? t.FromDivision.Name : null) ?? "N/A",
             Reason = t.Reason,
             TransferPeriod = t.TransferPeriod,
+            TransferDate = t.TransferDate,
+            ReturnDate = t.ReturnDate,
             Status = t.Status.ToString(),
             CreatedAt = t.CreatedAt
         }).ToListAsync(cancellationToken);
