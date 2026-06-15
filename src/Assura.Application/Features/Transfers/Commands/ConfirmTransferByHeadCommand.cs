@@ -6,7 +6,7 @@ using Assura.Domain.Entities;
 
 namespace Assura.Application.Features.Transfers.Commands;
 
-public record ConfirmTransferByHeadCommand(int TransferId) : IRequest<bool>;
+public record ConfirmTransferByHeadCommand(int TransferId, int UserId) : IRequest<bool>;
 
 public class ConfirmTransferByHeadCommandHandler : IRequestHandler<ConfirmTransferByHeadCommand, bool>
 {
@@ -56,6 +56,17 @@ public class ConfirmTransferByHeadCommandHandler : IRequestHandler<ConfirmTransf
         //update assets table
         asset.Status = AssetStatus.Transferred;
         asset.UpdatedAt = DateTime.UtcNow;
+
+        var audit = new Assura.Domain.Entities.TransferApproval
+        {
+            TransferId = transfer.Id,
+            ApprovedByUserId = request.UserId,
+            FromStatus = TransferStatus.WaitingForFinalConfirmation,
+            ToStatus = TransferStatus.Active,
+            Comments = "Confirmed by Division Head",
+            ApprovedAt = DateTime.UtcNow
+        };
+        _context.TransferApprovals.Add(audit);
 
         var result = await _context.SaveChangesAsync(cancellationToken);
         return result > 0;

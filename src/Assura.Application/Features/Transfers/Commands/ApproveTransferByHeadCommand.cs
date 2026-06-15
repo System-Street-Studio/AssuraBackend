@@ -6,7 +6,7 @@ using Assura.Domain.Enums;
 namespace Assura.Application.Features.Transfers.Commands;
 
 
-public record ApproveTransferByHeadCommand(int TransferId) : IRequest<bool>;
+public record ApproveTransferByHeadCommand(int TransferId, int UserId) : IRequest<bool>;
 
 public class ApproveTransferByHeadCommandHandler : IRequestHandler<ApproveTransferByHeadCommand, bool>
 {
@@ -30,8 +30,20 @@ public class ApproveTransferByHeadCommandHandler : IRequestHandler<ApproveTransf
         if (transfer.Status != TransferStatus.PendingOwnerDivisionHeadApproval)
             throw new Exception($"Transfer cannot be approved from status {transfer.Status}. Expected status: {TransferStatus.PendingOwnerDivisionHeadApproval}");
 
+        var oldStatus = transfer.Status;
         transfer.Status = TransferStatus.WaitingForFinalConfirmation;
         transfer.UpdatedAt = DateTime.UtcNow;
+
+        var audit = new Assura.Domain.Entities.TransferApproval
+        {
+            TransferId = transfer.Id,
+            ApprovedByUserId = request.UserId,
+            FromStatus = oldStatus,
+            ToStatus = transfer.Status,
+            Comments = "Approved by Division Head",
+            ApprovedAt = DateTime.UtcNow
+        };
+        _context.TransferApprovals.Add(audit);
 
         var result = await _context.SaveChangesAsync(cancellationToken);
         return result > 0;

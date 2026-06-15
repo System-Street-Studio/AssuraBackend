@@ -45,7 +45,8 @@ public static class DependencyInjection
 
         // Custom Auth Services from feature/auth
         services.AddScoped<IIdentifyServices, IdentityService>();
-        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddTransient<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddHostedService<TransferOverdueCheckerService>();
 
         var jwtSettings = configuration.GetSection("Jwt");
         var secretKey = jwtSettings.GetValue<string>("Key") ?? "YourDevelopmentSecretKeyChangeInProduction";

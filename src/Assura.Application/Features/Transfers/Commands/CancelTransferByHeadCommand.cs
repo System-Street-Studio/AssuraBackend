@@ -6,7 +6,7 @@ using Assura.Domain.Enums;
 namespace Assura.Application.Features.Transfers.Commands;
 
 
-public record CancelTransferByHeadCommand(int TransferId) : IRequest<bool>;
+public record CancelTransferByHeadCommand(int TransferId, int UserId) : IRequest<bool>;
 
 public class CancelTransferByHeadCommandHandler : IRequestHandler<CancelTransferByHeadCommand, bool>
 {
@@ -30,8 +30,20 @@ public class CancelTransferByHeadCommandHandler : IRequestHandler<CancelTransfer
         if (transfer.Status != TransferStatus.PendingOwnerApproval)
             throw new Exception($"Transfer cannot be cancelled from status {transfer.Status}. Expected status: {TransferStatus.PendingOwnerApproval}");
 
+        var oldStatus = transfer.Status;
         transfer.Status = TransferStatus.Cancelled;
         transfer.UpdatedAt = DateTime.UtcNow;
+
+        var audit = new Assura.Domain.Entities.TransferApproval
+        {
+            TransferId = transfer.Id,
+            ApprovedByUserId = request.UserId,
+            FromStatus = oldStatus,
+            ToStatus = TransferStatus.Cancelled,
+            Comments = "Cancelled by Division Head",
+            ApprovedAt = DateTime.UtcNow
+        };
+        _context.TransferApprovals.Add(audit);
 
         var result = await _context.SaveChangesAsync(cancellationToken);
         return result > 0;

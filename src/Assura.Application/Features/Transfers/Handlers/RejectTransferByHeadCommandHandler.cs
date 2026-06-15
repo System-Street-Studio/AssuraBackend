@@ -30,6 +30,7 @@ public class RejectTransferByHeadCommandHandler : IRequestHandler<Commands.Rejec
             throw new Exception($"Cannot reject transfer in status {transfer.Status}");
         }
 
+        var oldStatus = transfer.Status;
         // Update status to Rejected
         transfer.Status = TransferStatus.Rejected;
         
@@ -40,6 +41,17 @@ public class RejectTransferByHeadCommandHandler : IRequestHandler<Commands.Rejec
 
         transfer.UpdatedAt = DateTime.UtcNow;
         
+        var audit = new Assura.Domain.Entities.TransferApproval
+        {
+            TransferId = transfer.Id,
+            ApprovedByUserId = request.DivisionHeadId,
+            FromStatus = oldStatus,
+            ToStatus = TransferStatus.Rejected,
+            Comments = $"Rejected by Division Head: {request.Reason}",
+            ApprovedAt = DateTime.UtcNow
+        };
+        _context.TransferApprovals.Add(audit);
+
         await _context.SaveChangesAsync(cancellationToken);
         return true;
     }

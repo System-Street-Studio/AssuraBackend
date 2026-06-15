@@ -362,7 +362,10 @@ public class TransfersController : ControllerBase
     {
         try
         {
-            var result = await _mediator.Send(new ApproveTransferByHeadCommand(id));
+            var headIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int headId = int.Parse(headIdClaim ?? "0");
+            
+            var result = await _mediator.Send(new ApproveTransferByHeadCommand(id, headId));
             if (result)
                 return Ok(new { message = "Transfer approved by division head" });
             return BadRequest("Failed to approve transfer");
@@ -380,7 +383,10 @@ public class TransfersController : ControllerBase
     {
         try
         {
-            var result = await _mediator.Send(new CancelTransferByHeadCommand(id));
+            var headIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int headId = int.Parse(headIdClaim ?? "0");
+
+            var result = await _mediator.Send(new CancelTransferByHeadCommand(id, headId));
             if (result)
                 return Ok(new { message = "Transfer cancelled by division head" });
             return BadRequest("Failed to cancel transfer");
@@ -398,7 +404,10 @@ public class TransfersController : ControllerBase
     {
         try
         {
-            var result = await _mediator.Send(new ConfirmTransferByHeadCommand(id));
+            var headIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int headId = int.Parse(headIdClaim ?? "0");
+
+            var result = await _mediator.Send(new ConfirmTransferByHeadCommand(id, headId));
             if (result)
                 return Ok(new { message = "Transfer confirmed by division head" });
             return BadRequest("Failed to confirm transfer");

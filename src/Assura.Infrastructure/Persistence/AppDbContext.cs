@@ -49,6 +49,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<AccDiscardNote> AccDiscardNotes => Set<AccDiscardNote>();
     public DbSet<LostItem> LostItems => Set<LostItem>();
     public DbSet<UserDivisionRole> UserDivisionRoles => Set<UserDivisionRole>();
+    public DbSet<TransferApproval> TransferApprovals => Set<TransferApproval>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
