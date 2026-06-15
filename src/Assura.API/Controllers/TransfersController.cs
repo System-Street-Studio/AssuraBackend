@@ -343,6 +343,7 @@ public class TransfersController : ControllerBase
 
     // Get division head transfers endpoint
     [HttpGet("division-head")]
+    [Authorize(Roles = "DivisionHead")]
     public async Task<IActionResult> GetDivisionHeadTransfers([FromQuery] string tab)
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -356,6 +357,7 @@ public class TransfersController : ControllerBase
 
     // Approve transfer by division head endpoint
     [HttpPost("{id}/approve-head")]
+    [Authorize(Roles = "DivisionHead")]
     public async Task<IActionResult> ApproveByHead(int id)
     {
         try
@@ -373,6 +375,7 @@ public class TransfersController : ControllerBase
 
     // Cancel transfer by division head endpoint
     [HttpPost("{id}/cancel-head")]
+    [Authorize(Roles = "DivisionHead")]
     public async Task<IActionResult> CancelByHead(int id)
     {
         try
@@ -390,6 +393,7 @@ public class TransfersController : ControllerBase
 
     // Confirm transfer by division head endpoint
     [HttpPost("{id}/confirm-head")]
+    [Authorize(Roles = "DivisionHead")]
     public async Task<IActionResult> ConfirmByHead(int id)
     {
         try
@@ -406,6 +410,7 @@ public class TransfersController : ControllerBase
     }
 
     [HttpPost("{id}/reject-head")]
+    [Authorize(Roles = "DivisionHead")]
     public async Task<IActionResult> RejectByHead(int id, [FromBody] RejectHeadDto dto)
     {
         try
