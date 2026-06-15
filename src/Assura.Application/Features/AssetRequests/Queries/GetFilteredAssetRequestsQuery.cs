@@ -37,6 +37,10 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
                 {
                     query = query.Where(x => x.DivisionId == user.DivisionId);
                 }
+                else
+                {
+                    query = query.Where(x => false);
+                }
             }
         }
         else if (!string.IsNullOrEmpty(request.EmployeeId))
