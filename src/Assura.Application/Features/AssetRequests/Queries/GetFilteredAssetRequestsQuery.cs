@@ -19,7 +19,11 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
 
     public async Task<List<AssetRequestDto>> Handle(GetFilteredAssetRequestsQuery request, CancellationToken cancellationToken)
     {
-        var query = _context.AssetRequests.Include(x => x.User).Include(x => x.Division).AsQueryable();
+        var query = _context.AssetRequests
+            .Include(x => x.User)
+            .Include(x => x.Division)
+            .Include(x => x.Attachments)
+            .AsQueryable();
 
         // Filter by employee
         if (request.IsDivisionHead && !string.IsNullOrEmpty(request.EmployeeId))
@@ -39,6 +43,7 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
         {
             query = query.Where(x => x.RequesterId == request.EmployeeId);
         }
+
 
         // Filter by status
         if (!string.IsNullOrEmpty(request.Status))
@@ -74,7 +79,16 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
             Department = x.Division?.Name ?? string.Empty,
             Email = x.User?.Email ?? string.Empty,
             Quantity = x.Quantity,
-            RequestType = x.RequestType
+            RequestType = x.RequestType,
+            Attachments = x.Attachments.Select(a => new AttachmentDto
+            {
+                Id = a.Id,
+                FileName = a.FileName,
+                FileUrl = a.FileUrl,
+                FileSize = a.FileSize,
+                FileType = a.FileType,
+                UploadedDate = a.UploadedDate
+            }).ToList()
         }).ToList();
     }
 }

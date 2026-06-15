@@ -1,45 +1,24 @@
 using MediatR;
-
 using Assura.Application.Common.Interfaces;
-
 using Assura.Domain.Entities;
-
 using Assura.Domain.Enums;
-
 using Microsoft.EntityFrameworkCore;
-
-
 
 namespace Assura.Application.Features.AssetRequests.Events;
 
-
-
 public class AssetRequestApprovedEventHandler : INotificationHandler<AssetRequestApprovedEvent>
-
 {
-
     private readonly IApplicationDbContext _context;
 
-
-
     public AssetRequestApprovedEventHandler(IApplicationDbContext context)
-
     {
-
         _context = context;
-
     }
 
-
-
     public async Task Handle(AssetRequestApprovedEvent notification, CancellationToken cancellationToken)
-
     {
-
         try
-
         {
-
             // Get the approved request to find its division
 
             var request = await _context.AssetRequests
@@ -128,14 +107,11 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
         catch (Exception ex)
 
         {
-
             // Log the error but don't throw - we don't want to fail the approval
 
             Console.WriteLine($"[ERROR] Failed to create AssetInforming for approved request {notification.Id}: {ex.Message}");
 
         }
-
     }
-
 }
 

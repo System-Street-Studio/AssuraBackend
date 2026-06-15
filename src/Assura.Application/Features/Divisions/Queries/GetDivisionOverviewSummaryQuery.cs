@@ -1,45 +1,54 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Application.DTOs;
+using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Assura.Application.Features.Divisions.Queries;
-
-public record GetDivisionOverviewSummaryQuery(int DivisionId) : IRequest<DivisionOverviewSummaryDto>;
-
-public class GetDivisionOverviewSummaryQueryHandler : IRequestHandler<GetDivisionOverviewSummaryQuery, DivisionOverviewSummaryDto>
+namespace Assura.Application.Features.Divisions.Queries
 {
-    private readonly IApplicationDbContext _context;
-
-    public GetDivisionOverviewSummaryQueryHandler(IApplicationDbContext context)
+    public class GetDivisionOverviewSummaryQuery : IRequest<DivisionOverviewSummaryDto>
     {
-        _context = context;
+        public int DivisionId { get; set; }
+        public GetDivisionOverviewSummaryQuery(int divisionId)
+        {
+            DivisionId = divisionId;
+        }
     }
 
-    public async Task<DivisionOverviewSummaryDto> Handle(GetDivisionOverviewSummaryQuery request, CancellationToken cancellationToken)
+    public class GetDivisionOverviewSummaryQueryHandler : IRequestHandler<GetDivisionOverviewSummaryQuery, DivisionOverviewSummaryDto>
     {
-        var divId = request.DivisionId;
+        private readonly IApplicationDbContext _context;
+        public GetDivisionOverviewSummaryQueryHandler(IApplicationDbContext context)
+        {
+            _context = context;
+        }
 
-        // 1. Total Assets & 2. Total Purchase Value
-        var assetsQuery = _context.Assets.Where(a => a.DivisionId == divId);
-        var assetsCount = await assetsQuery.CountAsync(cancellationToken);
-        var assetsPurchaseValue = await assetsQuery.SumAsync(a => (decimal?)a.PurchaseValue, cancellationToken) ?? 0;
+       public async Task<DivisionOverviewSummaryDto> Handle(GetDivisionOverviewSummaryQuery request, CancellationToken cancellationToken)
+        {
+            var assetsRaw = await _context.Assets
+                .Where(a => a.DivisionId == request.DivisionId)
+                .Select(a => new { a.PurchaseValue, a.Status })
+                .ToListAsync(cancellationToken);
 
-        // 3. Pending Requests
-        var pendingRequestsCount = await _context.AssetRequests
-            .CountAsync(r => r.DivisionId == divId && r.Status == RequestStatus.Pending, cancellationToken);
+            var assetsCount = assetsRaw.Count();
+            var assetsPurchaseValue = assetsRaw.Sum(x => x.PurchaseValue );
+            var transferredAssetsCount = assetsRaw.Count(x => x.Status == AssetStatus.Transferred);
 
-        // 4. Transferred Assets
-        // Assuming 'Active' transfers represent assets successfully handed over/transferred.
-        var transferredAssetsCount = await _context.Transfers
-            .CountAsync(t => t.FromDivisionId == divId && t.Status == TransferStatus.Active, cancellationToken);
+            var pendingRequestsCount = await _context.AssetRequests
+                .Where(r => r.DivisionId == request.DivisionId && r.Status == RequestStatus.Pending)
+                .CountAsync(cancellationToken);
 
-        return new DivisionOverviewSummaryDto(
-            assetsCount,
-            assetsPurchaseValue,
-            pendingRequestsCount,
-            transferredAssetsCount
-        );
+            return new DivisionOverviewSummaryDto
+            {
+                AssetsCount = assetsCount,
+                AssetsPurchaseValue = assetsPurchaseValue,
+                PendingRequestsCount = pendingRequestsCount,
+                TransferredAssetsCount = transferredAssetsCount
+            };
+        }
     }
 }

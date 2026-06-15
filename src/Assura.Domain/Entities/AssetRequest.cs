@@ -20,7 +20,7 @@ public class AssetRequest : BaseEntity
 
     public string? Reason { get; set; } = string.Empty;
 
-    public string? AttachmentUrls { get; set; }
+
 
     // Enum 
     public RequestStatus Status { get; set; } = RequestStatus.Pending;
@@ -43,4 +43,6 @@ public class AssetRequest : BaseEntity
 
     public int? AssetId { get; set; }
     public Asset? Asset { get; set; }
+
+    public ICollection<AssetAttachment> Attachments { get; set; } = new List<AssetAttachment>();    
 }

@@ -9,6 +9,7 @@ namespace Assura.Application.Features.Users.Commands.ForgotPassword;
 
 
 public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordCommand, string?>
+
 {
     private readonly IIdentifyServices _identifyServices;
     private readonly IEmailService _emailService;

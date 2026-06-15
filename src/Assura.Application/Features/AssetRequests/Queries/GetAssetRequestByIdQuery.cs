@@ -10,6 +10,7 @@ public record GetAssetRequestByIdQuery : IRequest<AssetRequest?>
     public int Id { get; set; }
 }
 
+// Handler for retrieving a specific asset request by its ID, including related user, asset, and division information.
 public class GetAssetRequestByIdQueryHandler : IRequestHandler<GetAssetRequestByIdQuery, AssetRequest?>
 {
     private readonly IApplicationDbContext _context;
@@ -25,6 +26,7 @@ public class GetAssetRequestByIdQueryHandler : IRequestHandler<GetAssetRequestBy
             .Include(ar => ar.User)
             .Include(ar => ar.Asset)
             .Include(ar => ar.Division)
+            .Include(ar => ar.Attachments)
             .FirstOrDefaultAsync(ar => ar.Id == request.Id, cancellationToken);
     }
 }

@@ -4,12 +4,14 @@ using Assura.Application.Features.Transfers.Commands;
 using Assura.Application.Features.Transfers.Queries;
 using Assura.Application.Features.Transfers.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TransfersController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -19,40 +21,129 @@ public class TransfersController : ControllerBase
         _mediator = mediator;
     }
 
-   // Create transfer endpoint
-    [HttpPost]
+  
+    /// POST /api/transfers
+    /// Creates a new transfer record linking a specific asset to an approved transfer request
+   
+   [HttpPost]
     public async Task<IActionResult> CreateTransfer([FromBody] CreateTransferDto dto)
     {
         try
         {
-        
+            // Validate request
+            if (dto.AssetId <= 0 || dto.AssetRequestId <= 0 || dto.UserId <= 0)
+                return BadRequest(new
+                {
+                    success = false,
+                    error = "Invalid IDs",
+                    message = "AssetId, AssetRequestId, and UserId must be positive integers"
+                });
+
             var command = new CreateTransferCommand
             {
                 AssetId = dto.AssetId,
-                AssetRequestId = dto.AssetRequestId
+                AssetRequestId = dto.AssetRequestId,
+                UserId = dto.UserId
             };
 
-            var result = await _mediator.Send(command);
+            var transferId = await _mediator.Send(command);
 
-            return Ok(new
+            // Retrieve the created transfer with full details
+            var transfer = await _mediator.Send(new GetTransferByIdQuery(transferId));
+
+            return CreatedAtAction(nameof(GetTransfer), new { id = transfer.Id },
+                new
+                {
+                    success = true,
+                    message = "Transfer record created successfully",
+                    data = transfer
+                });
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($" Validation error creating transfer: {ex.Message}");
+            return BadRequest(new
             {
-                success = true,
-                message = "Transfer created successfully",
-                transferId = result
+                success = false,
+                error = ex.Message,
+                details = ex.InnerException?.Message
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            Console.WriteLine($" Resource not found: {ex.Message}");
+            return NotFound(new
+            {
+                success = false,
+                error = ex.Message
             });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error creating transfer: {ex.Message}");
-            return BadRequest(new
+            Console.WriteLine($" Error creating transfer: {ex.Message}");
+           Console.WriteLine($"FULL ERROR: {ex.ToString()}"); 
+    
+    return StatusCode(500, new
+    {
+        success = false,
+        error = ex.Message,
+        innerError = ex.InnerException?.Message 
+    });
+        }
+    }
+
+    // GET /api/transfers/counts
+    // Retrieves counts of transfers for the logged-in user's division head dashboard
+    /// GET /api/transfers/counts?userId=77
+    [HttpGet("counts")]
+    public async Task<ActionResult<TransferCountsDto>> GetTransferCounts([FromQuery] int userId)
+    {
+        if (userId <= 0) return BadRequest("Invalid User ID");
+
+        var query = new GetTransferCountsQuery(userId);
+        var result = await _mediator.Send(query); 
+        return Ok(result);
+    }
+
+
+    /// GET /api/transfers/{id}
+    /// Retrieves a specific transfer by ID
+   
+    [HttpGet("{id}")]
+    [Authorize]
+    public async Task<IActionResult> GetTransfer(int id)
+    {
+        try
+        {
+            var transfer = await _mediator.Send(new GetTransferByIdQuery(id));
+            return Ok(new
+            {
+                success = true,
+                data = transfer
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new
             {
                 success = false,
+                error = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($" Error retrieving transfer: {ex.Message}");
+            return StatusCode(500, new
+            {
+                success = false,
+                error = "Internal server error",
                 message = ex.Message
             });
         }
     }
 
-
+    // GET /api/transfers?tab={tab} or /api/transfers?divisionId={divisionId}
+    // Retrieves transfers for the logged-in user based on the specified tab, or transfers by division
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int? page = 1, [FromQuery] int? pageSize = 50, [FromQuery] int? divisionId = null, [FromQuery] string? status = null, [FromQuery] int? employeeId = null)
     {
@@ -196,196 +287,121 @@ public class TransfersController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    // Keep the feature branch's endpoint but map it to 'employee' so it doesn't conflict with 'GetAll'
+    [HttpGet("employee")]
+    public async Task<IActionResult> GetTransfers([FromQuery] string tab)
     {
-        Console.WriteLine($"=== GET TRANSFER BY ID ===");
-        Console.WriteLine($"GET /api/transfers/{id} called");
         
-        try
-        {
-            var query = new GetAllTransfersQuery { AssetId = id };
-            var transfers = await _mediator.Send(query);
-            var transfer = transfers.FirstOrDefault(t => t.Id == id);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
 
-            if (transfer == null)
-            {
-                Console.WriteLine($"❌ Transfer with ID {id} not found");
-                return NotFound(new 
-                { 
-                    success = false, 
-                    message = "Transfer not found" 
-                });
-            }
+        int loginUserId = int.Parse(userIdClaim);
 
-            Console.WriteLine($"✅ Found transfer: {transfer.TransferNumber}");
-            return Ok(new 
-            { 
-                success = true, 
-                data = transfer 
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error retrieving transfer: {ex.Message}");
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error retrieving transfer: {ex.Message}" 
-            });
-        }
+        var result = await _mediator.Send(new GetEmployeeTransferQuery(tab, loginUserId));
+        return Ok(result);
     }
 
-    [HttpGet("verify")]
-    public async Task<IActionResult> VerifyTransfers()
-    {
-        Console.WriteLine("=== VERIFY TRANSFER TABLE ===");
-        Console.WriteLine("GET /api/transfers/verify called");
-        
-        try
-        {
-            var query = new GetAllTransfersQuery { };
-            var transfers = await _mediator.Send(query);
-            
-            Console.WriteLine($"📊 Total transfers in database: {transfers.Count}");
-            
-            if (transfers.Count > 0)
-            {
-                Console.WriteLine("📋 Recent transfers:");
-                for (int i = 0; i < Math.Min(5, transfers.Count); i++)
-                {
-                    var t = transfers[i];
-                    Console.WriteLine($"  {i+1}. ID:{t.Id} | {t.TransferNumber} | Asset:{t.AssetId} | From:{t.FromDivisionName} | To:{t.ToDivisionName} | Status:{t.Status} | Created:{t.CreatedAt:yyyy-MM-dd HH:mm:ss}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("❌ No transfers found in database!");
-            }
-            
-            return Ok(new 
-            { 
-                success = true,
-                message = "Transfer verification completed",
-                data = new 
-                { 
-                    totalTransfers = transfers.Count,
-                    recentTransfers = transfers.Take(5).ToList(),
-                    databaseStatus = transfers.Count > 0 ? "Populated" : "Empty"
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error verifying transfers: {ex.Message}");
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error verifying transfers: {ex.Message}" 
-            });
-        }
-    }
-
-    [HttpPut("{id}/approve")]
-    public async Task<IActionResult> Approve(int id)
+    // Accept transfer endpoint
+    [HttpPost("{id}/accept")]
+    public async Task<IActionResult> AcceptTransfer(int id)
     {
         try
         {
-            // Implementation for approving transfer
-            // This would update the transfer status to Approved
-            return Ok(new 
-            { 
-                success = true, 
-                message = "Transfer approved successfully" 
-            });
+            
+            var result = await _mediator.Send(new AcceptTransferCommand(id));
+            
+            if (result)
+                return Ok(new { message = "Transfer status updated to Waiting for Final Confirmation" });
+            
+            return BadRequest("Failed to update transfer status");
         }
         catch (Exception ex)
         {
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error approving transfer: {ex.Message}" 
-            });
+            return BadRequest(ex.Message);
         }
     }
 
-    [HttpPut("{id}/reject")]
-    public async Task<IActionResult> Reject(int id)
+    // Reject transfer endpoint
+    [HttpPost("{id}/reject")]
+    public async Task<IActionResult> RejectTransfer(int id)
     {
         try
         {
-            // Implementation for rejecting transfer
-            // This would update the transfer status to Rejected
-            return Ok(new 
-            { 
-                success = true, 
-                message = "Transfer rejected successfully" 
-            });
+            
+            var result = await _mediator.Send(new RejectTransferCommand(id));
+            
+            if (result)
+                return Ok(new { message = "Transfer rejected successfully" });
+            
+            return BadRequest("Failed to update transfer status");
         }
         catch (Exception ex)
         {
-            return BadRequest(new 
-            { 
-                success = false, 
-                message = $"Error rejecting transfer: {ex.Message}" 
-            });
+            return BadRequest(ex.Message);
         }
     }
 
+    // Get division head transfers endpoint
     [HttpGet("division-head")]
     public async Task<IActionResult> GetDivisionHeadTransfers([FromQuery] string tab)
     {
-        try
-        {
-            // Extract DivisionId from claims
-            var divisionIdClaim = User.FindFirst("DivisionId")?.Value;
-            int? divisionId = !string.IsNullOrEmpty(divisionIdClaim) ? int.Parse(divisionIdClaim) : null;
-
-            var query = new GetAllTransfersQuery { DivisionId = divisionId };
-            // In the future: apply filtering based on the 'tab' value if needed, 
-            // but returning all for the division allows frontend KPI cards to work.
-            var transfers = await _mediator.Send(query);
-            return Ok(transfers); 
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+        
+        var userId = int.Parse(userIdClaim);
+        var result = await _mediator.Send(new GetDivisionHeadTransferQuery(tab, userId));
+        return Ok(result);
     }
 
+
+    // Approve transfer by division head endpoint
     [HttpPost("{id}/approve-head")]
     public async Task<IActionResult> ApproveByHead(int id)
     {
         try
         {
-            var headIdClaim = User.FindFirst("UserId")?.Value ?? "0";
-            int headId = int.Parse(headIdClaim);
-
-            var command = new ApproveTransferByHeadCommand(id, headId);
-            var result = await _mediator.Send(command);
-            return Ok(new { success = result, message = "Approved by head successfully" });
+            var result = await _mediator.Send(new ApproveTransferByHeadCommand(id));
+            if (result)
+                return Ok(new { message = "Transfer approved by division head" });
+            return BadRequest("Failed to approve transfer");
         }
         catch (Exception ex)
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            return BadRequest(ex.Message);
         }
     }
 
+    // Cancel transfer by division head endpoint
+    [HttpPost("{id}/cancel-head")]
+    public async Task<IActionResult> CancelByHead(int id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new CancelTransferByHeadCommand(id));
+            if (result)
+                return Ok(new { message = "Transfer cancelled by division head" });
+            return BadRequest("Failed to cancel transfer");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    // Confirm transfer by division head endpoint
     [HttpPost("{id}/confirm-head")]
     public async Task<IActionResult> ConfirmByHead(int id)
     {
         try
         {
-            var headIdClaim = User.FindFirst("UserId")?.Value ?? "0";
-            int headId = int.Parse(headIdClaim);
-
-            var command = new ConfirmTransferByHeadCommand(id, headId);
-            var result = await _mediator.Send(command);
-            return Ok(new { success = result, message = "Confirmed by head successfully" });
+            var result = await _mediator.Send(new ConfirmTransferByHeadCommand(id));
+            if (result)
+                return Ok(new { message = "Transfer confirmed by division head" });
+            return BadRequest("Failed to confirm transfer");
         }
         catch (Exception ex)
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            return BadRequest(ex.Message);
         }
     }
 
@@ -406,9 +422,30 @@ public class TransfersController : ControllerBase
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
+
+    [HttpPost("{id}/return")]
+    public async Task<IActionResult> ReturnActiveTransfer(int id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new ReturnActiveTransferCommand(id));
+            
+            if (!result)
+            {
+                return NotFound(new { success = false, message = $"Transfer record with ID {id} not found, already completed, or not active." });
+            }
+
+            return Ok(new { success = true, message = "Asset returned successfully. Transfer marked as Completed and Asset status updated to In Use." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during asset return: {ex.Message}");
+            return StatusCode(500, new { success = false, message = "An error occurred while returning the asset.", error = ex.Message });
+        }
 }
 
 public class RejectHeadDto 
 { 
     public string Reason { get; set; } = string.Empty; 
+}
 }

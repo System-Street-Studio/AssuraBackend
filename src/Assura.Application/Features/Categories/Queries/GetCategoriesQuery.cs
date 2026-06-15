@@ -2,6 +2,7 @@ using Assura.Application.Common.Interfaces;
 using Assura.Application.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace Assura.Application.Features.Categories.Queries;
 
@@ -18,7 +19,7 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
 
     public async Task<List<CategoryDto>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Categories
+       var categories = await _context.Categories
             .AsNoTracking()
             .Select(c => new CategoryDto
             {
@@ -27,5 +28,10 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
                 Description = c.Description
             })
             .ToListAsync(cancellationToken);
+
+            return categories   
+                     .GroupBy(x => x.Name)
+                     .Select(g => g.First())
+                     .ToList();
     }
 }
