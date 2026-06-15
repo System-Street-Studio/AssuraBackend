@@ -434,7 +434,6 @@ public class TransfersController : ControllerBase
             {
                 return NotFound(new { success = false, message = $"Transfer record with ID {id} not found, already completed, or not active." });
             }
-
             return Ok(new { success = true, message = "Asset returned successfully. Transfer marked as Completed and Asset status updated to In Use." });
         }
         catch (Exception ex)

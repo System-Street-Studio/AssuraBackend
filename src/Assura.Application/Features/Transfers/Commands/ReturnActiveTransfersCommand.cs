@@ -21,35 +21,42 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
     }
 
     public async Task<bool> Handle(ReturnActiveTransferCommand request, CancellationToken cancellationToken)
-        {
-            
-            var transferToUpdate = await _context.Transfers
-                .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+    {
+    
+        var transfer = await _context.Transfers
+            .Where(t => t.Id == request.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            if (transferToUpdate == null)
-                throw new Exception($"Transfer with ID {request.Id} not found");
+        if (transfer == null)
+            throw new Exception($"Transfer with ID {request.Id} not found");
 
-            if (transferToUpdate.Status != TransferStatus.Active)
-                throw new Exception($"Transfer cannot be returned from status {transferToUpdate.Status}. Expected status: {TransferStatus.Active}");
+        if (transfer.Status != TransferStatus.Active)
+            throw new Exception($"Transfer cannot be returned from status {transfer.Status}.");
 
-            
-            transferToUpdate.Status = TransferStatus.Completed;
-            transferToUpdate.UpdatedAt = DateTime.UtcNow;
-            transferToUpdate.ReturnDate = DateTime.UtcNow;
-        
-
-           
-            var assetToUpdate = await _context.Assets
-                .FirstOrDefaultAsync(a => a.Id == transferToUpdate.AssetId, cancellationToken);
-
-            if (assetToUpdate != null)
+    
+        var asset = await _context.Assets
+            .Where(a => a.Id == transfer.AssetId)
+            .Select(a => new Asset
             {
-                assetToUpdate.Status = AssetStatus.InUse;
-                assetToUpdate.UpdatedAt = DateTime.UtcNow;
-            }
+                Id = a.Id,
+                Status = a.Status,
+                UpdatedAt = a.UpdatedAt
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-           
-            var result = await _context.SaveChangesAsync(cancellationToken);
-            return result > 0;
+        if (asset != null)
+        {
+            _context.Assets.Attach(asset);
+            asset.Status = AssetStatus.InUse;
+            asset.UpdatedAt = DateTime.UtcNow;
         }
+
+    
+        transfer.Status = TransferStatus.Completed;
+        transfer.UpdatedAt = DateTime.UtcNow;
+        transfer.ReturnDate = DateTime.UtcNow;
+
+    
+        return await _context.SaveChangesAsync(cancellationToken) > 0;
+    }
 }
