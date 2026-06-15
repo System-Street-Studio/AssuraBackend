@@ -86,7 +86,8 @@ public class GetDivisionHeadTransferQueryHandler : IRequestHandler<GetDivisionHe
             TransferDate = t.TransferDate,
             ReturnDate = t.ReturnDate,
             Status = t.Status.ToString(),
-            CreatedAt = t.CreatedAt
+            CreatedAt = t.CreatedAt,
+            UpdatedAt = t.UpdatedAt
         }).ToListAsync(cancellationToken);
     }
 }
