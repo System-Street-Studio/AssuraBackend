@@ -155,14 +155,10 @@ The transfer flow in the Assura system has significant architectural issues and 
 
 ### MEDIUM PRIORITY
 
-#### 4. Missing Audit Trail
-**Issue:** No tracking of:
-- Who approved/rejected transfers
-- Approval timestamps
-- Approval reasons/comments
-- Status change history
-
-**Recommendation:** Add audit table:
+#### 4. ✅ FIXED: Missing Audit Trail
+**Status:** RESOLVED - TransferApproval entity implemented
+- Tracks who approved/rejected transfers, from what status, to what status, timestamps, and comments.
+- CQRS handlers update this table via EF Core.
 ```csharp
 public class TransferApproval : BaseEntity
 {
@@ -177,17 +173,11 @@ public class TransferApproval : BaseEntity
 
 ---
 
-#### 5. No Return Date Validation
-**Issue:** Transfers can have a ReturnDate but never validated or processed
-- No workflow for handling returned assets
-- No status change when return date passes
-- No transfer completion process
-
-**Recommendation:** Implement return workflow:
-- Add scheduled task to check overdue returns
-- Add "Return in Progress" status
-- Add return confirmation endpoint
-- Update asset assignment when returned
+#### 5. ✅ FIXED: No Return Date Validation
+**Status:** RESOLVED - TransferOverdueCheckerService implemented
+- New Hosted Service `TransferOverdueCheckerService` checks for overdue assets every 24 hours.
+- A new `Overdue` status is added to the `TransferStatus` enum.
+- Overdue transfers are automatically flagged and logged in the `TransferApproval` table.
 
 ---
 
