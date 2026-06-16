@@ -45,7 +45,7 @@ public class GetDivisionHeadTransferQueryHandler : IRequestHandler<GetDivisionHe
         query = request.Tab.ToLower() switch
         {
             "outgoing" => query.Where(t => t.ToDivisionId == headDivisionId 
-                                        && t.Status == TransferStatus.PendingOwnerApproval || t.Status == TransferStatus.Cancelled),
+                                        && (t.Status == TransferStatus.PendingOwnerApproval || t.Status == TransferStatus.Cancelled)),
 
             "incoming" => query.Where(t => t.FromDivisionId == headDivisionId 
                                         && t.Status == TransferStatus.PendingOwnerDivisionHeadApproval),
