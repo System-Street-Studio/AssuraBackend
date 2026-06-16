@@ -32,4 +32,11 @@ public class InformingController : BaseApiController
         var result = await _mediator.Send(new InformStoresCommand(dto));
         return Ok(result);
     }
+
+    [HttpPost("inform-stakeholders")]
+    public async Task<ActionResult<int>> InformStakeholders(InformStakeholdersDto dto)
+    {
+        var result = await _mediator.Send(new InformStakeholdersCommand(dto));
+        return Ok(result);
+    }
 }
