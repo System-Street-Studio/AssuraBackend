@@ -46,7 +46,8 @@ public class ExceptionMiddleware
             Message = "Internal Server Error from the custom middleware.",
             Detail = env.IsDevelopment() ? 
                 $"{exception.Message} {(exception.InnerException != null ? " | Inner: " + exception.InnerException.Message : "")}" 
-                : "An unexpected error occurred."
+                : "An unexpected error occurred.",
+            StackTrace = env.IsDevelopment() ? exception.StackTrace : null
         });
 
         return context.Response.WriteAsync(result);

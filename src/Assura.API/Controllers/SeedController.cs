@@ -181,4 +181,33 @@ public class SeedController : ControllerBase
         await SeedQueueItems();
         return Ok("Seeded AccPendingItems, Receipts, LostItems, and QueueItems successfully.");
     }
+    [HttpGet("fix-null-assets")]
+    public async Task<IActionResult> FixNullAssets()
+    {
+        var dbContext = _context as DbContext;
+        if (dbContext != null)
+        {
+            try
+            {
+                var catId = await dbContext.Set<Category>().Select(c => c.Id).FirstOrDefaultAsync();
+                var divId = await dbContext.Set<Division>().Select(d => d.Id).FirstOrDefaultAsync();
+                var prodId = await dbContext.Set<Product>().Select(p => p.Id).FirstOrDefaultAsync();
+                var supId = await dbContext.Set<Supplier>().Select(s => s.Id).FirstOrDefaultAsync();
+
+                if (catId > 0) await dbContext.Database.ExecuteSqlRawAsync($"UPDATE Assets SET CategoryId = {catId} WHERE CategoryId IS NULL;");
+                if (divId > 0) await dbContext.Database.ExecuteSqlRawAsync($"UPDATE Assets SET DivisionId = {divId} WHERE DivisionId IS NULL;");
+                if (prodId > 0) await dbContext.Database.ExecuteSqlRawAsync($"UPDATE Assets SET ProductId = {prodId} WHERE ProductId IS NULL;");
+                if (supId > 0) await dbContext.Database.ExecuteSqlRawAsync($"UPDATE Assets SET SupplierId = {supId} WHERE SupplierId IS NULL;");
+                await dbContext.Database.ExecuteSqlRawAsync($"UPDATE Assets SET Status = 1 WHERE Status IS NULL;");
+                await dbContext.Database.ExecuteSqlRawAsync($"UPDATE Assets SET PurchaseValue = 0 WHERE PurchaseValue IS NULL;");
+
+                return Ok("Successfully cleaned up NULL values in the Assets table.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error updating Database: {ex.Message}");
+            }
+        }
+        return BadRequest("Could not access Database.");
+    }
 }

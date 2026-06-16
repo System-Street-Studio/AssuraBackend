@@ -107,7 +107,7 @@ public class GetAssetPoolQueryHandler : IRequestHandler<GetAssetPoolQuery, Asset
                     ProductName = a.Product != null ? a.Product.Name : (a.AssetCode ?? "Unknown"),
                     AssetCode = a.AssetCode ?? "",
                     AssetTag = a.AssetTag ?? string.Empty,
-                    CategoryId = a.CategoryId,
+                    CategoryId = a.CategoryId ?? 0,
                     CategoryName = a.Category != null ? a.Category.Name : string.Empty,
                     AssignedUserId = a.AssignedUserId ?? 0,
                     AssignedUserName = a.AssignedUser != null 

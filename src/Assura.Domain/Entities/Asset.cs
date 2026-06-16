@@ -18,17 +18,17 @@ public class Asset : BaseEntity
 
     public AssetSpecifications? Specifications { get; set; }
 
-    public int CategoryId { get; set; }
-    public Category Category { get; set; } = null!;
+    public int? CategoryId { get; set; }
+    public Category? Category { get; set; }
 
-    public int DivisionId { get; set; }
-    public Division Division { get; set; } = null!;
+    public int? DivisionId { get; set; }
+    public Division? Division { get; set; }
 
-    public int ProductId { get; set; }
-    public Product Product { get; set; } = null!;
+    public int? ProductId { get; set; }
+    public Product? Product { get; set; }
 
-    public int SupplierId { get; set; }
-    public Supplier Supplier { get; set; } = null!;
+    public int? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
 
     public int? AssignedUserId { get; set; }
     public User? AssignedUser { get; set; }
