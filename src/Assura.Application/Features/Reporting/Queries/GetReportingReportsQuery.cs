@@ -27,7 +27,12 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
         var assets = await _context.Assets
             .AsNoTracking()
             .Where(a => !a.IsDeleted)
-            .Include(a => a.Division)
+            .Select(a => new
+            {
+                a.PurchaseValue,
+                Status = (AssetStatus?)a.Status,
+                a.DivisionId,
+            })
             .ToListAsync(cancellationToken);
 
         var auditLogs = await _context.AuditLogs

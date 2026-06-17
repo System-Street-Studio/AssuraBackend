@@ -33,9 +33,9 @@ public class GetReportingDashboardQueryHandler : IRequestHandler<GetReportingDas
                 a.SerialNumber,
                 a.AssetDate,
                 a.PurchaseValue,
-                a.Status,
-                CategoryName = a.Category.Name,
-                DivisionName = a.Division.Name
+                Status = (AssetStatus?)a.Status,
+                CategoryName = a.Category != null ? a.Category.Name : "Unknown",
+                DivisionName = a.Division != null ? a.Division.Name : "Unknown"
             })
             .ToListAsync(cancellationToken);
 
@@ -56,8 +56,8 @@ public class GetReportingDashboardQueryHandler : IRequestHandler<GetReportingDas
             string.IsNullOrWhiteSpace(a.SerialNumber));
 
         var missingVerification = assets.Count(a =>
-            a.Status == AssetStatus.Lost ||
-            a.Status == AssetStatus.Transferred);
+            a.Status.HasValue && (a.Status == AssetStatus.Lost ||
+            a.Status == AssetStatus.Transferred));
 
         var categoryGroups = assets
             .GroupBy(a => a.CategoryName)
@@ -105,7 +105,7 @@ public class GetReportingDashboardQueryHandler : IRequestHandler<GetReportingDas
             StatusBars = statusGroups
                 .Select((group, index) => new ReportingBarItemDto
                 {
-                    Label = ReportingQueryHelpers.FormatAssetStatus(group.Status),
+                    Label = group.Status.HasValue ? ReportingQueryHelpers.FormatAssetStatus(group.Status.Value) : "Unknown",
                     RawValue = group.Count,
                     Value = ReportingQueryHelpers.ToPercent(group.Count, totalAssets),
                     Color = ReportingQueryHelpers.GetColor(index)
