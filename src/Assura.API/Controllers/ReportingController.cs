@@ -46,6 +46,17 @@ public class ReportingController : BaseApiController
         return Ok(result);
     }
 
+    [HttpGet("reports/{type}/data")]
+    public async Task<ActionResult<List<Dictionary<string, object>>>> GetReportData(
+        string type, 
+        [FromQuery] DateTime? startDate = null, 
+        [FromQuery] DateTime? endDate = null, 
+        [FromQuery] int? divisionId = null)
+    {
+        var result = await _mediator.Send(new GetReportDataQuery(type, startDate, endDate, divisionId));
+        return Ok(result);
+    }
+
     [HttpPost("reports")]
     public async Task<ActionResult<string>> CreateReport(Assura.Application.Features.Reporting.Commands.CreateCustomReportCommand command)
     {
