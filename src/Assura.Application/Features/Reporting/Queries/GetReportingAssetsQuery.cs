@@ -1,6 +1,7 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.Reporting.DTOs;
 using Assura.Domain.Entities;
+using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,24 +27,44 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
         var totalCount = await query.CountAsync(cancellationToken);
 
         var assets = await query
-            .Include(a => a.Product)
-            .Include(a => a.Division)
-            .Include(a => a.AssignedUser)
             .OrderByDescending(a => a.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
+            .Select(a => new
+            {
+                a.Id,
+                a.AssetCode,
+                a.AssetTag,
+                a.AssetDate,
+                Status = (AssetStatus?)a.Status,
+                a.SerialNumber,
+                a.Warranty,
+                ProductName = a.Product != null ? a.Product.Name : null,
+                DivisionName = a.Division != null ? a.Division.Name : null,
+                AssignedFirstName = a.AssignedUser != null ? a.AssignedUser.FirstName : null,
+                AssignedLastName = a.AssignedUser != null ? a.AssignedUser.LastName : null,
+            })
             .ToListAsync(cancellationToken);
 
         var assetReferences = assets
             .SelectMany(asset => new[] { asset.Id.ToString(), asset.AssetCode })
             .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct()
             .ToList();
 
-        var auditLogs = await _context.AuditLogs
-            .AsNoTracking()
-            .Where(log => !log.IsDeleted && assetReferences.Contains(log.EntityId))
-            .OrderByDescending(log => log.CreatedAt)
-            .ToListAsync(cancellationToken);
+        List<AuditLog> auditLogs;
+        if (assetReferences.Count > 0)
+        {
+            auditLogs = await _context.AuditLogs
+                .AsNoTracking()
+                .Where(log => !log.IsDeleted && assetReferences.Contains(log.EntityId))
+                .OrderByDescending(log => log.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            auditLogs = new List<AuditLog>();
+        }
 
         var userLookup = await BuildUserLookupAsync(auditLogs, cancellationToken);
 
@@ -54,8 +75,20 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
         var rows = assets.Select((asset, index) =>
         {
             latestAuditByReference.TryGetValue(asset.Id.ToString(), out var latestById);
-            latestAuditByReference.TryGetValue(asset.AssetCode, out var latestByCode);
-            var latestLog = latestById?.CreatedAt >= latestByCode?.CreatedAt ? latestById : latestByCode ?? latestById;
+
+            AuditLog? latestByCode = null;
+            if (!string.IsNullOrWhiteSpace(asset.AssetCode))
+            {
+                latestAuditByReference.TryGetValue(asset.AssetCode, out latestByCode);
+            }
+
+            var latestLog = (latestById, latestByCode) switch
+            {
+                (not null, not null) => latestById.CreatedAt >= latestByCode.CreatedAt ? latestById : latestByCode,
+                (not null, null) => latestById,
+                (null, not null) => latestByCode,
+                _ => null
+            };
 
             User? actor = null;
             if (latestLog is not null && !string.IsNullOrWhiteSpace(latestLog.CreatedBy))
@@ -66,21 +99,21 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
             return new ReportingAssetRowDto
             {
                 Id = asset.Id,
-                AssetId = asset.AssetCode,
+                AssetId = asset.AssetCode ?? string.Empty,
                 Selected = false,
                 Swatch = ReportingQueryHelpers.GetColor(index),
-                ImageClass = ReportingQueryHelpers.ResolveImageClass(asset.Product?.Name ?? "unknown"),
-                Product = asset.Product?.Name ?? "Unknown Product",
-                Status = ReportingQueryHelpers.FormatAssetStatus(asset.Status),
+                ImageClass = ReportingQueryHelpers.ResolveImageClass(asset.ProductName ?? "unknown"),
+                Product = asset.ProductName ?? "Unknown Product",
+                Status = asset.Status.HasValue ? ReportingQueryHelpers.FormatAssetStatus(asset.Status.Value) : "Unknown",
                 CheckedBy = latestLog is null ? null : ReportingQueryHelpers.ResolveActorDisplay(actor, latestLog.CreatedBy),
                 CheckedRole = latestLog is null ? null : ReportingQueryHelpers.ResolveRoleDisplay(actor),
-                AssuraName = asset.AssignedUser is null
-                    ? (asset.Division?.Name ?? "N/A")
-                    : $"{asset.AssignedUser.FirstName} {asset.AssignedUser.LastName}".Trim(),
+                AssuraName = asset.AssignedFirstName is null
+                    ? (asset.DivisionName ?? "N/A")
+                    : $"{asset.AssignedFirstName} {asset.AssignedLastName}".Trim(),
                 Serial = string.IsNullOrWhiteSpace(asset.SerialNumber) ? "--" : asset.SerialNumber,
                 Warranty = string.IsNullOrWhiteSpace(asset.Warranty) ? "Unavailable" : asset.Warranty,
-                EndOfLife = asset.AssetDate.AddYears(5).ToString("yyyy"),
-                CodeNumber = asset.AssetTag ?? asset.AssetCode
+                EndOfLife = asset.AssetDate != default ? asset.AssetDate.AddYears(5).ToString("yyyy") : "N/A",
+                CodeNumber = asset.AssetTag ?? asset.AssetCode ?? string.Empty
             };
         }).ToList();
 
