@@ -62,6 +62,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(ConvertFilterExpression(entityType.ClrType));
+                modelBuilder.Entity(entityType.ClrType).Property(nameof(BaseEntity.Version)).IsConcurrencyToken();
             }
         }
     }
@@ -84,11 +85,13 @@ public class AppDbContext : DbContext, IApplicationDbContext
                 case EntityState.Added:
                     entry.Entity.CreatedAt = DateTime.UtcNow;
                     entry.Entity.CreatedBy = _currentUserService.UserId ?? "System";
+                    entry.Entity.Version = 1;
                     break;
 
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
                     entry.Entity.UpdatedBy = _currentUserService.UserId ?? "System";
+                    entry.Entity.Version++;
                     break;
 
                 case EntityState.Deleted:
@@ -96,6 +99,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
                     entry.Entity.IsDeleted = true;
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
                     entry.Entity.UpdatedBy = _currentUserService.UserId ?? "System";
+                    entry.Entity.Version++;
                     break;
             }
         }

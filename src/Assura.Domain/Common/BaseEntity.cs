@@ -8,4 +8,5 @@ public abstract class BaseEntity
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
     public bool IsDeleted { get; set; } = false;
+    public int Version { get; set; } = 1;
 }
