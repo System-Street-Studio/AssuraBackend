@@ -50,6 +50,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<LostItem> LostItems => Set<LostItem>();
     public DbSet<UserDivisionRole> UserDivisionRoles => Set<UserDivisionRole>();
     public DbSet<TransferApproval> TransferApprovals => Set<TransferApproval>();
+    public DbSet<CustomReport> CustomReports => Set<CustomReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

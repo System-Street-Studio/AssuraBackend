@@ -46,7 +46,26 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
         var flaggedLogs = auditLogs.Count(l => ReportingQueryHelpers.ClassifyLogStatus(l) == "Flagged");
         var completedLogs = auditLogs.Count(l => ReportingQueryHelpers.ClassifyLogStatus(l) == "Completed");
 
-        var reportItems = new List<ReportingReportItemDto>
+        var customReports = await _context.CustomReports
+            .AsNoTracking()
+            .Where(r => !r.IsDeleted)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new ReportingReportItemDto
+            {
+                Id = r.ReportIdCode,
+                Title = r.Title,
+                Owner = r.Owner,
+                Type = r.Type,
+                Period = r.Period,
+                Generated = r.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy"),
+                Status = r.Status,
+                Size = r.Size
+            })
+            .ToListAsync(cancellationToken);
+
+        var reportItems = new List<ReportingReportItemDto>();
+        reportItems.AddRange(customReports);
+        reportItems.AddRange(new List<ReportingReportItemDto>
         {
             new()
             {
@@ -92,7 +111,7 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Status = totalValue > 0 ? "Completed" : "Pending",
                 Size = $"{Math.Max(1, assets.Select(a => a.DivisionId).Distinct().Count())}.2 MB"
             }
-        };
+        });
 
         var insights = new List<ReportingInsightDto>
         {

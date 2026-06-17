@@ -46,6 +46,14 @@ public class ReportingController : BaseApiController
         return Ok(result);
     }
 
+    [HttpPost("reports")]
+    public async Task<ActionResult<string>> CreateReport(Assura.Application.Features.Reporting.Commands.CreateCustomReportCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+
     [HttpPost("assets/{id}/verify")]
     public async Task<ActionResult<bool>> VerifyAsset(int id)
     {

@@ -37,6 +37,7 @@ public interface IApplicationDbContext
     DbSet<LostItem> LostItems { get; }
     DbSet<UserDivisionRole> UserDivisionRoles { get; }
     DbSet<TransferApproval> TransferApprovals { get; }
+    DbSet<CustomReport> CustomReports { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
