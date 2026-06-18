@@ -61,12 +61,5 @@ public class NewArrivalsTests
         Assert.Contains("Monitors", notification!.Message);
     }
 
-    private static TestApplicationDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<TestApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new TestApplicationDbContext(options);
-    }
+    private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }

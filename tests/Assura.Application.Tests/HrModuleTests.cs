@@ -43,14 +43,14 @@ public class HrModuleTests
         }, CancellationToken.None);
 
         var updated = await db.Users.FirstAsync(x => x.Id == user.Id);
-        var auditLog = await db.AuditLogs.FirstAsync();
+        var auditLog = await db.AuditLogs.FirstOrDefaultAsync(x => x.Action == "Assigned Roles");
 
         Assert.True(result);
         Assert.Equal(UserRole.Accountant, updated.Role);
         Assert.Equal("Assigned", updated.EmploymentStatus);
         Assert.Equal("Accountant", updated.JobTitle);
         Assert.NotNull(updated.AssignedAt);
-        Assert.Equal("Assigned Roles", auditLog.Action);
+        Assert.NotNull(auditLog);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class HrModuleTests
         Assert.Equal("HR Assistant", updated.JobTitle);
         Assert.Equal("0771234567", updated.PhoneNumber);
         Assert.Equal("Assigned", updated.EmploymentStatus);
-        Assert.Single(db.AuditLogs);
+        Assert.Contains(db.AuditLogs, x => x.Action == "Updated Employee Details");
     }
 
     [Fact]
@@ -133,12 +133,12 @@ public class HrModuleTests
         }, CancellationToken.None);
 
         var updated = await db.Users.IgnoreQueryFilters().FirstAsync(x => x.Id == user.Id);
-        var log = await db.AuditLogs.FirstAsync();
+        var log = await db.AuditLogs.FirstOrDefaultAsync(x => x.Action == "Rejected Registration");
 
         Assert.True(result);
         Assert.False(updated.IsActive);
         Assert.Equal("Rejected", updated.EmploymentStatus);
-        Assert.Equal("Rejected Registration", log.Action);
+        Assert.NotNull(log);
     }
 
     [Fact]
@@ -219,12 +219,5 @@ public class HrModuleTests
         Assert.Equal("Finance", userDetail!.Division);
     }
 
-    private static TestApplicationDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<TestApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new TestApplicationDbContext(options);
-    }
+    private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }

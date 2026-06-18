@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Assura.Application\Assura.Application.csproj" />
     <ProjectReference Include="..\..\src\Assura.Domain\Assura.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Assura.Infrastructure\Assura.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

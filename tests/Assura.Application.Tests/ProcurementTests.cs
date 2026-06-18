@@ -83,7 +83,7 @@ public class ProcurementTests
         var requester = new User { Id = 1, FirstName = "John", LastName = "Doe" };
         db.Users.Add(requester);
 
-        db.Requests.Add(new Request { Status = "Pending", Requester = requester, CreatedAt = DateTime.UtcNow, Specifications = "High-end PC" });
+        db.Requests.Add(new Request { Status = "PendingProcurement", Requester = requester, CreatedAt = DateTime.UtcNow, Specifications = "High-end PC" });
         db.Requests.Add(new Request { Status = "Approved", Requester = requester, CreatedAt = DateTime.UtcNow, Specifications = "Mouse" });
         await db.SaveChangesAsync();
 
@@ -94,12 +94,5 @@ public class ProcurementTests
         Assert.Equal("High-end PC", result[0].Specifications);
     }
 
-    private static TestApplicationDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<TestApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new TestApplicationDbContext(options);
-    }
+    private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }

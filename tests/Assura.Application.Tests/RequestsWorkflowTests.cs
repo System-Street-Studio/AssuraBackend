@@ -346,13 +346,5 @@ public class RequestsWorkflowTests
         Assert.True(savedAsset.ReservedUntilUtc.HasValue);
     }
 
-    private static TestApplicationDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<TestApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .EnableSensitiveDataLogging()
-            .Options;
-
-        return new TestApplicationDbContext(options);
-    }
+    private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }

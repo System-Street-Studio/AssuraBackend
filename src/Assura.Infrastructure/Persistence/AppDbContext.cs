@@ -104,6 +104,115 @@ public class AppDbContext : DbContext, IApplicationDbContext
             }
         }
 
-        return await base.SaveChangesAsync(cancellationToken);
+        var auditEntries = OnBeforeSaveChanges();
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        await OnAfterSaveChanges(auditEntries, cancellationToken);
+
+        return result;
+    }
+
+    private List<AuditEntry> OnBeforeSaveChanges()
+    {
+        ChangeTracker.DetectChanges();
+        var auditEntries = new List<AuditEntry>();
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is AuditLog || entry.State == EntityState.Detached || entry.State == EntityState.Unchanged)
+            {
+                continue;
+            }
+
+            var auditEntry = new AuditEntry(entry)
+            {
+                EntityName = entry.Entity.GetType().Name,
+                CreatedBy = _currentUserService.UserId ?? "System",
+                Action = entry.State switch
+                {
+                    EntityState.Added => "Create",
+                    EntityState.Deleted => "Delete",
+                    EntityState.Modified => (entry.Entity is BaseEntity &&
+                                             entry.CurrentValues.GetValue<bool>(nameof(BaseEntity.IsDeleted)) &&
+                                             !entry.OriginalValues.GetValue<bool>(nameof(BaseEntity.IsDeleted)))
+                                             ? "Delete" : "Update",
+                    _ => entry.State.ToString()
+                }
+            };
+
+            auditEntries.Add(auditEntry);
+
+            foreach (var property in entry.Properties)
+            {
+                string propertyName = property.Metadata.Name;
+
+                if (property.Metadata.IsPrimaryKey())
+                {
+                    if (property.IsTemporary)
+                    {
+                        auditEntry.TemporaryProperties.Add(property);
+                    }
+                    else
+                    {
+                        auditEntry.KeyValues[propertyName] = property.CurrentValue;
+                    }
+                    continue;
+                }
+
+                switch (entry.State)
+                {
+                    case EntityState.Added:
+                        auditEntry.NewValues[propertyName] = property.CurrentValue;
+                        break;
+
+                    case EntityState.Deleted:
+                        auditEntry.OldValues[propertyName] = property.OriginalValue;
+                        break;
+
+                    case EntityState.Modified:
+                        if (property.IsModified)
+                        {
+                            auditEntry.OldValues[propertyName] = property.OriginalValue;
+                            auditEntry.NewValues[propertyName] = property.CurrentValue;
+                        }
+                        break;
+                }
+            }
+        }
+
+        return auditEntries;
+    }
+
+    private async Task OnAfterSaveChanges(List<AuditEntry> auditEntries, CancellationToken cancellationToken)
+    {
+        if (auditEntries == null || auditEntries.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var auditEntry in auditEntries)
+        {
+            foreach (var prop in auditEntry.TemporaryProperties)
+            {
+                if (prop.Metadata.IsPrimaryKey())
+                {
+                    auditEntry.KeyValues[prop.Metadata.Name] = prop.CurrentValue;
+                }
+                else
+                {
+                    auditEntry.NewValues[prop.Metadata.Name] = prop.CurrentValue;
+                }
+            }
+
+            var log = auditEntry.ToAuditLog();
+            log.CreatedAt = DateTime.UtcNow;
+            log.CreatedBy = _currentUserService.UserId ?? "System";
+            log.Version = 1;
+
+            AuditLogs.Add(log);
+        }
+
+        await base.SaveChangesAsync(cancellationToken);
     }
 }

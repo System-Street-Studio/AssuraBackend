@@ -75,12 +75,5 @@ public class MaintenanceTests
         Assert.Equal("General service", maintenance!.Description);
     }
 
-    private static TestApplicationDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<TestApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new TestApplicationDbContext(options);
-    }
+    private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }
