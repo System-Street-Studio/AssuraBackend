@@ -6,42 +6,42 @@ namespace Assura.Application.Tests.Common;
 
 public class TestApplicationDbContext : DbContext, IApplicationDbContext
 {
-    public TestApplicationDbContext(DbContextOptions<TestApplicationDbContext> options)
+    public TestApplicationDbContext(DbContextOptions options)
         : base(options)
     {
     }
 
-    public DbSet<Asset> Assets => Set<Asset>();
-    public DbSet<Category> Categories => Set<Category>();
-    public DbSet<Division> Divisions => Set<Division>();
-    public DbSet<Product> Products => Set<Product>();
-    public DbSet<Supplier> Suppliers => Set<Supplier>();
-    public DbSet<User> Users => Set<User>();
-    public DbSet<PurchasingOrder> PurchasingOrders => Set<PurchasingOrder>();
-    public DbSet<GRN> GRNs => Set<GRN>();
-    public DbSet<QRN> QRNs => Set<QRN>();
-    public DbSet<TIN> TINs => Set<TIN>();
-    public DbSet<Transfer> Transfers => Set<Transfer>();
-    public DbSet<Request> Requests => Set<Request>();
-    public DbSet<AssetRequest> AssetRequests => Set<AssetRequest>();
-    public DbSet<Maintenance> Maintenances => Set<Maintenance>();
-    public DbSet<RepairingFirm> RepairingFirms => Set<RepairingFirm>();
-    public DbSet<DiscountInfo> DiscountInfos => Set<DiscountInfo>();
-    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
-    public DbSet<PurchasingOrderItem> PurchasingOrderItems => Set<PurchasingOrderItem>();
-    public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<AssetInforming> AssetInformings => Set<AssetInforming>();
-    public DbSet<DiscardedNote> DiscardedNotes => Set<DiscardedNote>();
-    public DbSet<QueueItem> QueueItems => Set<QueueItem>();
-    public DbSet<Buyer> Buyers => Set<Buyer>();
-    public DbSet<AccPendingItem> AccPendingItems => Set<AccPendingItem>();
-    public DbSet<AccDiscardedItem> AccDiscardedItems => Set<AccDiscardedItem>();
-    public DbSet<Receipt> Receipts => Set<Receipt>();
-    public DbSet<AccDiscardNote> AccDiscardNotes => Set<AccDiscardNote>();
-    public DbSet<LostItem> LostItems => Set<LostItem>();
-    public DbSet<UserDivisionRole> UserDivisionRoles => Set<UserDivisionRole>();
-    public DbSet<TransferApproval> TransferApprovals => Set<TransferApproval>();
-    public DbSet<CustomReport> CustomReports => Set<CustomReport>();
+    public DbSet<Asset> Assets { get; set; } = null!;
+    public DbSet<Category> Categories { get; set; } = null!;
+    public DbSet<Division> Divisions { get; set; } = null!;
+    public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<Supplier> Suppliers { get; set; } = null!;
+    public DbSet<User> Users { get; set; } = null!;
+    public DbSet<PurchasingOrder> PurchasingOrders { get; set; } = null!;
+    public DbSet<GRN> GRNs { get; set; } = null!;
+    public DbSet<QRN> QRNs { get; set; } = null!;
+    public DbSet<TIN> TINs { get; set; } = null!;
+    public DbSet<Transfer> Transfers { get; set; } = null!;
+    public DbSet<Request> Requests { get; set; } = null!;
+    public DbSet<AssetRequest> AssetRequests { get; set; } = null!;
+    public DbSet<Maintenance> Maintenances { get; set; } = null!;
+    public DbSet<RepairingFirm> RepairingFirms { get; set; } = null!;
+    public DbSet<DiscountInfo> DiscountInfos { get; set; } = null!;
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public DbSet<PurchasingOrderItem> PurchasingOrderItems { get; set; } = null!;
+    public DbSet<Notification> Notifications { get; set; } = null!;
+    public DbSet<AssetInforming> AssetInformings { get; set; } = null!;
+    public DbSet<DiscardedNote> DiscardedNotes { get; set; } = null!;
+    public DbSet<QueueItem> QueueItems { get; set; } = null!;
+    public DbSet<Buyer> Buyers { get; set; } = null!;
+    public DbSet<AccPendingItem> AccPendingItems { get; set; } = null!;
+    public DbSet<AccDiscardedItem> AccDiscardedItems { get; set; } = null!;
+    public DbSet<Receipt> Receipts { get; set; } = null!;
+    public DbSet<AccDiscardNote> AccDiscardNotes { get; set; } = null!;
+    public DbSet<LostItem> LostItems { get; set; } = null!;
+    public DbSet<UserDivisionRole> UserDivisionRoles { get; set; } = null!;
+    public DbSet<TransferApproval> TransferApprovals { get; set; } = null!;
+    public DbSet<CustomReport> CustomReports { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
