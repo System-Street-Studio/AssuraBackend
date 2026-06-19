@@ -6,8 +6,16 @@ using System.Text.Json;
 
 namespace Assura.Application.Features.Assets.Queries;
 
+/// <summary>
+/// Query to retrieve all checkout and return records for the checkout history table.
+/// Returns records with status "Checked Out", "Returned", or dynamically computed "Overdue".
+/// </summary>
 public record GetCheckoutRecordsQuery : IRequest<List<CheckoutRecordDto>>;
 
+/// <summary>
+/// DTO representing a single checkout/return record shown in the checkout history.
+/// Combines data from the Request entity, the Asset, the User, and JSON metadata.
+/// </summary>
 public class CheckoutRecordDto
 {
     public string Id { get; set; } = string.Empty;
@@ -34,6 +42,10 @@ public class CheckoutRecordDto
     public string? CheckedInBy { get; set; }
 }
 
+/// <summary>
+/// Internal model for deserializing the JSON metadata stored in Request.Remarks.
+/// Tracks checkout/checkin details like due date, condition, damage info, and who performed the action.
+/// </summary>
 internal class CheckoutRecordMeta
 {
     public DateOnly? DueDate { get; set; }
@@ -48,6 +60,11 @@ internal class CheckoutRecordMeta
     public string? CheckinNotes { get; set; }
 }
 
+/// <summary>
+/// Handler for <see cref="GetCheckoutRecordsQuery"/>.
+/// Fetches all checkout/return Request records, parses their JSON metadata,
+/// dynamically computes overdue status, and maps everything into <see cref="CheckoutRecordDto"/>.
+/// </summary>
 public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecordsQuery, List<CheckoutRecordDto>>
 {
     private readonly IApplicationDbContext _context;
@@ -61,7 +78,7 @@ public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecords
     {
         var rows = await _context.Requests
             .AsNoTracking()
-            .Where(r => r.Type == RequestType.Asset && r.AssetId != null)
+            .Where(r => r.AssetId != null && (r.Status == "Checked Out" || r.Status == "Returned"))
             .Include(r => r.Asset!)
                 .ThenInclude(a => a.Product)
             .Include(r => r.Asset!)
@@ -110,6 +127,10 @@ public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecords
             .ToList();
     }
 
+    /// <summary>
+    /// Safely deserializes the JSON Remarks field into a CheckoutRecordMeta object.
+    /// Returns null if the field is empty or contains invalid JSON.
+    /// </summary>
     private static CheckoutRecordMeta? ParseMeta(string? remarks)
     {
         if (string.IsNullOrWhiteSpace(remarks))
@@ -127,6 +148,10 @@ public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecords
         }
     }
 
+    /// <summary>
+    /// Dynamically determines the display status of a checkout record.
+    /// If the persisted status is "Checked Out" but the due date has passed, returns "Overdue".
+    /// </summary>
     private static string NormalizeStatus(string? persistedStatus, DateOnly? dueDate, DateOnly today)
     {
         if (string.Equals(persistedStatus, "Returned", StringComparison.OrdinalIgnoreCase))

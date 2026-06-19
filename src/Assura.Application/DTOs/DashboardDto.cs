@@ -48,6 +48,7 @@ public class ChartDatasetsDto
     public ChartDataDto AssetsByCategory { get; set; } = new();
     public ChartDataDto AssetsByStatus { get; set; } = new();
     public ChartDataDto AssetsByDepartment { get; set; } = new();
+    public ChartDataDto AssetsByDivision { get; set; } = new();
     public ChartDataDto CheckoutTrend { get; set; } = new();
     public AnomaliesDto Anomalies { get; set; } = new();
 }

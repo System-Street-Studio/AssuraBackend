@@ -1,40 +1,32 @@
 using Assura.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace Assura.Application.Features.Maintenances.Queries;
 
-public record GetMaintenancesQuery : IRequest<List<MaintenanceDto>>;
+public record GetMaintenanceByIdQuery(int Id) : IRequest<MaintenanceDto?>;
 
-public class GetMaintenancesQueryHandler : IRequestHandler<GetMaintenancesQuery, List<MaintenanceDto>>
+public class GetMaintenanceByIdQueryHandler : IRequestHandler<GetMaintenanceByIdQuery, MaintenanceDto?>
 {
     private readonly IApplicationDbContext _context;
-    private readonly ILogger<GetMaintenancesQueryHandler> _logger;
 
-    public GetMaintenancesQueryHandler(IApplicationDbContext context, ILogger<GetMaintenancesQueryHandler> logger)
+    public GetMaintenanceByIdQueryHandler(IApplicationDbContext context)
     {
         _context = context;
-        _logger = logger;
     }
 
-    public async Task<List<MaintenanceDto>> Handle(GetMaintenancesQuery request, CancellationToken cancellationToken)
+    public async Task<MaintenanceDto?> Handle(GetMaintenanceByIdQuery request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[DEBUG] GetMaintenancesQueryHandler: Fetching maintenance records from DB");
-        
-        var maintenances = await _context.Maintenances
-            .Include(m => m.Asset)
-                .ThenInclude(a => a.Product)
-            .Include(m => m.Asset)
-                .ThenInclude(a => a.Category)
+        return await _context.Maintenances
+            .Include(m => m.Asset).ThenInclude(a => a.Product)
+            .Include(m => m.Asset).ThenInclude(a => a.Category)
             .Include(m => m.RepairingFirm)
             .Include(m => m.RequestedByUser)
             .Include(m => m.ApprovedByUser)
             .Include(m => m.StorekeeperUser)
-            .Include(m => m.ReplacementAsset)
-                .ThenInclude(ra => ra!.Product)
+            .Include(m => m.ReplacementAsset).ThenInclude(ra => ra!.Product)
             .AsNoTracking()
-            .OrderByDescending(m => m.CreatedAt)
+            .Where(m => m.Id == request.Id)
             .Select(m => new MaintenanceDto
             {
                 Id = m.Id,
@@ -54,7 +46,6 @@ public class GetMaintenancesQueryHandler : IRequestHandler<GetMaintenancesQuery,
                 CategoryName = m.Asset.Category != null ? m.Asset.Category.Name : null,
                 RequestedByUserId = m.RequestedByUserId,
                 RequestedByName = m.RequestedByUser != null ? m.RequestedByUser.FirstName + " " + m.RequestedByUser.LastName : null,
-                RequesterDivision = m.RequestedByUser != null && m.RequestedByUser.Division != null ? m.RequestedByUser.Division.Name : null,
                 ApprovedByUserId = m.ApprovedByUserId,
                 ApprovedByName = m.ApprovedByUser != null ? m.ApprovedByUser.FirstName + " " + m.ApprovedByUser.LastName : null,
                 StorekeeperUserId = m.StorekeeperUserId,
@@ -70,9 +61,6 @@ public class GetMaintenancesQueryHandler : IRequestHandler<GetMaintenancesQuery,
                 CompletedAt = m.CompletedAt,
                 EscalatedToProcurementAt = m.EscalatedToProcurementAt
             })
-            .ToListAsync(cancellationToken);
-
-        _logger.LogInformation("[DEBUG] GetMaintenancesQueryHandler: Found {Count} records", maintenances.Count);
-        return maintenances;
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

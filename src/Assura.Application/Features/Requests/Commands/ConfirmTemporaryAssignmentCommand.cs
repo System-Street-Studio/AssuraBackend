@@ -3,6 +3,7 @@ using Assura.Domain.Constants;
 using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Assura.Application.Features.Requests.Commands;
 
@@ -38,9 +39,26 @@ public class ConfirmTemporaryAssignmentCommandHandler : IRequestHandler<ConfirmT
             return;
         }
 
-        entity.Status = RequestWorkflowStatus.Approved;
+        // Lookup who confirmed (storekeeper name)
+        string confirmedByName = "Storekeeper";
+        if (request.ConfirmedByUserId.HasValue)
+        {
+            var actor = await _context.Users.FindAsync([request.ConfirmedByUserId.Value], cancellationToken);
+            if (actor != null)
+                confirmedByName = $"{actor.FirstName} {actor.LastName}".Trim();
+        }
+
+        // Build checkout metadata so the checkout page can display this correctly
+        var meta = new
+        {
+            DueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)), // default 30-day due date
+            CheckedOutBy = confirmedByName
+        };
+        entity.Remarks = JsonSerializer.Serialize(meta);
+
+        // Mark as Checked Out — this makes it appear on the Checkout Page
+        entity.Status = "Checked Out";
         entity.PickupConfirmedAt = DateTime.UtcNow;
-        entity.Remarks = request.Remarks;
 
         entity.Asset.ReservedForUserId = null;
         entity.Asset.ReservedByRequestId = null;

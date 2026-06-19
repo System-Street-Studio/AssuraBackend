@@ -4,8 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Assets.Commands;
 
+/// <summary>
+/// Command to delete an asset from the inventory by its ID.
+/// </summary>
 public record DeleteAssetCommand(int Id) : IRequest<bool>;
 
+/// <summary>
+/// Handler for executing the <see cref="DeleteAssetCommand"/>.
+/// Finds the asset and removes it from the database, returning true if successful.
+/// </summary>
 public class DeleteAssetCommandHandler : IRequestHandler<DeleteAssetCommand, bool>
 {
     private readonly IApplicationDbContext _context;

@@ -5,8 +5,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Assets.Queries;
 
+/// <summary>
+/// Query to retrieve a list of assets with role-based filtering.
+/// - Storekeeper (no filters): returns all assets.
+/// - DivisionHead (RequesterUserId set): returns only assets in their division.
+/// - Employee (AssignedUserId set): returns only assets assigned to them.
+/// </summary>
 public record GetAssetsQuery(int? AssignedUserId = null, int? RequesterUserId = null, string? Role = null) : IRequest<List<AssetDto>>;
 
+/// <summary>
+/// Handler for <see cref="GetAssetsQuery"/>.
+/// Builds a dynamic query based on the caller's role, eagerly loads all
+/// navigation properties, and projects into a list of <see cref="AssetDto"/>.
+/// </summary>
 public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetDto>>
 {
     private readonly IApplicationDbContext _context;

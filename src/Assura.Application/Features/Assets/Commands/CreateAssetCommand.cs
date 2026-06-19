@@ -7,8 +7,17 @@ using QRCoder;
 
 namespace Assura.Application.Features.Assets.Commands;
 
+/// <summary>
+/// Command to create a new asset in the inventory.
+/// Takes an <see cref="AssetCreateDto"/> containing all the initial asset details.
+/// </summary>
 public record CreateAssetCommand(AssetCreateDto Asset) : IRequest<AssetDto>;
 
+/// <summary>
+/// Handler for executing the <see cref="CreateAssetCommand"/>.
+/// Maps the DTO to the Asset entity, generates a QR code, saves to the database,
+/// and returns the fully populated DTO including navigation properties.
+/// </summary>
 public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, AssetDto>
 {
     private readonly IApplicationDbContext _context;

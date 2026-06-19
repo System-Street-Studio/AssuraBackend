@@ -9,6 +9,10 @@ using System.Text.Json;
 
 namespace Assura.Application.Features.Assets.Commands;
 
+/// <summary>
+/// Command to process the check-in (return) of an asset from an employee.
+/// Captures the asset's condition, severity of any damage, and whether repair is needed.
+/// </summary>
 public record CheckinAssetCommand(
     int Id,
     string Condition,
@@ -51,6 +55,11 @@ internal class CheckinCheckoutRecordMeta
     public string? CheckinNotes { get; set; }
 }
 
+/// <summary>
+/// Handler for executing the <see cref="CheckinAssetCommand"/>.
+/// Updates the asset status (either InStore or UnderMaintenance), updates the checkout request,
+/// and automatically creates a Maintenance record if the asset is damaged.
+/// </summary>
 public class CheckinAssetCommandHandler : IRequestHandler<CheckinAssetCommand, AssetDto?>
 {
     private readonly IApplicationDbContext _context;
@@ -81,7 +90,7 @@ public class CheckinAssetCommandHandler : IRequestHandler<CheckinAssetCommand, A
         }
 
         var checkoutRequest = await _context.Requests
-            .Where(r => r.Type == RequestType.Asset && r.AssetId == request.Id && r.Status != "Returned")
+            .Where(r => r.Type == RequestType.Asset && r.AssetId == request.Id && r.Status == "Checked Out")
             .OrderByDescending(r => r.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
 

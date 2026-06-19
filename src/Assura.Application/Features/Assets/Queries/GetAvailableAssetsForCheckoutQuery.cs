@@ -5,8 +5,16 @@ using Assura.Domain.Enums;
 
 namespace Assura.Application.Features.Assets.Queries;
 
+/// <summary>
+/// Query to retrieve all assets that are currently available for checkout.
+/// Only returns assets with status InStore and no active reservation.
+/// </summary>
 public record GetAvailableAssetsForCheckoutQuery : IRequest<List<AvailableCheckoutAssetDto>>;
 
+/// <summary>
+/// Lightweight DTO for the checkout form's asset dropdown.
+/// Contains only the fields needed to identify and select an asset.
+/// </summary>
 public class AvailableCheckoutAssetDto
 {
     public int Id { get; set; }
@@ -16,6 +24,11 @@ public class AvailableCheckoutAssetDto
     public string? SerialNumber { get; set; }
 }
 
+/// <summary>
+/// Handler for <see cref="GetAvailableAssetsForCheckoutQuery"/>.
+/// Filters assets where Status is InStore and ReservedForUserId is null,
+/// ensuring only truly available assets are returned for checkout.
+/// </summary>
 public class GetAvailableAssetsForCheckoutQueryHandler : IRequestHandler<GetAvailableAssetsForCheckoutQuery, List<AvailableCheckoutAssetDto>>
 {
     private readonly IApplicationDbContext _context;
@@ -31,7 +44,7 @@ public class GetAvailableAssetsForCheckoutQueryHandler : IRequestHandler<GetAvai
             .AsNoTracking()
             .Include(a => a.Product)
             .Include(a => a.Category)
-            .Where(a => a.Status == AssetStatus.InStore && a.AssignedUserId == null)
+            .Where(a => a.Status == AssetStatus.InStore && a.ReservedForUserId == null)
             .Select(a => new AvailableCheckoutAssetDto
             {
                 Id = a.Id,
