@@ -31,7 +31,70 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
             .Include(r => r.Requester)
             .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
-        if (entity == null) return;
+        if (entity == null)
+        {
+            var assetRequest = await _context.AssetRequests
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+            if (assetRequest == null) return;
+
+            if (request.IsInStock)
+            {
+                if (!request.AssetId.HasValue) return;
+
+                assetRequest.Status = RequestStatus.TemporaryAssigned;
+                assetRequest.AssetId = request.AssetId;
+                
+                var asset = await _context.Assets
+                    .FirstOrDefaultAsync(a => a.Id == request.AssetId.Value, cancellationToken);
+
+                int? requesterIdVal = assetRequest.UserId;
+                if (!requesterIdVal.HasValue && int.TryParse(assetRequest.RequesterId, out var rid))
+                {
+                    requesterIdVal = rid;
+                }
+
+                if (asset != null)
+                {
+                    asset.ReservedForUserId = requesterIdVal;
+                    asset.ReservedByRequestId = assetRequest.Id;
+                    asset.ReservedUntilUtc = DateTime.UtcNow.AddHours(48);
+                }
+
+                _context.Notifications.Add(new Notification
+                {
+                    Title = "Asset Reserved for Pickup",
+                    Message = $"Your request for '{assetRequest.AssetName}' has a temporary reserved asset. Collect it from stores for final confirmation.",
+                    UserId = requesterIdVal ?? 0,
+                    Type = "Success",
+                    ReferenceId = assetRequest.Id.ToString()
+                });
+            }
+            else
+            {
+                assetRequest.Status = RequestStatus.PendingProcurement;
+
+                var procurementUsers = await _context.Users
+                    .Where(u => u.Role == UserRole.Procurement || u.Role == UserRole.Admin)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var user in procurementUsers)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        Title = "Asset Escalated to Procurement",
+                        Message = $"Request for '{assetRequest.AssetName}' could not be fulfilled from stock and requires procurement.",
+                        UserId = user.Id,
+                        Type = "Warning",
+                        ReferenceId = assetRequest.Id.ToString()
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return;
+        }
 
         entity.Remarks = request.Remarks;
         entity.StorekeeperProcessorId = request.ProcessedByUserId;

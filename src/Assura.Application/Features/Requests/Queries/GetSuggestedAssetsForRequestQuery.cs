@@ -37,12 +37,32 @@ public class GetSuggestedAssetsForRequestQueryHandler : IRequestHandler<GetSugge
                 .ThenInclude(a => a!.Category)
             .FirstOrDefaultAsync(r => r.Id == request.RequestId, cancellationToken);
 
+        string normalizedDescription = "";
+        Asset? requestedAsset = null;
+
         if (req == null)
         {
-            return new List<SuggestedAssetDto>();
-        }
+            var assetRequest = await _context.AssetRequests
+                .AsNoTracking()
+                .Include(r => r.Asset)
+                    .ThenInclude(a => a!.Product)
+                .Include(r => r.Asset)
+                    .ThenInclude(a => a!.Category)
+                .FirstOrDefaultAsync(r => r.Id == request.RequestId, cancellationToken);
 
-        var normalizedDescription = BuildNormalizedText(req.Description, req.Specifications, req.SpecialNote);
+            if (assetRequest == null)
+            {
+                return new List<SuggestedAssetDto>();
+            }
+
+            normalizedDescription = BuildNormalizedText(assetRequest.Description, assetRequest.Reason);
+            requestedAsset = assetRequest.Asset;
+        }
+        else
+        {
+            normalizedDescription = BuildNormalizedText(req.Description, req.Specifications, req.SpecialNote);
+            requestedAsset = req.Asset;
+        }
         var nowUtc = DateTime.UtcNow;
 
         var candidates = await _context.Assets
@@ -53,7 +73,6 @@ public class GetSuggestedAssetsForRequestQueryHandler : IRequestHandler<GetSugge
             .Where(a => !a.ReservedForUserId.HasValue || (a.ReservedUntilUtc.HasValue && a.ReservedUntilUtc.Value < nowUtc))
             .ToListAsync(cancellationToken);
 
-        var requestedAsset = req.Asset;
         var scored = candidates
             .Select(asset => new SuggestedAssetDto
             {

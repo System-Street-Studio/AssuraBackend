@@ -28,7 +28,54 @@ public class ConfirmTemporaryAssignmentCommandHandler : IRequestHandler<ConfirmT
             .Include(r => r.Asset)
             .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
-        if (entity == null || entity.Asset == null)
+        if (entity == null)
+        {
+            var assetRequest = await _context.AssetRequests
+                .Include(r => r.Asset)
+                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+            if (assetRequest == null || assetRequest.Asset == null)
+            {
+                return;
+            }
+
+            if (assetRequest.Status != RequestStatus.TemporaryAssigned)
+            {
+                return;
+            }
+
+            assetRequest.Status = RequestStatus.Approved;
+            if (!string.IsNullOrEmpty(request.Remarks))
+            {
+                assetRequest.Reason = (assetRequest.Reason ?? "") + " (Remarks: " + request.Remarks + ")";
+            }
+
+            int? requesterIdVal = assetRequest.UserId;
+            if (!requesterIdVal.HasValue && int.TryParse(assetRequest.RequesterId, out var rid))
+            {
+                requesterIdVal = rid;
+            }
+
+            assetRequest.Asset.ReservedForUserId = null;
+            assetRequest.Asset.ReservedByRequestId = null;
+            assetRequest.Asset.ReservedUntilUtc = null;
+            assetRequest.Asset.AssignedUserId = requesterIdVal;
+            assetRequest.Asset.Status = AssetStatus.InUse;
+
+            _context.Notifications.Add(new Domain.Entities.Notification
+            {
+                Title = "Asset Assignment Confirmed",
+                Message = $"Your request for '{assetRequest.AssetName}' is fully confirmed. The asset is now assigned to you.",
+                UserId = requesterIdVal ?? 0,
+                Type = "Success",
+                ReferenceId = assetRequest.Id.ToString()
+            });
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        if (entity.Asset == null)
         {
             return;
         }
