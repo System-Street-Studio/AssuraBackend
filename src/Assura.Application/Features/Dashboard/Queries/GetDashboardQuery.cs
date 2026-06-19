@@ -32,34 +32,23 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
 
         try
         {
-            // 1. KPIs
-            var allAssetsQuery = _context.Assets.AsNoTracking();
+            // Build base query - use IgnoreAutoIncludes() to avoid LEFT JOINs on Specifications
+            var baseQuery = _context.Assets.AsNoTracking().IgnoreAutoIncludes();
             var requestsQuery = _context.Requests.AsNoTracking().Where(r => !r.IsDeleted);
 
             if (request.UserId.HasValue)
             {
-                allAssetsQuery = allAssetsQuery.Where(a => a.AssignedUserId == request.UserId.Value);
+                baseQuery = baseQuery.Where(a => a.AssignedUserId == request.UserId.Value);
                 requestsQuery = requestsQuery.Where(r => r.RequesterId == request.UserId.Value);
             }
 
-            var allAssets = await allAssetsQuery
-                .Select(a => new 
-                { 
-                    a.Status, 
-                    a.PurchaseValue, 
-                    a.CategoryId, 
-                    a.DivisionId,
-                    a.ReservedForUserId,
-                    a.ReservedByRequestId,
-                    a.ReservedUntilUtc
-                })
-                .ToListAsync(cancellationToken);
-            dashboard.Kpis.TotalAssets = allAssets.Count;
-            dashboard.Kpis.CheckedOut = allAssets.Count(a => a.Status == AssetStatus.InUse);
-            dashboard.Kpis.Available = allAssets.Count(a => a.Status == AssetStatus.InStore);
-            dashboard.Kpis.MaintenanceDue = allAssets.Count(a => a.Status == AssetStatus.UnderMaintenance);
+            // 1. KPIs - Use database-level aggregation (no entity materialization)
+            dashboard.Kpis.TotalAssets = await baseQuery.CountAsync(cancellationToken);
+            dashboard.Kpis.CheckedOut = await baseQuery.CountAsync(a => a.Status == AssetStatus.InUse, cancellationToken);
+            dashboard.Kpis.Available = await baseQuery.CountAsync(a => a.Status == AssetStatus.InStore, cancellationToken);
+            dashboard.Kpis.MaintenanceDue = await baseQuery.CountAsync(a => a.Status == AssetStatus.UnderMaintenance, cancellationToken);
 
-            var totalValue = allAssets.Sum(a => a.PurchaseValue);
+            var totalValue = await baseQuery.SumAsync(a => a.PurchaseValue, cancellationToken);
             dashboard.Kpis.TotalAssetValue = $"LKR {totalValue:N0}";
 
             dashboard.Kpis.PendingRequests = await requestsQuery.CountAsync(cancellationToken);
@@ -67,27 +56,30 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
                 .CountAsync(r => r.Status == RequestWorkflowStatus.TemporaryAssigned, cancellationToken);
 
             var nowUtc = DateTime.UtcNow;
-            dashboard.Kpis.AwaitingPickupConfirmations = allAssets.Count(a =>
+            dashboard.Kpis.AwaitingPickupConfirmations = await baseQuery.CountAsync(a =>
                 a.ReservedForUserId.HasValue &&
                 a.ReservedByRequestId.HasValue &&
-                (!a.ReservedUntilUtc.HasValue || a.ReservedUntilUtc.Value >= nowUtc));
+                (!a.ReservedUntilUtc.HasValue || a.ReservedUntilUtc.Value >= nowUtc), cancellationToken);
 
             dashboard.Kpis.ProcurementEscalations = await requestsQuery
                 .CountAsync(r => r.Status == RequestWorkflowStatus.PendingProcurement, cancellationToken);
 
-            // 2. Charts - Assets By Category
-            var assetsByCategory = allAssets
+            // 2. Charts - Assets By Category (database-level GroupBy)
+            var assetsByCategory = await baseQuery
                 .GroupBy(a => a.CategoryId)
-                .Select(g => new { g.Key, Count = g.Count() })
-                .ToList();
+                .Select(g => new { Key = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
 
             var categories = await _context.Categories.AsNoTracking().ToListAsync(cancellationToken);
             dashboard.Charts.AssetsByCategory.Labels = categories.Select(c => c.Name).ToList();
             dashboard.Charts.AssetsByCategory.Data = categories.Select(c => assetsByCategory.FirstOrDefault(x => x.Key == c.Id)?.Count ?? 0).ToList();
             dashboard.Charts.AssetsByCategory.Colors = new List<string> { "#0b6c78", "#ff8c42", "#3ecf8e", "#6366f1", "#7e7f86" };
 
-            // 3. Charts - Assets By Status
-            var statusGroups = allAssets.GroupBy(a => a.Status).Select(g => new { g.Key, Count = g.Count() }).ToList();
+            // 3. Charts - Assets By Status (database-level GroupBy)
+            var statusGroups = await baseQuery
+                .GroupBy(a => a.Status)
+                .Select(g => new { Key = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
             dashboard.Charts.AssetsByStatus.Labels = new List<string> { "In Use", "Available", "Maintenance", "Discarded" };
             dashboard.Charts.AssetsByStatus.Data = new List<int>
             {
@@ -98,11 +90,11 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
             };
             dashboard.Charts.AssetsByStatus.Colors = new List<string> { "#0b6c78", "#19a974", "#f39c12", "#d64545" };
 
-            // 4. Charts - Assets By Division
-            var assetsByDivision = allAssets
+            // 4. Charts - Assets By Department (Division) (database-level GroupBy)
+            var assetsByDivision = await baseQuery
                 .GroupBy(a => a.DivisionId)
-                .Select(g => new { g.Key, Count = g.Count() })
-                .ToList();
+                .Select(g => new { Key = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
 
             var divisions = await _context.Divisions.AsNoTracking().ToListAsync(cancellationToken);
             var divisionLabels = divisions.Select(d => d.Name).ToList();
@@ -122,14 +114,15 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
             dashboard.Charts.CheckoutTrend.Labels = new List<string> { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
             dashboard.Charts.CheckoutTrend.Data = new List<int> { 12, 14, 16, 13, 17, 19, 21, 19, 22, 24, 21, 24 };
 
-            // 6. Anomalies
+            // 6. Anomalies (Mock data for now)
             dashboard.Charts.Anomalies.GhostAssets = 0;
             dashboard.Charts.Anomalies.MissingAssets = 0;
             dashboard.Charts.Anomalies.MaintenanceDue = dashboard.Kpis.MaintenanceDue;
 
-            // 7. Recent Activity
+            // 7. Recent Activity - Use .Select() projection to avoid entity materialization
             var recentAssetsQuery = _context.Assets
                 .AsNoTracking()
+                .IgnoreAutoIncludes()
                 .OrderByDescending(a => a.CreatedAt)
                 .AsQueryable();
 

@@ -39,6 +39,7 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
             .AsQueryable();
 
         // Division Head check: filter by their division
+
         if (request.Role == "DivisionHead" && request.RequesterUserId.HasValue)
         {
             var userDivisionId = await _context.Users
@@ -51,6 +52,8 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
                 query = query.Where(a => a.DivisionId == userDivisionId.Value);
             }
         }
+
+        //employees get their own assets
         else if (request.AssignedUserId.HasValue)
         {
             query = query.Where(a => a.AssignedUserId == request.AssignedUserId.Value);
@@ -68,14 +71,14 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
                 PurchaseValue = a.PurchaseValue,
                 Warranty = a.Warranty,
                 Notes = a.Notes,
-                CategoryId = a.CategoryId,
-                CategoryName = a.Category.Name,
-                DivisionId = a.DivisionId,
-                DivisionName = a.Division.Name,
-                ProductId = a.ProductId,
-                ProductName = a.Product.Name,
-                SupplierId = a.SupplierId,
-                SupplierName = a.Supplier.Name,
+                CategoryId = a.CategoryId ?? 0,
+                CategoryName = a.Category != null ? a.Category.Name : "N/A",
+                DivisionId = a.DivisionId ?? 0,
+                DivisionName = a.Division != null ? a.Division.Name : "N/A",
+                ProductId = a.ProductId ?? 0,
+                ProductName = a.Product != null ? a.Product.Name : "N/A",
+                SupplierId = a.SupplierId ?? 0,
+                SupplierName = a.Supplier != null ? a.Supplier.Name : "N/A",
                 AssignedUserId = a.AssignedUserId,
                 AssignedUserName = a.AssignedUser != null ? $"{a.AssignedUser.FirstName} {a.AssignedUser.LastName}" : null
             })

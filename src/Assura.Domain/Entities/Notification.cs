@@ -10,6 +10,6 @@ public class Notification : BaseEntity
     public string? Type { get; set; } // Info, Warning, Error
     public string? ReferenceId { get; set; }
 
-    public int UserId { get; set; }
+    public int? UserId { get; set; }
     public User User { get; set; } = null!;
 }

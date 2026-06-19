@@ -100,7 +100,7 @@ public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand,
         return entity.Id;
     }
 
-    private async Task<bool> ShouldBypassDivisionHeadApproval(
+    private Task<bool> ShouldBypassDivisionHeadApproval(
         CreateRequestCommand request,
         User? requester,
         CancellationToken cancellationToken)
@@ -108,11 +108,11 @@ public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand,
         // Division Heads and Admins always bypass their own division level review
         if (requester?.Role == UserRole.DivisionHead || requester?.Role == UserRole.Admin)
         {
-            return true;
+            return Task.FromResult(true);
         }
 
         // Strict requirement: All employee requests should be reviewed 
         // by their respective Division Head to ensure departmental oversight.
-        return false;
+        return Task.FromResult(false);
     }
 }

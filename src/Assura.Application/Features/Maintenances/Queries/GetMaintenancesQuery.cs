@@ -27,6 +27,8 @@ public class GetMaintenancesQueryHandler : IRequestHandler<GetMaintenancesQuery,
                 .ThenInclude(a => a.Product)
             .Include(m => m.Asset)
                 .ThenInclude(a => a.Category)
+            .Include(m => m.Asset)
+                .ThenInclude(a => a.AssetRequests)
             .Include(m => m.RepairingFirm)
             .Include(m => m.RequestedByUser)
             .Include(m => m.ApprovedByUser)
@@ -38,6 +40,10 @@ public class GetMaintenancesQueryHandler : IRequestHandler<GetMaintenancesQuery,
             .Select(m => new MaintenanceDto
             {
                 Id = m.Id,
+                RequesterId = m.Asset.AssetRequests
+                    .Where(ar => ar.RequestType == "Maintenance" && ar.AssetId == m.AssetId)
+                    .Select(ar => ar.RequesterId)
+                    .FirstOrDefault(),
                 MaintenanceNumber = m.MaintenanceNumber,
                 Type = m.Type.ToString(),
                 MaintenanceDate = m.MaintenanceDate,

@@ -78,6 +78,16 @@ public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewR
             _context.Maintenances.Add(maintenance);
         }
 
+        // Notify the employee (requester) that their request was approved
+        _context.Notifications.Add(new Notification
+        {
+            Title = "Request Approved",
+            Message = $"Your request {entity.RequestNumber} was approved by the division head.",
+            UserId = entity.RequesterId,
+            Type = "Success",
+            ReferenceId = entity.Id.ToString()
+        });
+
         var storekeepers = await _context.Users
             .Where(u => u.Role == Domain.Enums.UserRole.Storekeeper || u.Role == Domain.Enums.UserRole.Admin)
             .ToListAsync(cancellationToken);

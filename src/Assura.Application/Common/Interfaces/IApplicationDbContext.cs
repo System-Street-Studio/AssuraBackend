@@ -27,6 +27,17 @@ public interface IApplicationDbContext
     DbSet<PurchasingOrderItem> PurchasingOrderItems { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<AssetInforming> AssetInformings { get; }
+    DbSet<DiscardedNote> DiscardedNotes { get; }
+    DbSet<QueueItem> QueueItems { get; }
+    DbSet<Buyer> Buyers { get; }
+    DbSet<AccPendingItem> AccPendingItems { get; }
+    DbSet<AccDiscardedItem> AccDiscardedItems { get; }
+    DbSet<Receipt> Receipts { get; }
+    DbSet<AccDiscardNote> AccDiscardNotes { get; }
+    DbSet<LostItem> LostItems { get; }
+    DbSet<UserDivisionRole> UserDivisionRoles { get; }
+    DbSet<TransferApproval> TransferApprovals { get; }
+    DbSet<CustomReport> CustomReports { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

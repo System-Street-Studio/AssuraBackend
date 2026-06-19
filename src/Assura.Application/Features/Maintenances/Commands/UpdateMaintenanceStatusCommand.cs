@@ -42,7 +42,7 @@ public class UpdateMaintenanceStatusCommandHandler : IRequestHandler<UpdateMaint
         }
 
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("[Maintenance] Updated {Id} to {Status} by user {UserId}", 
+        _logger.LogInformation("[Maintenance] Updated {Id} to {Status} by user {UserId}",
             request.MaintenanceId, request.NewStatus, request.UserId);
     }
 }

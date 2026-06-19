@@ -4,11 +4,21 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-public class CategoriesController : BaseApiController
+[ApiController]
+[Route("api/[controller]")]
+public class CategoriesController : ControllerBase
 {
+    private readonly MediatR.IMediator _mediator;
+
+    public CategoriesController(MediatR.IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+// Retrieves a list of all asset categories
     [HttpGet]
     public async Task<ActionResult<List<CategoryDto>>> GetCategories()
     {
-        return await Mediator.Send(new GetCategoriesQuery());
+        return await _mediator.Send(new GetCategoriesQuery());
     }
 }

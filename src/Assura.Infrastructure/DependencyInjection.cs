@@ -18,17 +18,24 @@ public static class DependencyInjection
     {
         services.AddDbContext<AppDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            var serverVersion = configuration["Database:ServerVersion"] ?? "10.11.15-mariadb";
-            options.UseMySql(connectionString, ServerVersion.Parse(serverVersion),
-                b =>
-                {
-                    b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                    b.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(10),
-                        errorNumbersToAdd: null);
-                });
+            var baseConn = configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+
+            // Add keep-alive and connection lifetime params to handle remote-hosted DB restrictions
+            var connectionString = baseConn.TrimEnd(';')
+                + ";Connection Timeout=60;Default Command Timeout=60;Keepalive=60;"
+                + "Connection Lifetime=300;Pooling=true;Min Pool Size=1;Max Pool Size=10;";
+
+            // Use configured server version if present, otherwise fall back to default
+            var serverVersionStr = configuration["Database:ServerVersion"] ?? "10.11.15-mariadb";
+            options.UseMySql(connectionString, ServerVersion.Parse(serverVersionStr), b =>
+            {
+                b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                // Automatically retry transient failures (dropped connections, timeouts)
+                b.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null);
+            });
         });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
@@ -38,7 +45,8 @@ public static class DependencyInjection
 
         // Custom Auth Services from feature/auth
         services.AddScoped<IIdentifyServices, IdentityService>();
-        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddTransient<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddHostedService<TransferOverdueCheckerService>();
 
         var jwtSettings = configuration.GetSection("Jwt");
         var secretKey = jwtSettings.GetValue<string>("Key") ?? "YourDevelopmentSecretKeyChangeInProduction";

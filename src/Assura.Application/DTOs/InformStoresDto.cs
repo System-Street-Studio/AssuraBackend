@@ -9,4 +9,5 @@ public class InformStoresDto
     public DateTime PurchasedDate { get; set; }
     public decimal PurchasedPrice { get; set; }
     public int DivisionId { get; set; }
+    public int? PurchasingOrderId { get; set; }
 }

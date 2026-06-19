@@ -22,7 +22,12 @@ public class User : BaseEntity
 
     public UserRole? Role { get; set; }
     public string? PhoneNumber { get; set; }
+    public string? RequestedRole { get; set; }
+    public string EmploymentStatus { get; set; } = "PendingAssignment";
+    public string? JobTitle { get; set; }
+    public DateTime? AssignedAt { get; set; }
     
+    public ICollection<UserDivisionRole> DivisionRoles { get; set; } = new List<UserDivisionRole>();
     public ICollection<Asset> AssignedAssets { get; set; } = new List<Asset>();
     public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();

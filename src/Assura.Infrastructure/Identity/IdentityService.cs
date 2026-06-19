@@ -16,7 +16,15 @@ public class IdentityService : IIdentifyServices
         _jwtTokenGenerator = jwtTokenGenerator;
     }
 
-    public async Task<bool> RegisterAsync(string username, string password, string email, string firstName, string lastName)
+    public async Task<bool> RegisterAsync(
+        string username,
+        string password,
+        string email,
+        string firstName,
+        string lastName,
+        string? phoneNumber = null,
+        string? requestedRole = null,
+        int? divisionId = null)
     {
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
 
@@ -27,7 +35,11 @@ public class IdentityService : IIdentifyServices
             Email = email,
             FirstName = firstName,
             LastName = lastName,
+            PhoneNumber = phoneNumber,
+            RequestedRole = requestedRole,
+            DivisionId = divisionId,
             // Role and DivisionID are assigned later by HR
+            EmploymentStatus = "PendingAssignment",
             IsActive = true,
             IsLocked = false
         };

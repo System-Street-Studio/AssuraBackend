@@ -4,6 +4,7 @@ using Assura.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using System.Threading;
+
 using System.Threading.Tasks;
 
 namespace Assura.Infrastructure.Persistence;
@@ -19,6 +20,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<AssetSpecifications> Specifications => Set<AssetSpecifications>();
     public DbSet<Division> Divisions => Set<Division>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
@@ -38,6 +40,17 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<PurchasingOrderItem> PurchasingOrderItems => Set<PurchasingOrderItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AssetInforming> AssetInformings => Set<AssetInforming>();
+    public DbSet<DiscardedNote> DiscardedNotes => Set<DiscardedNote>();
+    public DbSet<QueueItem> QueueItems => Set<QueueItem>();
+    public DbSet<Buyer> Buyers => Set<Buyer>();
+    public DbSet<AccPendingItem> AccPendingItems => Set<AccPendingItem>();
+    public DbSet<AccDiscardedItem> AccDiscardedItems => Set<AccDiscardedItem>();
+    public DbSet<Receipt> Receipts => Set<Receipt>();
+    public DbSet<AccDiscardNote> AccDiscardNotes => Set<AccDiscardNote>();
+    public DbSet<LostItem> LostItems => Set<LostItem>();
+    public DbSet<UserDivisionRole> UserDivisionRoles => Set<UserDivisionRole>();
+    public DbSet<TransferApproval> TransferApprovals => Set<TransferApproval>();
+    public DbSet<CustomReport> CustomReports => Set<CustomReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,6 +62,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(ConvertFilterExpression(entityType.ClrType));
+                modelBuilder.Entity(entityType.ClrType).Property(nameof(BaseEntity.Version)).IsConcurrencyToken();
             }
         }
     }
@@ -71,11 +85,13 @@ public class AppDbContext : DbContext, IApplicationDbContext
                 case EntityState.Added:
                     entry.Entity.CreatedAt = DateTime.UtcNow;
                     entry.Entity.CreatedBy = _currentUserService.UserId ?? "System";
+                    entry.Entity.Version = 1;
                     break;
 
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
                     entry.Entity.UpdatedBy = _currentUserService.UserId ?? "System";
+                    entry.Entity.Version++;
                     break;
 
                 case EntityState.Deleted:
@@ -83,6 +99,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
                     entry.Entity.IsDeleted = true;
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
                     entry.Entity.UpdatedBy = _currentUserService.UserId ?? "System";
+                    entry.Entity.Version++;
                     break;
             }
         }
@@ -90,4 +107,3 @@ public class AppDbContext : DbContext, IApplicationDbContext
         return await base.SaveChangesAsync(cancellationToken);
     }
 }
-

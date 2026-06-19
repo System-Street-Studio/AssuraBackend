@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
-[Authorize]
+ [Authorize] 
 public class AssetsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -19,35 +19,37 @@ public class AssetsController : BaseApiController
         _mediator = mediator;
     }
 
+    // Retrieves a list of assets with optional filters for ownership a
     [HttpGet]
-    public async Task<ActionResult<List<AssetDto>>> GetAssets([FromQuery] bool onlyMine = false)
+    public async Task<ActionResult<List<AssetDto>>> GetAssets()
     {
-        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
                         ?? User.FindFirst("sub")?.Value;
-        
+
         int? userId = int.TryParse(userIdStr, out var id) ? id : null;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-        Console.WriteLine($"[DEBUG] GetAssets: onlyMine={onlyMine}, userId={userId}");
 
-        if (onlyMine)
-        {
-            return await _mediator.Send(new GetAssetsQuery(userId));
-        }
-
-        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-
+        
         if (role == Roles.Admin || role == Roles.Storekeeper || role == Roles.Procurement)
         {
             return await _mediator.Send(new GetAssetsQuery());
         }
 
+        
         if (role == Roles.DivisionHead && userId.HasValue)
         {
+            
+           
+            
             return await _mediator.Send(new GetAssetsQuery(null, userId, role));
         }
 
+       
         return await _mediator.Send(new GetAssetsQuery(userId));
     }
+    
+    
 
     [HttpGet("available-for-checkout")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
@@ -84,8 +86,9 @@ public class AssetsController : BaseApiController
         return Ok(result);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<AssetDto>> GetAsset(int id)
+    // Retrieves a specific asset by its ID.
+     [HttpGet("{id}")]
+    public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> GetAsset(int id)
     {
         var result = await _mediator.Send(new GetAssetByIdQuery(id));
         if (result == null) return NotFound();
@@ -93,14 +96,14 @@ public class AssetsController : BaseApiController
     }
 
     [HttpPost]
-    public async Task<ActionResult<AssetDto>> CreateAsset(AssetCreateDto asset)
+    public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> CreateAsset(AssetCreateDto asset)
     {
         var result = await _mediator.Send(new CreateAssetCommand(asset));
         return CreatedAtAction(nameof(GetAsset), new { id = result.Id }, result);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<AssetDto>> UpdateAsset(int id, AssetUpdateDto asset)
+    public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> UpdateAsset(int id, AssetUpdateDto asset)
     {
         if (id != asset.Id) return BadRequest("ID mismatch");
         var result = await _mediator.Send(new UpdateAssetCommand(asset));
@@ -130,7 +133,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpPost("{id}/checkin")]
-    public async Task<ActionResult<AssetDto>> CheckinAsset(int id, [FromBody] CheckinRequest request)
+    public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> CheckinAsset(int id, [FromBody] CheckinRequest request)
     {
         var actorName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Storekeeper";
         var result = await _mediator.Send(new CheckinAssetCommand(
@@ -162,4 +165,7 @@ public class AssetsController : BaseApiController
         public bool Acknowledged { get; set; }
         public string? EvidenceFileName { get; set; }
     }
+
+
+
 }
