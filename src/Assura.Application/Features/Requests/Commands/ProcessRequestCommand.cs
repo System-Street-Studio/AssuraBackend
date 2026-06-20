@@ -90,6 +90,22 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
                         ReferenceId = assetRequest.Id.ToString()
                     });
                 }
+
+                // Auto-create a Maintenance record when the request type is Maintenance
+                if (assetRequest.RequestType == "Maintenance" && assetRequest.AssetId.HasValue)
+                {
+                    var maintenanceNumber = $"MAINT-{DateTime.UtcNow:yyyyMMdd}-{assetRequest.Id}";
+                    _context.Maintenances.Add(new Domain.Entities.Maintenance
+                    {
+                        MaintenanceNumber = maintenanceNumber,
+                        Type = Domain.Enums.MaintenanceType.Corrective,
+                        MaintenanceDate = DateTime.UtcNow,
+                        Description = assetRequest.Description ?? $"Maintenance required. Raised from Request '{assetRequest.AssetName}'.",
+                        Cost = 0,
+                        Status = "Pending",
+                        AssetId = assetRequest.AssetId.Value
+                    });
+                }
             }
 
             await _context.SaveChangesAsync(cancellationToken);

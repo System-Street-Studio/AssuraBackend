@@ -1,5 +1,6 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Constants;
+using Assura.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
 
@@ -18,7 +19,7 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
 
     public async Task<List<AssetRequestDto>> Handle(GetPendingAssetRequestsQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Requests
+        var requestsList = await _context.Requests
             .Include(x => x.Requester)
                 .ThenInclude(u => u.Division)
             .Where(x => x.Status == RequestWorkflowStatus.PendingProcurement)
@@ -36,5 +37,29 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
                 AssetId = x.AssetId
             })
             .ToListAsync(cancellationToken);
+
+        var assetRequestsList = await _context.AssetRequests
+            .Include(x => x.User)
+                .ThenInclude(u => u.Division)
+            .Include(x => x.Division)
+            .Where(x => x.Status == RequestStatus.PendingProcurement)
+            .OrderByDescending(x => x.SubmittedDate)
+            .Select(x => new AssetRequestDto
+            {
+                Id = x.Id,
+                EmployeeName = x.RequesterName,
+                DivisionName = x.Division != null ? x.Division.Name : (x.User != null && x.User.Division != null ? x.User.Division.Name : "N/A"),
+                Date = x.SubmittedDate,
+                Specifications = x.Description,
+                SpecialNote = x.Reason,
+                Type = x.RequestType,
+                Description = x.Description,
+                AssetId = x.AssetId
+            })
+            .ToListAsync(cancellationToken);
+
+        return requestsList.Concat(assetRequestsList)
+            .OrderByDescending(x => x.Date)
+            .ToList();
     }
 }
