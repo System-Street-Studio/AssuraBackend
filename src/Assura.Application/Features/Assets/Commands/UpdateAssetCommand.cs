@@ -5,8 +5,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Assets.Commands;
 
+/// <summary>
+/// Command to update the details of an existing asset.
+/// Takes an <see cref="AssetUpdateDto"/> containing the updated details.
+/// </summary>
 public record UpdateAssetCommand(AssetUpdateDto Asset) : IRequest<AssetDto?>;
 
+/// <summary>
+/// Handler for executing the <see cref="UpdateAssetCommand"/>.
+/// Finds the asset, applies all provided updates, saves to the database,
+/// and returns the fully populated DTO including navigation properties.
+/// </summary>
 public class UpdateAssetCommandHandler : IRequestHandler<UpdateAssetCommand, AssetDto?>
 {
     private readonly IApplicationDbContext _context;

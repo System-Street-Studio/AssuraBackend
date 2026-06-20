@@ -1,6 +1,7 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Constants;
 using Assura.Domain.Entities;
+using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -56,6 +57,26 @@ public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewR
         }
 
         entity.Status = RequestWorkflowStatus.PendingStorekeeperReview;
+
+        if (entity.Type == RequestType.Maintenance && entity.AssetId.HasValue)
+        {
+            var maintenance = new Maintenance
+            {
+                MaintenanceNumber = "MNT-" + DateTime.Now.ToString("yyyyMMdd") + "-" + entity.Id,
+                Type = MaintenanceType.Corrective, // Default
+                MaintenanceDate = DateTime.UtcNow,
+                Description = entity.Description,
+                Cost = 0,
+                Status = "Approved",
+                Priority = entity.Priority.ToString(),
+                RequestedByUserId = entity.RequesterId,
+                ApprovedByUserId = request.ReviewedByUserId,
+                OriginalRequestId = entity.Id,
+                ApprovedAt = DateTime.UtcNow,
+                AssetId = entity.AssetId.Value
+            };
+            _context.Maintenances.Add(maintenance);
+        }
 
         // Notify the employee (requester) that their request was approved
         _context.Notifications.Add(new Notification

@@ -9,6 +9,10 @@ using System.Text.Json;
 
 namespace Assura.Application.Features.Assets.Commands;
 
+/// <summary>
+/// Command to process the checkout of an asset to an employee.
+/// Contains the asset ID, assignee ID, due date, and checkout details.
+/// </summary>
 public record CheckoutAssetCommand(int AssetId, int AssigneeUserId, DateOnly DueDate, string? Notes, string? CheckedOutBy) : IRequest<CheckoutRecordDto>;
 
 internal class CheckoutRecordMeta
@@ -36,6 +40,10 @@ public class CheckoutAssetCommandValidator : AbstractValidator<CheckoutAssetComm
     }
 }
 
+/// <summary>
+/// Handler for executing the <see cref="CheckoutAssetCommand"/>.
+/// Validates availability, updates asset status, and creates a checkout request record.
+/// </summary>
 public class CheckoutAssetCommandHandler : IRequestHandler<CheckoutAssetCommand, CheckoutRecordDto>
 {
     private readonly IApplicationDbContext _context;

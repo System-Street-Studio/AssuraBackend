@@ -12,9 +12,42 @@ public class Maintenance : BaseEntity
     public decimal Cost { get; set; }
     public string? Status { get; set; }
 
+    // Workflow fields
+    public string? Priority { get; set; }
+    public string? IssueType { get; set; }
+    public string? Notes { get; set; }
+
+    // Requester (Employee who requested)
+    public int? RequestedByUserId { get; set; }
+    public User? RequestedByUser { get; set; }
+
+    // Manager who approved
+    public int? ApprovedByUserId { get; set; }
+    public User? ApprovedByUser { get; set; }
+
+    // Storekeeper who processed
+    public int? StorekeeperUserId { get; set; }
+    public User? StorekeeperUser { get; set; }
+
+    // Temporary replacement asset from store
+    public int? ReplacementAssetId { get; set; }
+    public Asset? ReplacementAsset { get; set; }
+
+    // Link to original Request entity
+    public int? OriginalRequestId { get; set; }
+    public Request? OriginalRequest { get; set; }
+
+    // Audit timestamps
+    public DateTime? ApprovedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public DateTime? EscalatedToProcurementAt { get; set; }
+
+    // Primary asset
     public int AssetId { get; set; }
     public Asset Asset { get; set; } = null!;
 
+    // Repairing firm
     public int? RepairingFirmId { get; set; }
     public RepairingFirm? RepairingFirm { get; set; }
 }

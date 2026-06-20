@@ -5,8 +5,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Assets.Queries;
 
+/// <summary>
+/// Query to retrieve a single asset by its ID with all related navigation properties.
+/// Returns null if no asset is found with the given ID.
+/// </summary>
 public record GetAssetByIdQuery(int Id) : IRequest<AssetDto?>;
 
+/// <summary>
+/// Handler for <see cref="GetAssetByIdQuery"/>.
+/// Eagerly loads Product, Category, Division, Supplier, and AssignedUser,
+/// then projects into an <see cref="AssetDto"/> with resolved names.
+/// </summary>
 public class GetAssetByIdQueryHandler : IRequestHandler<GetAssetByIdQuery, AssetDto?>
 {
     private readonly IApplicationDbContext _context;

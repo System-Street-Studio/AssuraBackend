@@ -1,6 +1,7 @@
 using Assura.Domain.Common;
 using Assura.Domain.Enums;
 using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Assura.Domain.Entities;
 
@@ -16,6 +17,7 @@ public class Asset : BaseEntity
     public string? Notes { get; set; }
     public string? QrCode { get; set; }
 
+    [NotMapped]
     public AssetSpecifications? Specifications { get; set; }
 
     public int? CategoryId { get; set; }
@@ -41,6 +43,7 @@ public class Asset : BaseEntity
     public int? LastVerifiedByUserId { get; set; }
     public User? LastVerifiedByUser { get; set; }
 
+    [InverseProperty("Asset")]
     public ICollection<Maintenance> MaintenanceRecords { get; set; } = new List<Maintenance>();
     public ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
     public ICollection<AssetRequest> AssetRequests { get; set; } = new List<AssetRequest>();

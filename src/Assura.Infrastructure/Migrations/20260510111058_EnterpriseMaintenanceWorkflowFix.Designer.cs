@@ -4,6 +4,7 @@ using Assura.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Assura.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260510111058_EnterpriseMaintenanceWorkflowFix")]
+    partial class EnterpriseMaintenanceWorkflowFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,212 +24,6 @@ namespace Assura.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
-
-            modelBuilder.Entity("Assura.Domain.Entities.AccDiscardNote", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AssetName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("AssetType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("CurrentUser")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("CurrentValue")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Division")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("time(6)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("ValueAtPurchasing")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AccDiscardNotes");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.AccDiscardedItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AssetType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("CurrentUser")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("CurrentValue")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Division")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("SpecialNote")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("time(6)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("ValueAtPurchasing")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AccDiscardedItems");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.AccPendingItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AssetType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Category")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("CurrentUser")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("CurrentValue")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Division")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsHighlighted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("SpecialNote")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("time(6)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("ValueAtPurchasing")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AccPendingItems");
-                });
 
             modelBuilder.Entity("Assura.Domain.Entities.Asset", b =>
                 {
@@ -250,7 +47,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int?>("AssignedUserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CategoryId")
+                    b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -259,22 +56,16 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("DivisionId")
+                    b.Property<int>("DivisionId")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<DateTime?>("LastVerifiedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int?>("LastVerifiedByUserId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("ProductId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("PurchaseValue")
@@ -301,7 +92,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SupplierId")
+                    b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -309,10 +100,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
 
                     b.Property<string>("Warranty")
                         .HasColumnType("longtext");
@@ -328,8 +115,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("DivisionId");
 
-                    b.HasIndex("LastVerifiedByUserId");
-
                     b.HasIndex("ProductId");
 
                     b.HasIndex("PurchasingOrderId");
@@ -337,42 +122,6 @@ namespace Assura.Infrastructure.Migrations
                     b.HasIndex("SupplierId");
 
                     b.ToTable("Assets");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.AssetAttachment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AssetRequestId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("FileUrl")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("UploadedDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssetRequestId");
-
-                    b.ToTable("AssetAttachment");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.AssetInforming", b =>
@@ -421,10 +170,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.Property<string>("Warranty")
                         .HasColumnType("longtext");
 
@@ -452,6 +197,9 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("AssetName")
                         .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Attachments")
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
@@ -504,10 +252,6 @@ namespace Assura.Infrastructure.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<int?>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -565,68 +309,9 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.ToTable("AuditLogs");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.Buyer", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Contact")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Buyers");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Category", b =>
@@ -659,139 +344,9 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.ToTable("Categories");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.CustomReport", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsScheduled")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTime?>("NextRunDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Owner")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Period")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("ReportIdCode")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("ScheduleFrequency")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Size")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("CustomReports");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.DiscardedNote", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AssetType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Division")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("SpecialNote")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("time(6)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DiscardedNotes");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.DiscountInfo", b =>
@@ -830,10 +385,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PurchasingOrderId");
@@ -870,10 +421,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -921,10 +468,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -977,10 +520,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AssetId");
@@ -988,73 +527,6 @@ namespace Assura.Infrastructure.Migrations
                     b.HasIndex("PurchasingOrderId");
 
                     b.ToTable("GRNs");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.LostItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AssetName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("AssetType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("CurrentValue")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Division")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("ReportedBy")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("time(6)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("ValueAtPurchasing")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LostItems");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Maintenance", b =>
@@ -1141,10 +613,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovedByUserId");
@@ -1204,11 +672,7 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
+                    b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -1235,9 +699,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("longtext");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
@@ -1256,10 +717,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1304,10 +761,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1376,10 +829,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<decimal>("VatPercentage")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.Property<string>("Warranty")
                         .HasColumnType("longtext");
 
@@ -1432,128 +881,11 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AssetId");
 
                     b.ToTable("QRNs");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.QueueItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AssetType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Division")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("ReviewNote")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("SpecialNote")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("time(6)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("QueueItems");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.Receipt", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Amount")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("AssetName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Division")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("FileUrl")
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Receipts");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.RepairingFirm", b =>
@@ -1594,10 +926,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1680,10 +1008,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AssetId");
@@ -1732,10 +1056,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.Property<string>("Website")
                         .HasColumnType("longtext");
 
@@ -1780,10 +1100,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AssetId");
@@ -1802,17 +1118,11 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("AssetId")
                         .HasColumnType("int");
 
-                    b.Property<int>("AssetRequestId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
-
-                    b.Property<int>("CurrentHolderId")
-                        .HasColumnType("int");
 
                     b.Property<int>("FromDivisionId")
                         .HasColumnType("int");
@@ -1823,19 +1133,10 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("Reason")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("ReturnDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TargetUserId")
-                        .HasColumnType("int");
-
                     b.Property<int>("ToDivisionId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TransferById")
+                    b.Property<int>("TransferById")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("TransferDate")
@@ -1845,90 +1146,23 @@ namespace Assura.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("TransferPeriod")
-                        .HasColumnType("longtext");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AssetId");
 
-                    b.HasIndex("AssetRequestId");
-
-                    b.HasIndex("CurrentHolderId");
-
                     b.HasIndex("FromDivisionId");
-
-                    b.HasIndex("TargetUserId");
 
                     b.HasIndex("ToDivisionId");
 
                     b.HasIndex("TransferById");
 
                     b.ToTable("Transfers");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.TransferApproval", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("ApprovedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("ApprovedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Comments")
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("FromStatus")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("ToStatus")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TransferId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("TransferId");
-
-                    b.ToTable("TransferApprovals");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.User", b =>
@@ -1938,9 +1172,6 @@ namespace Assura.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("AssignedAt")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -1956,11 +1187,6 @@ namespace Assura.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<string>("EmploymentStatus")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("varchar(40)");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -1974,10 +1200,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<bool>("IsLocked")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("JobTitle")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -1990,18 +1212,13 @@ namespace Assura.Infrastructure.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("PhoneNumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("longtext");
 
                     b.Property<DateTime?>("RefreshTokenExpiryTime")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<string>("RequestedRole")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
 
                     b.Property<DateTime?>("ResetTokenExpiryTime")
                         .HasColumnType("datetime(6)");
@@ -2020,10 +1237,6 @@ namespace Assura.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DivisionId");
@@ -2037,60 +1250,6 @@ namespace Assura.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Assura.Domain.Entities.UserDivisionRole", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("DivisionId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("JobTitle")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DivisionId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserDivisionRoles");
-                });
-
             modelBuilder.Entity("Assura.Domain.Entities.Asset", b =>
                 {
                     b.HasOne("Assura.Domain.Entities.User", "AssignedUser")
@@ -2101,21 +1260,20 @@ namespace Assura.Infrastructure.Migrations
                     b.HasOne("Assura.Domain.Entities.Category", "Category")
                         .WithMany("Assets")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Assura.Domain.Entities.Division", "Division")
                         .WithMany("Assets")
                         .HasForeignKey("DivisionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Assura.Domain.Entities.User", "LastVerifiedByUser")
-                        .WithMany()
-                        .HasForeignKey("LastVerifiedByUserId");
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Assura.Domain.Entities.Product", "Product")
                         .WithMany("Assets")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Assura.Domain.Entities.PurchasingOrder", null)
                         .WithMany("Assets")
@@ -2124,7 +1282,8 @@ namespace Assura.Infrastructure.Migrations
                     b.HasOne("Assura.Domain.Entities.Supplier", "Supplier")
                         .WithMany("Assets")
                         .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.OwnsOne("Assura.Domain.Entities.AssetSpecifications", "Specifications", b1 =>
                         {
@@ -2133,7 +1292,7 @@ namespace Assura.Infrastructure.Migrations
 
                             b1.HasKey("AssetId");
 
-                            b1.ToTable("Specifications");
+                            b1.ToTable("Assets");
 
                             b1.WithOwner()
                                 .HasForeignKey("AssetId");
@@ -2160,7 +1319,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Specifications");
+                                    b2.ToTable("Assets");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -2191,7 +1350,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Specifications");
+                                    b2.ToTable("Assets");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -2216,7 +1375,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Specifications");
+                                    b2.ToTable("Assets");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -2241,7 +1400,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Specifications");
+                                    b2.ToTable("Assets");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -2269,7 +1428,7 @@ namespace Assura.Infrastructure.Migrations
 
                                     b2.HasKey("AssetSpecificationsAssetId");
 
-                                    b2.ToTable("Specifications");
+                                    b2.ToTable("Assets");
 
                                     b2.WithOwner()
                                         .HasForeignKey("AssetSpecificationsAssetId");
@@ -2297,23 +1456,12 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Navigation("Division");
 
-                    b.Navigation("LastVerifiedByUser");
-
                     b.Navigation("Product");
 
                     b.Navigation("Specifications")
                         .IsRequired();
 
                     b.Navigation("Supplier");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.AssetAttachment", b =>
-                {
-                    b.HasOne("Assura.Domain.Entities.AssetRequest", "AssetRequest")
-                        .WithMany("Attachments")
-                        .HasForeignKey("AssetRequestId");
-
-                    b.Navigation("AssetRequest");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.AssetInforming", b =>
@@ -2448,7 +1596,9 @@ namespace Assura.Infrastructure.Migrations
                 {
                     b.HasOne("Assura.Domain.Entities.User", "User")
                         .WithMany("Notifications")
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -2522,27 +1672,9 @@ namespace Assura.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Assura.Domain.Entities.AssetRequest", "AssetRequest")
-                        .WithMany()
-                        .HasForeignKey("AssetRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Assura.Domain.Entities.User", "CurrentHolder")
-                        .WithMany()
-                        .HasForeignKey("CurrentHolderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Assura.Domain.Entities.Division", "FromDivision")
                         .WithMany()
                         .HasForeignKey("FromDivisionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Assura.Domain.Entities.User", "TargetUser")
-                        .WithMany()
-                        .HasForeignKey("TargetUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2554,40 +1686,17 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasOne("Assura.Domain.Entities.User", "TransferBy")
                         .WithMany()
-                        .HasForeignKey("TransferById");
+                        .HasForeignKey("TransferById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Asset");
 
-                    b.Navigation("AssetRequest");
-
-                    b.Navigation("CurrentHolder");
-
                     b.Navigation("FromDivision");
-
-                    b.Navigation("TargetUser");
 
                     b.Navigation("ToDivision");
 
                     b.Navigation("TransferBy");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.TransferApproval", b =>
-                {
-                    b.HasOne("Assura.Domain.Entities.User", "ApprovedByUser")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Assura.Domain.Entities.Transfer", "Transfer")
-                        .WithMany()
-                        .HasForeignKey("TransferId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ApprovedByUser");
-
-                    b.Navigation("Transfer");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.User", b =>
@@ -2600,25 +1709,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("Division");
                 });
 
-            modelBuilder.Entity("Assura.Domain.Entities.UserDivisionRole", b =>
-                {
-                    b.HasOne("Assura.Domain.Entities.Division", "Division")
-                        .WithMany()
-                        .HasForeignKey("DivisionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Assura.Domain.Entities.User", "User")
-                        .WithMany("DivisionRoles")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Division");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Assura.Domain.Entities.Asset", b =>
                 {
                     b.Navigation("AssetRequests");
@@ -2626,11 +1716,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("MaintenanceRecords");
 
                     b.Navigation("Transfers");
-                });
-
-            modelBuilder.Entity("Assura.Domain.Entities.AssetRequest", b =>
-                {
-                    b.Navigation("Attachments");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.Category", b =>
@@ -2678,8 +1763,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("AssetRequests");
 
                     b.Navigation("AssignedAssets");
-
-                    b.Navigation("DivisionRoles");
 
                     b.Navigation("Notifications");
                 });
