@@ -20,7 +20,6 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Category> Categories => Set<Category>();
-    public DbSet<AssetSpecifications> Specifications => Set<AssetSpecifications>();
     public DbSet<Division> Divisions => Set<Division>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
