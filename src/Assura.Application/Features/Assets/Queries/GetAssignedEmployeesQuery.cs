@@ -20,7 +20,7 @@ public class GetAssignedEmployeesQueryHandler : IRequestHandler<GetAssignedEmplo
     {
         try
         {
-            Console.WriteLine($"🔍 [GetAssignedEmployeesQueryHandler] Retrieving unique employees with assigned assets...");
+         
 
             var employees = await _context.Assets
                 .AsNoTracking()
@@ -36,7 +36,7 @@ public class GetAssignedEmployeesQueryHandler : IRequestHandler<GetAssignedEmplo
                 .ThenBy(e => e.LastName)
                 .ToListAsync(cancellationToken);
 
-            Console.WriteLine($"  ✓ Found {employees.Count} unique employees with assigned assets");
+            Console.WriteLine($" Found {employees.Count} unique employees with assigned assets");
 
             var result = employees.Select(e => new AssignedEmployeeDto
             {
@@ -46,13 +46,13 @@ public class GetAssignedEmployeesQueryHandler : IRequestHandler<GetAssignedEmplo
             .OrderBy(e => e.Name)
             .ToList();
 
-            Console.WriteLine($"✅ [GetAssignedEmployeesQueryHandler] Successfully retrieved {result.Count} employees");
+            Console.WriteLine($" [GetAssignedEmployeesQueryHandler] Successfully retrieved {result.Count} employees");
             return result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ [GetAssignedEmployeesQueryHandler] Error: {ex.Message}");
-            Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+            Console.WriteLine($" [GetAssignedEmployeesQueryHandler] Error: {ex.Message}");
+            Console.WriteLine($" Stack trace: {ex.StackTrace}");
             throw;
         }
     }

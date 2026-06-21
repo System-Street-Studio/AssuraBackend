@@ -83,7 +83,7 @@ public class GetTransferCountsQueryHandler : IRequestHandler<GetTransferCountsQu
                           && t.CurrentHolderId == userId, cancellationToken);
 
         var pendingCount = await _context.Transfers
-            .CountAsync(t => t.Status == TransferStatus.PendingOwnerDivisionHeadApproval || t.Status == TransferStatus.WaitingForFinalConfirmation
+            .CountAsync(t => (t.Status == TransferStatus.PendingOwnerDivisionHeadApproval || t.Status == TransferStatus.WaitingForFinalConfirmation)
                           && t.CurrentHolderId == userId, cancellationToken);
 
         var activeCount = await _context.Transfers
