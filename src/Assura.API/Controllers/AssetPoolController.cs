@@ -68,7 +68,7 @@ public class AssetPoolController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error retrieving asset pool: {ex.Message}");
+            Console.WriteLine($" Error retrieving asset pool: {ex.Message}");
             if (ex.InnerException != null)
             {
                 Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
@@ -98,7 +98,7 @@ public class AssetPoolController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error retrieving assigned employees: {ex.Message}");
+            Console.WriteLine($"Error retrieving assigned employees: {ex.Message}");
             return StatusCode(500, new
             {
                 success = false,
@@ -123,7 +123,7 @@ public class AssetPoolController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error retrieving assigned divisions: {ex.Message}");
+            Console.WriteLine($" Error retrieving assigned divisions: {ex.Message}");
             return StatusCode(500, new
             {
                 success = false,

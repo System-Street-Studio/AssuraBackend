@@ -36,7 +36,7 @@ public class GetEmployeeTransferQueryHandler : IRequestHandler<GetEmployeeTransf
                                         && t.CurrentHolderId == request.LoginUserId),
 
             // 2. Pending: Status = PendingOwnerDivisionHeadApproval AND I am the Current Holder
-            "pending" => query.Where(t => t.Status == TransferStatus.PendingOwnerDivisionHeadApproval || t.Status == TransferStatus.WaitingForFinalConfirmation
+            "pending" => query.Where(t => (t.Status == TransferStatus.PendingOwnerDivisionHeadApproval || t.Status == TransferStatus.WaitingForFinalConfirmation)
                                        && t.CurrentHolderId == request.LoginUserId),
 
             // 3. Active: Status = Active AND (I am Holder OR Target)
