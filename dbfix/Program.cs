@@ -1,1 +1,54 @@
-using System; using MySqlConnector; class Program { static void Main() { string connStr = "Server=db45494.public.databaseasp.net;Database=db45494;Uid=db45494;Pwd=V`$R~5j+y78%M2r;Port=3306;"; using var conn = new MySqlConnection(connStr); conn.Open(); string[] cols = {"Specifications_Computer_Display", "Specifications_Computer_RAM", "Specifications_Computer_GPU", "Specifications_Computer_Storage", "Specifications_Computer_OS", "Specifications_Server_OS", "Specifications_Server_RAM", "Specifications_Server_CPU", "Specifications_Server_IPAddress", "Specifications_Server_Storage", "Specifications_Networking_PortCount", "Specifications_Networking_DataRate", "Specifications_Networking_FormFactor", "Specifications_Networking_MACAddress", "Specifications_Printing_Type", "Specifications_Printing_PrintingTechnology", "Specifications_Printing_Connectivity", "Specifications_Printing_PrintResolution", "Specifications_Furniture_Material", "Specifications_Furniture_Length", "Specifications_Furniture_Width", "Specifications_Furniture_Height", "Specifications_Furniture_Color", "Specifications_Furniture_Adjustability"}; foreach(var col in cols) { try { using var cmd = new MySqlCommand($"ALTER TABLE Assets ADD COLUMN {col} longtext NULL;", conn); cmd.ExecuteNonQuery(); Console.WriteLine($"Added {col}"); } catch (Exception ex) { Console.WriteLine($"Skipped {col}: {ex.Message}"); } } } }
+using System;
+using MySqlConnector;
+
+class Program
+{
+    static void Main()
+    {
+        string connStr = "Server=db45494.public.databaseasp.net;Database=db45494;Uid=db45494;Pwd=K-h2t9?AjS7;Port=3306;";
+        using var conn = new MySqlConnection(connStr);
+        try
+        {
+            conn.Open();
+            Console.WriteLine("Successfully connected to the database!");
+
+            // 1. Check QueueItems
+            using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM QueueItems", conn))
+            {
+                var count = cmd.ExecuteScalar();
+                Console.WriteLine($"QueueItems Count: {count}");
+            }
+
+            using (var cmd = new MySqlCommand("SELECT Id, Name, Status, Date FROM QueueItems LIMIT 10", conn))
+            using (var reader = cmd.ExecuteReader())
+            {
+                Console.WriteLine("QueueItems (Limit 10):");
+                while (reader.Read())
+                {
+                    Console.WriteLine($"- ID: {reader["Id"]}, Name: {reader["Name"]}, Status: {reader["Status"]}, Date: {reader["Date"]}");
+                }
+            }
+
+            // 2. Check DiscardedNotes
+            using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM DiscardedNotes", conn))
+            {
+                var count = cmd.ExecuteScalar();
+                Console.WriteLine($"DiscardedNotes Count: {count}");
+            }
+
+            using (var cmd = new MySqlCommand("SELECT Id, Name, Status, Date FROM DiscardedNotes LIMIT 10", conn))
+            using (var reader = cmd.ExecuteReader())
+            {
+                Console.WriteLine("DiscardedNotes (Limit 10):");
+                while (reader.Read())
+                {
+                    Console.WriteLine($"- ID: {reader["Id"]}, Name: {reader["Name"]}, Status: {reader["Status"]}, Date: {reader["Date"]}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database query error: {ex.Message}");
+        }
+    }
+}

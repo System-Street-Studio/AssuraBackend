@@ -24,17 +24,22 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
             var request = await _context.AssetRequests
                 .FirstOrDefaultAsync(x => x.Id == notification.Id, cancellationToken);
 
-            if (request == null || !request.DivisionId.HasValue)
+            if (request == null)
             {
                 return;
             }
 
+            // Handle asset discard request flow
             if (string.Equals(notification.RequestType, "Discard", StringComparison.OrdinalIgnoreCase))
             {
-                var divisionName = await _context.Divisions
-                    .Where(d => d.Id == request.DivisionId.Value)
-                    .Select(d => d.Name)
-                    .FirstOrDefaultAsync(cancellationToken) ?? "Unknown";
+                string divisionName = "Unknown";
+                if (request.DivisionId.HasValue)
+                {
+                    divisionName = await _context.Divisions
+                        .Where(d => d.Id == request.DivisionId.Value)
+                        .Select(d => d.Name)
+                        .FirstOrDefaultAsync(cancellationToken) ?? "Unknown";
+                }
 
                 var discardedNote = new DiscardedNote
                 {
@@ -48,6 +53,23 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
 
                 _context.DiscardedNotes.Add(discardedNote);
 
+                // Create a matching QueueItem to display in the Superintendent Overview dashboard
+                var queueItem = new QueueItem
+                {
+                    Name = notification.AssetName,
+                    Division = divisionName,
+                    Date = DateTime.UtcNow,
+                    Status = QueueItemStatus.Pending,
+                    Time = DateTime.UtcNow.TimeOfDay,
+                    AssetType = notification.AssetCategory,
+                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A"
+                };
+
+                _context.QueueItems.Add(queueItem);
+                
+                // Save to database first to generate the discardedNote.Id
+                await _context.SaveChangesAsync(cancellationToken);
+
                 var superintendents = await _context.Users
                     .Where(u => u.Role == UserRole.Superintendent || u.Role == UserRole.Admin)
                     .ToListAsync(cancellationToken);
@@ -60,12 +82,18 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                         Message = $"Asset '{notification.AssetName}' from {divisionName} division is pending your discard review.",
                         UserId = super.Id,
                         Type = "Info",
-                        ReferenceId = discardedNote.Id.ToString()
+                        ReferenceId = discardedNote.Id.ToString() // Will now have a valid generated ID
                     });
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
                 return; // Do not proceed to create AssetInforming
+            }
+
+            // Non-discard requests require a division association
+            if (!request.DivisionId.HasValue)
+            {
+                return;
             }
 
             // Create AssetInforming record (adds to inventory/new arrivals)
