@@ -44,7 +44,7 @@ public class RequestsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<ActionResult<RequestDto>> GetRequestById(int id)
     {
-        if (id <= 0) return BadRequest();
+        if (id == 0) return BadRequest();
 
         var request = await _mediator.Send(new GetRequestByIdQuery(id));
         if (request == null) return NotFound();
@@ -56,7 +56,7 @@ public class RequestsController : BaseApiController
     [Authorize(Roles = "Storekeeper,Admin")]
     public async Task<ActionResult<List<SuggestedAssetDto>>> GetSuggestedAssets(int id)
     {
-        if (id <= 0) return BadRequest();
+        if (id == 0) return BadRequest();
         return await _mediator.Send(new GetSuggestedAssetsForRequestQuery(id));
     }
 

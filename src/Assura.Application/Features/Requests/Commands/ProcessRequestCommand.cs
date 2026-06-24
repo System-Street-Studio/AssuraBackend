@@ -27,6 +27,20 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
 
     public async Task Handle(ProcessRequestCommand request, CancellationToken cancellationToken)
     {
+        // Negative ID means this is an AssetRequest record (from unified list)
+        if (request.Id < 0)
+        {
+            var actualId = Math.Abs(request.Id);
+            var assetRequest = await _context.AssetRequests
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.Id == actualId, cancellationToken);
+
+            if (assetRequest == null) return;
+
+            await ProcessAssetRequest(assetRequest, request, cancellationToken);
+            return;
+        }
+
         var entity = await _context.Requests
             .Include(r => r.Requester)
             .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
@@ -39,76 +53,7 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
 
             if (assetRequest == null) return;
 
-            if (request.IsInStock)
-            {
-                if (!request.AssetId.HasValue) return;
-
-                assetRequest.Status = RequestStatus.TemporaryAssigned;
-                assetRequest.AssetId = request.AssetId;
-                
-                var asset = await _context.Assets
-                    .FirstOrDefaultAsync(a => a.Id == request.AssetId.Value, cancellationToken);
-
-                int? requesterIdVal = assetRequest.UserId;
-                if (!requesterIdVal.HasValue && int.TryParse(assetRequest.RequesterId, out var rid))
-                {
-                    requesterIdVal = rid;
-                }
-
-                if (asset != null)
-                {
-                    asset.ReservedForUserId = requesterIdVal;
-                    asset.ReservedByRequestId = assetRequest.Id;
-                    asset.ReservedUntilUtc = DateTime.UtcNow.AddHours(48);
-                }
-
-                _context.Notifications.Add(new Notification
-                {
-                    Title = "Asset Reserved for Pickup",
-                    Message = $"Your request for '{assetRequest.AssetName}' has a temporary reserved asset. Collect it from stores for final confirmation.",
-                    UserId = requesterIdVal ?? 0,
-                    Type = "Success",
-                    ReferenceId = assetRequest.Id.ToString()
-                });
-            }
-            else
-            {
-                assetRequest.Status = RequestStatus.PendingProcurement;
-
-                var procurementUsers = await _context.Users
-                    .Where(u => u.Role == UserRole.Procurement || u.Role == UserRole.Admin)
-                    .ToListAsync(cancellationToken);
-
-                foreach (var user in procurementUsers)
-                {
-                    _context.Notifications.Add(new Notification
-                    {
-                        Title = "Asset Escalated to Procurement",
-                        Message = $"Request for '{assetRequest.AssetName}' could not be fulfilled from stock and requires procurement.",
-                        UserId = user.Id,
-                        Type = "Warning",
-                        ReferenceId = assetRequest.Id.ToString()
-                    });
-                }
-
-                // Auto-create a Maintenance record when the request type is Maintenance
-                if (assetRequest.RequestType == "Maintenance" && assetRequest.AssetId.HasValue)
-                {
-                    var maintenanceNumber = $"MAINT-{DateTime.UtcNow:yyyyMMdd}-{assetRequest.Id}";
-                    _context.Maintenances.Add(new Domain.Entities.Maintenance
-                    {
-                        MaintenanceNumber = maintenanceNumber,
-                        Type = Domain.Enums.MaintenanceType.Corrective,
-                        MaintenanceDate = DateTime.UtcNow,
-                        Description = assetRequest.Description ?? $"Maintenance required. Raised from Request '{assetRequest.AssetName}'.",
-                        Cost = 0,
-                        Status = "Pending",
-                        AssetId = assetRequest.AssetId.Value
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
+            await ProcessAssetRequest(assetRequest, request, cancellationToken);
             return;
         }
 
@@ -202,6 +147,80 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
                     Cost = 0,
                     Status = "Pending",
                     AssetId = entity.AssetId.Value
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ProcessAssetRequest(AssetRequest assetRequest, ProcessRequestCommand request, CancellationToken cancellationToken)
+    {
+        if (request.IsInStock)
+        {
+            if (!request.AssetId.HasValue) return;
+
+            assetRequest.Status = RequestStatus.TemporaryAssigned;
+            assetRequest.AssetId = request.AssetId;
+            
+            var asset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.Id == request.AssetId.Value, cancellationToken);
+
+            int? requesterIdVal = assetRequest.UserId;
+            if (!requesterIdVal.HasValue && int.TryParse(assetRequest.RequesterId, out var rid))
+            {
+                requesterIdVal = rid;
+            }
+
+            if (asset != null)
+            {
+                asset.ReservedForUserId = requesterIdVal;
+                asset.ReservedByRequestId = assetRequest.Id;
+                asset.ReservedUntilUtc = DateTime.UtcNow.AddHours(48);
+            }
+
+            _context.Notifications.Add(new Notification
+            {
+                Title = "Asset Reserved for Pickup",
+                Message = $"Your request for '{assetRequest.AssetName}' has a temporary reserved asset. Collect it from stores for final confirmation.",
+                UserId = requesterIdVal ?? 0,
+                Type = "Success",
+                ReferenceId = assetRequest.Id.ToString()
+            });
+        }
+        else
+        {
+            assetRequest.Status = RequestStatus.PendingProcurement;
+
+            var procurementUsers = await _context.Users
+                .Where(u => u.Role == UserRole.Procurement || u.Role == UserRole.Admin)
+                .ToListAsync(cancellationToken);
+
+            foreach (var user in procurementUsers)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    Title = "Asset Escalated to Procurement",
+                    Message = $"Request for '{assetRequest.AssetName}' could not be fulfilled from stock and requires procurement.",
+                    UserId = user.Id,
+                    Type = "Warning",
+                    ReferenceId = assetRequest.Id.ToString()
+                });
+            }
+
+            // Auto-create a Maintenance record when the request type is Maintenance
+            if (assetRequest.RequestType == "Maintenance" && assetRequest.AssetId.HasValue)
+            {
+                var maintenanceNumber = $"MAINT-{DateTime.UtcNow:yyyyMMdd}-{assetRequest.Id}";
+                _context.Maintenances.Add(new Domain.Entities.Maintenance
+                {
+                    MaintenanceNumber = maintenanceNumber,
+                    Type = Domain.Enums.MaintenanceType.Corrective,
+                    MaintenanceDate = DateTime.UtcNow,
+                    Description = assetRequest.Description ?? $"Maintenance required. Raised from Request '{assetRequest.AssetName}'.",
+                    Cost = 0,
+                    Status = "Pending",
+                    AssetId = assetRequest.AssetId.Value
                 });
             }
         }

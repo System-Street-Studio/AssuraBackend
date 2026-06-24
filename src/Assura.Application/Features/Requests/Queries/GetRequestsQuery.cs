@@ -35,6 +35,7 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
 
     public async Task<List<RequestDto>> Handle(GetRequestsQuery request, CancellationToken cancellationToken)
     {
+        // ── 1. Query the standard Requests table ──
         var query = _context.Requests
             .Include(r => r.Requester)
             .Include(r => r.Requester.Division)
@@ -65,7 +66,7 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
             query = query.Where(r => r.RequesterId == request.UserId.Value);
         }
 
-        return await query
+        var standardResults = await query
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => new RequestDto
             {
@@ -84,5 +85,60 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
                 AssetDivisionName = r.Asset != null && r.Asset.Division != null ? r.Asset.Division.Name : null
             })
             .ToListAsync(cancellationToken);
+
+        // ── 2. Query the AssetRequests table and map with negative IDs ──
+        var arQuery = _context.AssetRequests
+            .Include(ar => ar.User)
+            .Include(ar => ar.Division)
+            .AsQueryable();
+
+        if (request.Role == UserRole.DivisionHead && request.UserId.HasValue)
+        {
+            var headDivisionId = await _context.Users
+                .Where(u => u.Id == request.UserId.Value)
+                .Select(u => u.DivisionId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (headDivisionId.HasValue)
+            {
+                arQuery = arQuery.Where(ar => ar.DivisionId == headDivisionId.Value);
+            }
+            else
+            {
+                arQuery = arQuery.Where(_ => false);
+            }
+        }
+        else if (request.Role != UserRole.Admin && request.Role != UserRole.Procurement && request.Role != UserRole.Storekeeper && request.UserId.HasValue)
+        {
+            arQuery = arQuery.Where(ar => ar.UserId == request.UserId.Value);
+        }
+
+        var assetRequestResults = await arQuery
+            .OrderByDescending(ar => ar.SubmittedDate)
+            .ToListAsync(cancellationToken);
+
+        var mappedAssetRequests = assetRequestResults.Select(ar => new RequestDto
+        {
+            Id = -ar.Id,  // Negative ID to avoid collision with Requests table
+            RequesterId = ar.UserId ?? 0,
+            RequestNumber = $"AR-{ar.Id}",
+            Type = ar.RequestType ?? "Asset",
+            Priority = ar.Priority ?? "Normal",
+            Description = ar.Description ?? ar.Reason,
+            Status = ar.Status.ToString(),
+            CreatedAt = ar.SubmittedDate,
+            RequesterName = ar.RequesterName ?? "N/A",
+            Department = ar.Division?.Name ?? "N/A",
+            AssetName = ar.AssetName,
+            AssetCode = null,
+            AssetDivisionName = ar.Division?.Name
+        }).ToList();
+
+        // ── 3. Combine and sort by date ──
+        var combined = standardResults.Concat(mappedAssetRequests)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToList();
+
+        return combined;
     }
 }

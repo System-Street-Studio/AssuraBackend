@@ -17,6 +17,34 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
 
     public async Task<RequestDto?> Handle(GetRequestByIdQuery request, CancellationToken cancellationToken)
     {
+        // Negative ID means this is an AssetRequest record
+        if (request.Id < 0)
+        {
+            var actualId = Math.Abs(request.Id);
+            var ar = await _context.AssetRequests
+                .AsNoTracking()
+                .Include(a => a.User)
+                .Include(a => a.Division)
+                .FirstOrDefaultAsync(a => a.Id == actualId, cancellationToken);
+
+            if (ar == null) return null;
+
+            return new RequestDto
+            {
+                Id = -ar.Id,
+                RequesterId = ar.UserId ?? 0,
+                RequestNumber = $"AR-{ar.Id}",
+                Type = ar.RequestType ?? "Asset",
+                Priority = ar.Priority ?? "Normal",
+                Description = ar.Description ?? ar.Reason,
+                Status = ar.Status.ToString(),
+                CreatedAt = ar.SubmittedDate,
+                RequesterName = ar.RequesterName ?? "N/A",
+                Department = ar.Division?.Name ?? "N/A",
+                AssetName = ar.AssetName
+            };
+        }
+
         return await _context.Requests
             .AsNoTracking()
             .Include(r => r.Requester)
