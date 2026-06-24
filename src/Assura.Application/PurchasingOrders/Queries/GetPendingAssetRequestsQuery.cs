@@ -22,6 +22,7 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
         var requestsList = await _context.Requests
             .Include(x => x.Requester)
                 .ThenInclude(u => u.Division)
+            .Include(x => x.Asset)
             .Where(x => x.Status == RequestWorkflowStatus.PendingProcurement)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new AssetRequestDto
@@ -34,7 +35,8 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
                 SpecialNote = x.SpecialNote,
                 Type = x.Type.ToString(),
                 Description = x.Description,
-                AssetId = x.AssetId
+                AssetId = x.AssetId,
+                AssetName = x.Asset != null ? x.Asset.AssetCode : "N/A"
             })
             .ToListAsync(cancellationToken);
 
@@ -54,7 +56,8 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
                 SpecialNote = x.Reason,
                 Type = x.RequestType,
                 Description = x.Description,
-                AssetId = x.AssetId
+                AssetId = x.AssetId,
+                AssetName = x.AssetName
             })
             .ToListAsync(cancellationToken);
 
