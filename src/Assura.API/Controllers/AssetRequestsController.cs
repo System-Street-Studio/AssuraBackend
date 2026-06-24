@@ -93,6 +93,7 @@ public class AssetRequestsController : ControllerBase
                 Priority = input.Priority,
                 RequestType = input.RequestType,
                 SubmittedDate = input.SubmittedDate == default ? DateTime.Now : input.SubmittedDate,
+                AssetId = input.AssetId,
                 UploadedAttachments = savedAttachments
             };
 
@@ -119,6 +120,7 @@ public class AssetRequestsController : ControllerBase
         public string? Priority { get; set; }
         public string? RequestType { get; set; }
         public DateTime SubmittedDate { get; set; }
+        public int? AssetId { get; set; }
         public List<IFormFile>? Files { get; set; }
     }
 

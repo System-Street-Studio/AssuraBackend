@@ -29,6 +29,7 @@ public record CreateAssetRequestCommand : IRequest<int>
     public required string Priority { get; set; }
     public required string RequestType { get; set; }
     public DateTime SubmittedDate { get; set; } = DateTime.Now;
+    public int? AssetId { get; set; }
 
     public List<AttachmentUploadModel> UploadedAttachments { get; set; } = new();
 }
@@ -66,6 +67,7 @@ public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestComma
             Status = Domain.Enums.RequestStatus.Pending,
             UserId = userId,
             DivisionId = divisionId,
+            AssetId = request.AssetId,
             Attachments = new List<AssetAttachment>() 
         };
 
