@@ -25,7 +25,7 @@ public class GetPurchasingOrdersQueryHandler : IRequestHandler<GetPurchasingOrde
                 Id = x.Id,
                 OrderNumber = x.OrderNumber,
                 IssuedDate = x.OrderDate,
-                DepartmentName = x.Supplier.Name // Using Supplier Name for now as "Department" in UI
+                SupplierName = x.Supplier.Name
             })
             .ToListAsync(cancellationToken);
     }
