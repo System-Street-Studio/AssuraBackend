@@ -103,9 +103,8 @@ public class UserController : ControllerBase
         }
 
         var result = await _mediator.Send(command);
-        return result ? Ok() : BadRequest("Failed to update profile");
+        return result.Success ? Ok() : BadRequest(result.ErrorMessage);
 
     }
 
 }
-
