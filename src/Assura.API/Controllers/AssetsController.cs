@@ -21,7 +21,7 @@ public class AssetsController : BaseApiController
 
     // Retrieves a list of assets with optional filters for ownership a
     [HttpGet]
-    public async Task<ActionResult<List<AssetDto>>> GetAssets()
+    public async Task<ActionResult<List<AssetDto>>> GetAssets([FromQuery] bool onlyMine = false)
     {
         var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
                         ?? User.FindFirst("sub")?.Value;
@@ -29,7 +29,10 @@ public class AssetsController : BaseApiController
         int? userId = int.TryParse(userIdStr, out var id) ? id : null;
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-
+        if (onlyMine && userId.HasValue)
+        {
+            return await _mediator.Send(new GetAssetsQuery(userId));
+        }
         
         if (role == Roles.Admin || role == Roles.Storekeeper || role == Roles.Procurement)
         {
