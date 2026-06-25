@@ -10,6 +10,7 @@ public record CreatePurchasingOrderCommand : IRequest<int>
 {
     public string SupplierName { get; init; } = string.Empty; // In a real app, you'd use SupplierId
     public List<CreatePurchasingOrderItemDto> Items { get; init; } = new();
+    public int? RequestId { get; init; }
  }
 
 public record CreatePurchasingOrderItemDto
@@ -107,6 +108,22 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
 
         _context.PurchasingOrders.Add(po);
         Console.WriteLine("[DEBUG] CreatePurchasingOrderCommandHandler: Saving changes to database...");
+        
+        if (request.RequestId.HasValue)
+        {
+            var req = await _context.Requests.FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Constants.RequestWorkflowStatus.PendingProcurement, cancellationToken);
+            if (req != null)
+            {
+                req.Status = Assura.Domain.Constants.RequestWorkflowStatus.Approved;
+            }
+
+            var assetReq = await _context.AssetRequests.FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Enums.RequestStatus.PendingProcurement, cancellationToken);
+            if (assetReq != null)
+            {
+                assetReq.Status = Assura.Domain.Enums.RequestStatus.Approved;
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Success! PO saved with Total: {totalAmount}");
 
