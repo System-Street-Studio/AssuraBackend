@@ -48,6 +48,12 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
 
         if (!string.IsNullOrEmpty(request.Password))
         {
+            var passwordRegex = new System.Text.RegularExpressions.Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
+            if (!passwordRegex.IsMatch(request.Password))
+            {
+                return new UpdateProfileResult(false, "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
+            }
+
             if (string.IsNullOrEmpty(request.CurrentPassword) || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             {
                 return new UpdateProfileResult(false, "Invalid current password.");
