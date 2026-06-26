@@ -1,4 +1,5 @@
 using Assura.Application.DTOs;
+using Assura.Application.Features.Divisions.Commands;
 using Assura.Application.Features.Divisions.Queries;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
@@ -31,4 +32,25 @@ public class DivisionsController : ControllerBase
         return Ok(summary);
     }
 
+    [HttpPost]
+    public async Task<ActionResult<DivisionDto>> CreateDivision([FromBody] CreateDivisionCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetDivisions), new { id = result.Id }, result);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<DivisionDto>> UpdateDivision(int id, [FromBody] UpdateDivisionCommand command)
+    {
+        if (id != command.Id) return BadRequest();
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteDivision(int id)
+    {
+        await _mediator.Send(new DeleteDivisionCommand(id));
+        return NoContent();
+    }
 }
