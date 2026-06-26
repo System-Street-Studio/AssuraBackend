@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
 
         // Custom Auth Services from feature/auth
+        services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
         services.AddScoped<IIdentifyServices, IdentityService>();
         services.AddTransient<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddHostedService<TransferOverdueCheckerService>();

@@ -35,4 +35,12 @@ public class SystemAdminController : BaseApiController
         if (!success) return BadRequest("Failed to toggle user lock status.");
         return Ok();
     }
+
+    [HttpGet("backup-sql")]
+    public async Task<IActionResult> GetDatabaseBackupSql([FromServices] Assura.Application.Common.Interfaces.IDatabaseBackupService backupService)
+    {
+        var backupBytes = await backupService.GenerateSqlBackupAsync();
+        var fileName = $"Assura_Backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.sql";
+        return File(backupBytes, "application/sql", fileName);
+    }
 }
