@@ -1,4 +1,5 @@
 using Assura.Application.DTOs;
+using Assura.Application.Features.SystemAdmin.Commands;
 using Assura.Application.Features.SystemAdmin.Queries;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,5 +12,27 @@ public class SystemAdminController : BaseApiController
     {
         var result = await Mediator.Send(new GetSystemAdminDashboardQuery());
         return Ok(result);
+    }
+
+    [HttpGet("users")]
+    public async Task<ActionResult<List<SystemAdminUserDto>>> GetUsers()
+    {
+        var result = await Mediator.Send(new GetSystemUsersQuery());
+        return Ok(result);
+    }
+
+    [HttpGet("security-logs")]
+    public async Task<ActionResult<List<SystemAdminAuditLogDto>>> GetSecurityLogs()
+    {
+        var result = await Mediator.Send(new GetSecurityLogsQuery());
+        return Ok(result);
+    }
+
+    [HttpPut("users/{id}/toggle-lock")]
+    public async Task<IActionResult> ToggleUserLock(int id)
+    {
+        var success = await Mediator.Send(new ToggleUserLockCommand(id));
+        if (!success) return BadRequest("Failed to toggle user lock status.");
+        return Ok();
     }
 }
