@@ -86,6 +86,11 @@ public class SeedController : ControllerBase
         if (auditor != null) { auditor.PasswordHash = passwordHash; auditor.Role = UserRole.Auditor; auditor.IsActive = true; _context.Users.Update(auditor); }
         else { auditor = new User { Username = "auditor", PasswordHash = passwordHash, Email = "auditor@assura.com", FirstName = "System", LastName = "Auditor", Role = UserRole.Auditor, IsActive = true, CreatedAt = DateTime.UtcNow }; _context.Users.Add(auditor); }
 
+        var sysadminPasswordHash = BCrypt.Net.BCrypt.HashPassword("SysAdmin@123");
+        var sysadmin = await _context.Users.FirstOrDefaultAsync(u => u.Username == "sysadmin");
+        if (sysadmin != null) { sysadmin.PasswordHash = sysadminPasswordHash; sysadmin.Role = UserRole.SystemAdmin; sysadmin.IsActive = true; _context.Users.Update(sysadmin); }
+        else { sysadmin = new User { Username = "sysadmin", PasswordHash = sysadminPasswordHash, Email = "sysadmin@assura.com", FirstName = "System", LastName = "Administrator", Role = UserRole.SystemAdmin, IsActive = true, CreatedAt = DateTime.UtcNow }; _context.Users.Add(sysadmin); }
+
         await _context.SaveChangesAsync(default);
         return Ok("Test users updated/seeded successfully with password: Password@123");
     }

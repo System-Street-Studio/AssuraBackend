@@ -12,4 +12,5 @@ public static class Roles
     public const string DivisionHead = "DivisionHead";
     public const string Accountant = "Accountant";
     public const string Auditor = "Auditor";
+    public const string SystemAdmin = "SystemAdmin";
 }
