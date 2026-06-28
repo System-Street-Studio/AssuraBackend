@@ -43,4 +43,18 @@ public class SystemAdminController : BaseApiController
         var fileName = $"Assura_Backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.sql";
         return File(backupBytes, "application/sql", fileName);
     }
+
+    [HttpGet("error-logs")]
+    public async Task<IActionResult> GetSystemErrorLogs()
+    {
+        return Ok(await Mediator.Send(new GetSystemLogsQuery()));
+    }
+
+    [HttpPost("users/{id}/reset-password")]
+    public async Task<IActionResult> ResetUserPassword(int id)
+    {
+        var success = await Mediator.Send(new ResetUserPasswordCommand(id));
+        if (!success) return BadRequest("Failed to reset user password. Cannot reset system admin.");
+        return Ok();
+    }
 }
