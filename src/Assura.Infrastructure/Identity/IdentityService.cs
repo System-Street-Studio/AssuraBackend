@@ -65,6 +65,12 @@ public class IdentityService : IIdentifyServices
             return null;
         }
 
+        if (user.IsLocked)
+        {
+            Console.WriteLine("[DEBUG] User is locked");
+            throw new UnauthorizedAccessException("Your account has been locked by the system administrator.");
+        }
+
         Console.WriteLine("[DEBUG] User found, verifying password...");
         bool isPasswordValid = false;
         try {

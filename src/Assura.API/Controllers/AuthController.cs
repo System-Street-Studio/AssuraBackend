@@ -43,6 +43,9 @@ public class AuthController : ControllerBase
                 Console.WriteLine("[DEBUG] AuthController: Login failed (null result), returning 401 Unauthorized");
                 return Unauthorized(new { Message = "Invalid username or password." });
             }
+        } catch (UnauthorizedAccessException ex) {
+            Console.WriteLine($"[DEBUG] AuthController: Login failed (UnauthorizedAccess): {ex.Message}");
+            return Unauthorized(new { Message = ex.Message });
         } catch (Exception ex) {
             Console.WriteLine($"[DEBUG] AuthController: Error during login: {ex.Message}");
             throw;
