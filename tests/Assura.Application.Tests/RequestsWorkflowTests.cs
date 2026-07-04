@@ -346,5 +346,32 @@ public class RequestsWorkflowTests
         Assert.True(savedAsset.ReservedUntilUtc.HasValue);
     }
 
+    [Fact]
+    public async Task GetRequestsQuery_EmployeeRole_ReturnsOnlyLoggedInUsersRequests()
+    {
+        using var db = CreateContext();
+
+        var division = new Division { Id = 50, Name = "HR" };
+        db.Divisions.Add(division);
+
+        var employee1 = new User { Id = 1001, FirstName = "Kanuj", Role = UserRole.Employee, DivisionId = division.Id };
+        var employee2 = new User { Id = 1002, FirstName = "Kamal", Role = UserRole.Employee, DivisionId = division.Id };
+        db.Users.AddRange(employee1, employee2);
+
+        db.Requests.AddRange(
+            new Request { Id = 2001, RequesterId = employee1.Id, Status = RequestWorkflowStatus.PendingDivisionHeadApproval, Priority = PriorityType.Medium, RequestNumber = "REQ-1" },
+            new Request { Id = 2002, RequesterId = employee2.Id, Status = RequestWorkflowStatus.PendingDivisionHeadApproval, Priority = PriorityType.Medium, RequestNumber = "REQ-2" }
+        );
+        await db.SaveChangesAsync();
+
+        var handler = new GetRequestsQueryHandler(db);
+        
+        var query = new GetRequestsQuery(UserId: employee1.Id, Role: UserRole.Employee);
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Equal(2001, result[0].Id);
+    }
+
     private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }
