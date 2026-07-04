@@ -134,7 +134,7 @@ public class RequestsWorkflowTests
         var finalized = await db.Requests.FirstAsync(r => r.Id == requestId);
         var assignedAsset = await db.Assets.FirstAsync(a => a.Id == asset.Id);
 
-        Assert.Equal(RequestWorkflowStatus.Approved, finalized.Status);
+        Assert.Equal("Checked Out", finalized.Status);
         Assert.True(finalized.PickupConfirmedAt.HasValue);
         Assert.Equal(employee.Id, assignedAsset.AssignedUserId);
         Assert.Equal(AssetStatus.InUse, assignedAsset.Status);
