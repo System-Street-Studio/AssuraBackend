@@ -2,6 +2,7 @@
 using Assura.API.Middleware;
 using Assura.Application;
 using Assura.Infrastructure;
+using Assura.Infrastructure.Persistence;
 using DotNetEnv;
 using Microsoft.OpenApi.Models;
 
@@ -83,6 +84,10 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// Seed default categories (Building, Computer & Peripherals, etc.) into the database
+await DbInitializer.SeedAsync(app.Services);
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
