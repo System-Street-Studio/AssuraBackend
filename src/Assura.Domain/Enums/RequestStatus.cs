@@ -13,5 +13,7 @@ public enum RequestStatus
     Passed = 4,
     TemporaryAssigned = 5,
     PendingProcurement = 6,
-    PendingStorekeeperReview = 7
+    SKPending = 7,
+    SKApproved = 8,
+    SKRejected = 9,
 }
