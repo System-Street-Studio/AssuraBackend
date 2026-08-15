@@ -1,26 +1,36 @@
 using Assura.Application.Common.Interfaces;
-using Assura.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Assura.Application.NewArrivals.Queries;
 
-public record GetAssetInformingsQuery : IRequest<List<AssetInformingDto>>;
+public record GetEmployeeArrivalsQuery(int UserId, int? DivisionId = null) : IRequest<List<AssetInformingDto>>;
 
-public class GetAssetInformingsQueryHandler : IRequestHandler<GetAssetInformingsQuery, List<AssetInformingDto>>
+public class GetEmployeeArrivalsQueryHandler : IRequestHandler<GetEmployeeArrivalsQuery, List<AssetInformingDto>>
 {
     private readonly IApplicationDbContext _context;
 
-    public GetAssetInformingsQueryHandler(IApplicationDbContext context)
+    public GetEmployeeArrivalsQueryHandler(IApplicationDbContext context)
     {
         _context = context;
     }
 
-    public async Task<List<AssetInformingDto>> Handle(GetAssetInformingsQuery request, CancellationToken cancellationToken)
+    public async Task<List<AssetInformingDto>> Handle(GetEmployeeArrivalsQuery request, CancellationToken cancellationToken)
     {
-        return await _context.AssetInformings
+        var query = _context.AssetInformings
+            .AsNoTracking()
             .Include(x => x.Division)
             .Include(x => x.TargetEmployee)
+            .Where(x => !x.IsDeleted && (
+                x.TargetEmployeeId == request.UserId ||
+                (x.TargetEmployeeId == null && request.DivisionId.HasValue && x.DivisionId == request.DivisionId.Value)
+            ));
+
+        return await query
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new AssetInformingDto
             {
