@@ -28,6 +28,7 @@ public class UserController : ControllerBase
 
     // Retrieves a list of users who can be assigned assets.
     [HttpGet("assignable-users")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
     public async Task<IActionResult> GetAssignableUsers()
     {
 

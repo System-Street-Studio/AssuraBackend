@@ -1,6 +1,7 @@
 using MediatR;
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Transfers.Handlers;
 
@@ -23,11 +24,24 @@ public class RejectTransferByHeadCommandHandler : IRequestHandler<Commands.Rejec
         }
 
         // Allow rejection if pending any approval
-        if (transfer.Status != TransferStatus.PendingOwnerDivisionHeadApproval && 
+        if (transfer.Status != TransferStatus.PendingOwnerDivisionHeadApproval &&
             transfer.Status != TransferStatus.PendingOwnerApproval &&
             transfer.Status != TransferStatus.WaitingForFinalConfirmation)
         {
             throw new Exception($"Cannot reject transfer in status {transfer.Status}");
+        }
+
+        // Which division's head may reject depends on which approval stage the
+        // transfer is waiting at — mirrors GetDivisionHeadTransferQueryHandler's
+        // "incoming"/"outgoing"/"pending" tab scoping for the same statuses.
+        var expectedDivisionId = transfer.Status == TransferStatus.PendingOwnerDivisionHeadApproval
+            ? transfer.FromDivisionId
+            : transfer.ToDivisionId;
+
+        var caller = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.DivisionHeadId, cancellationToken);
+        if (caller?.DivisionId == null || caller.DivisionId != expectedDivisionId)
+        {
+            throw new UnauthorizedAccessException("You may only reject transfers pending your own division's action.");
         }
 
         var oldStatus = transfer.Status;

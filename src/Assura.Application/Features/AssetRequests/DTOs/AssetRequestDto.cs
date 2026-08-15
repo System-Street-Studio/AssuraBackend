@@ -16,6 +16,10 @@ public class AssetRequestDto
     public string Email { get; set; } = string.Empty;
     public int? Quantity { get; set; }
     public string RequestType { get; set; } = string.Empty;
+    public string? ProcessedByName { get; set; }
+    public string? ProcessorRemarks { get; set; }
+    public DateTime? ProcessedAt { get; set; }
+    public string? RejectionReason { get; set; }
     public List<AttachmentDto> Attachments { get; set; } = new();
 }
 

@@ -93,15 +93,19 @@ public class TransfersController : ControllerBase
     }
 
    
-    // Retrieves counts of transfers for the logged-in user's division head dashboard
-    
+    // Retrieves counts of transfers for the logged-in user's dashboard (Division Head
+    // or Employee, depending on role — see GetTransferCountsQueryHandler). The caller
+    // is always taken from the JWT, never trusted from the query string, so nobody can
+    // view another user's (including another Division Head's) dashboard counts by
+    // passing a different id.
     [HttpGet("counts")]
-    public async Task<ActionResult<TransferCountsDto>> GetTransferCounts([FromQuery] int userId)
+    public async Task<ActionResult<TransferCountsDto>> GetTransferCounts()
     {
-        if (userId <= 0) return BadRequest("Invalid User ID");
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdClaim, out var userId)) return Unauthorized();
 
         var query = new GetTransferCountsQuery(userId);
-        var result = await _mediator.Send(query); 
+        var result = await _mediator.Send(query);
         return Ok(result);
     }
 
@@ -228,6 +232,10 @@ public class TransfersController : ControllerBase
                 return Ok(new { message = "Transfer approved by division head" });
             return BadRequest("Failed to approve transfer");
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             return BadRequest(ex.Message);
@@ -248,6 +256,10 @@ public class TransfersController : ControllerBase
             if (result)
                 return Ok(new { message = "Transfer cancelled by division head" });
             return BadRequest("Failed to cancel transfer");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -270,6 +282,10 @@ public class TransfersController : ControllerBase
                 return Ok(new { message = "Transfer confirmed by division head" });
             return BadRequest("Failed to confirm transfer");
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             return BadRequest(ex.Message);
@@ -282,12 +298,20 @@ public class TransfersController : ControllerBase
     {
         try
         {
-            var headIdClaim = User.FindFirst("UserId")?.Value ?? "0";
-            int headId = int.Parse(headIdClaim);
+            // Was reading a non-existent "UserId" claim (the JWT only issues the
+            // standard NameIdentifier claim — see JwtTokenGenerator), so headId was
+            // always 0 here regardless of who called this endpoint. Matches the
+            // claim lookup used by the other three by-head actions above.
+            var headIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int headId = int.Parse(headIdClaim ?? "0");
 
             var command = new RejectTransferByHeadCommand(id, headId, dto.Reason);
             var result = await _mediator.Send(command);
             return Ok(new { success = result, message = "Rejected by head successfully" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { success = false, message = ex.Message });
         }
         catch (Exception ex)
         {

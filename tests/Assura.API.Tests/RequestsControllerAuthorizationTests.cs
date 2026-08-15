@@ -57,6 +57,19 @@ public class RequestsControllerAuthorizationTests
         AssertRoles(authorize!.Roles, "Storekeeper", "Admin");
     }
 
+    // Covers the BUGS.md Employee finding: "any authenticated Employee can call
+    // PUT /api/requests/{id}/status and set any request to Approved/Fulfilled/etc.",
+    // since the endpoint previously had no role restriction beyond the base [Authorize].
+    [Fact]
+    public void UpdateStatus_ShouldAllowOnlyStorekeeperAdminProcurement()
+    {
+        var method = GetMethod(nameof(RequestsController.UpdateStatus));
+        var authorize = method.GetCustomAttribute<AuthorizeAttribute>();
+
+        Assert.NotNull(authorize);
+        AssertRoles(authorize!.Roles, "Storekeeper", "Admin", "Procurement");
+    }
+
     private static MethodInfo GetMethod(string methodName)
     {
         var method = typeof(RequestsController).GetMethod(methodName);

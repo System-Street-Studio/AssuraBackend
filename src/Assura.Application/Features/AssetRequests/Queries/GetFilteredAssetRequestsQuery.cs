@@ -84,6 +84,10 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
             Email = x.User?.Email ?? string.Empty,
             Quantity = x.Quantity,
             RequestType = x.RequestType,
+            ProcessedByName = x.ProcessedByName,
+            ProcessorRemarks = x.ProcessorRemarks,
+            ProcessedAt = x.ProcessedAt,
+            RejectionReason = x.RejectionReason,
             Attachments = x.Attachments.Select(a => new AttachmentDto
             {
                 Id = a.Id,

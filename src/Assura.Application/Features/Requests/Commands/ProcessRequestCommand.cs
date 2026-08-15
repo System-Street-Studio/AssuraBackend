@@ -156,6 +156,21 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
 
     private async Task ProcessAssetRequest(AssetRequest assetRequest, ProcessRequestCommand request, CancellationToken cancellationToken)
     {
+        assetRequest.ProcessorRemarks = request.Remarks;
+        assetRequest.ProcessedByUserId = request.ProcessedByUserId;
+        assetRequest.ProcessedAt = DateTime.UtcNow;
+
+        if (request.ProcessedByUserId.HasValue)
+        {
+            var processor = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == request.ProcessedByUserId.Value, cancellationToken);
+
+            if (processor != null)
+            {
+                assetRequest.ProcessedByName = $"{processor.FirstName} {processor.LastName}";
+            }
+        }
+
         if (request.IsInStock)
         {
             if (!request.AssetId.HasValue) return;

@@ -2,6 +2,7 @@ using MediatR;
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Enums;
 using Assura.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Transfers.Handlers;
 
@@ -26,6 +27,16 @@ public class ApproveTransferByHeadCommandHandler : IRequestHandler<Commands.Appr
         if (transfer.Status != TransferStatus.PendingOwnerDivisionHeadApproval)
         {
             throw new Exception($"Cannot approve transfer in status {transfer.Status}");
+        }
+
+        // At this stage the transfer is awaiting the *source* (FromDivision) head's
+        // approval — see GetDivisionHeadTransferQueryHandler's "incoming" tab, which
+        // scopes the same status by FromDivisionId. Without this check any Division
+        // Head could approve another division's outgoing transfer.
+        var caller = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+        if (caller?.DivisionId == null || caller.DivisionId != transfer.FromDivisionId)
+        {
+            throw new UnauthorizedAccessException("You may only approve transfers originating from your own division.");
         }
 
         // Update status

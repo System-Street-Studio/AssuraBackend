@@ -99,6 +99,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
     public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> CreateAsset(AssetCreateDto asset)
     {
         var result = await _mediator.Send(new CreateAssetCommand(asset));
@@ -106,6 +107,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
     public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> UpdateAsset(int id, AssetUpdateDto asset)
     {
         if (id != asset.Id) return BadRequest("ID mismatch");
@@ -115,6 +117,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpPatch("{id}/status")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
     public async Task<ActionResult> PatchAssetStatus(int id, [FromBody] UpdateStatusRequest request)
     {
         var result = await _mediator.Send(new UpdateAssetStatusCommand(id, request.Status));
@@ -128,6 +131,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
     public async Task<ActionResult> DeleteAsset(int id)
     {
         var result = await _mediator.Send(new DeleteAssetCommand(id));
@@ -136,6 +140,7 @@ public class AssetsController : BaseApiController
     }
 
     [HttpPost("{id}/checkin")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper}")]
     public async Task<ActionResult<Assura.Application.DTOs.AssetDto>> CheckinAsset(int id, [FromBody] CheckinRequest request)
     {
         var actorName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Storekeeper";

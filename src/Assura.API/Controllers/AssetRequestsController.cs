@@ -4,6 +4,7 @@ using Assura.Application.Features.AssetRequests.Commands;
 using Assura.Domain.Entities;
 using Assura.Application.Features.AssetRequests.Queries;
 using System.Security.Claims;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Assura.API.Controllers;
@@ -37,11 +38,14 @@ public class AssetRequestsController : ControllerBase
                 return BadRequest(new { message = "Validation failed", errors });
             }
 
-            // Validate required fields
-            if (string.IsNullOrWhiteSpace(input.EmployeeId))
-                return BadRequest(new { message = "EmployeeId is required" });
-            if (string.IsNullOrWhiteSpace(input.SubmittedBy))
-                return BadRequest(new { message = "SubmittedBy is required" });
+            // EmployeeId/SubmittedBy are always overridden below from the authenticated
+            // user's identity, never trusted from the client — otherwise any caller could
+            // submit a request impersonating a different employee.
+            var callerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(callerId))
+                return Unauthorized();
+
             if (string.IsNullOrWhiteSpace(input.AssetName))
                 return BadRequest(new { message = "AssetName is required" });
             if (string.IsNullOrWhiteSpace(input.Priority))
@@ -83,8 +87,8 @@ public class AssetRequestsController : ControllerBase
            
             var command = new CreateAssetRequestCommand
             {
-                EmployeeId = input.EmployeeId,
-                SubmittedBy = input.SubmittedBy,
+                EmployeeId = callerId,
+                SubmittedBy = input.SubmittedBy ?? string.Empty,
                 AssetCategory = input.AssetCategory ?? string.Empty,
                 AssetName = input.AssetName,
                 Description = input.Description ?? string.Empty,
@@ -100,6 +104,11 @@ public class AssetRequestsController : ControllerBase
             var id = await _mediator.Send(command);
             return Ok(new { id, message = "Asset request created successfully" });
         }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var errors = ex.Errors.Select(e => e.ErrorMessage).ToList();
+            return BadRequest(new { message = "Validation failed", errors });
+        }
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "An error occurred while creating the asset request", error = ex.Message });
@@ -108,6 +117,11 @@ public class AssetRequestsController : ControllerBase
 
 
     
+    public class RejectAssetRequestApiInput
+    {
+        public string? Reason { get; set; }
+    }
+
     public class CreateAssetRequestApiInput
     {
         public string? EmployeeId { get; set; }
@@ -125,29 +139,101 @@ public class AssetRequestsController : ControllerBase
     }
 
 
-    // Approves an asset request by its ID.
-    [HttpPut("{id}/approve")]
-    public async Task<ActionResult<bool>> Approve(int id)
+    // Cancels a pending asset request. The requester can withdraw their own request;
+    // staff roles can also cancel on behalf of an employee.
+    [HttpPost("{id}/cancel")]
+    public async Task<IActionResult> Cancel(int id)
     {
-        var result = await _mediator.Send(new ApproveAssetRequestCommand(id));
-        return Ok(result);
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value;
+        if (!int.TryParse(userIdStr, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        var isPrivileged = role == "Admin" || role == "Storekeeper" || role == "Procurement" || role == "DivisionHead";
+
+        var result = await _mediator.Send(new CancelAssetRequestCommand(id, userId, isPrivileged));
+
+        return result switch
+        {
+            CancelAssetRequestResult.Success => NoContent(),
+            CancelAssetRequestResult.NotFound => NotFound(),
+            CancelAssetRequestResult.Forbidden => Forbid(),
+            CancelAssetRequestResult.InvalidStatus => Conflict(new { message = "Only pending requests can be cancelled." }),
+            _ => StatusCode(500)
+        };
     }
 
-    // Rejects an asset request by its ID.
-    [HttpPut("{id}/reject")] 
-    public async Task<ActionResult<bool>> Reject(int id)
+    // Approves an asset request by its ID. Only the Division Head of the requesting
+    // division (or Admin) may approve — enforced both by role and, in the handler,
+    // by matching the caller's division against the request's division.
+    [HttpPut("{id}/approve")]
+    [Authorize(Roles = "DivisionHead,Admin")]
+    public async Task<IActionResult> Approve(int id)
     {
-        
-        var result = await _mediator.Send(new RejectAssetRequestCommand(id));
-        return Ok(result);
+        var (userId, role) = GetCallerIdentity();
+        if (userId == null) return Unauthorized();
+
+        var result = await _mediator.Send(new ApproveAssetRequestCommand(id, userId.Value, role == "Admin"));
+        return result switch
+        {
+            ApproveAssetRequestResult.Success => Ok(true),
+            ApproveAssetRequestResult.NotFound => NotFound(),
+            ApproveAssetRequestResult.Forbidden => Forbid(),
+            ApproveAssetRequestResult.InvalidStatus => Conflict(new { message = "Only pending requests can be approved." }),
+            _ => StatusCode(500)
+        };
+    }
+
+    // Rejects an asset request by its ID. Same division-scoped authorization as Approve.
+    [HttpPut("{id}/reject")]
+    [Authorize(Roles = "DivisionHead,Admin")]
+    public async Task<IActionResult> Reject(int id, [FromBody] RejectAssetRequestApiInput? input = null)
+    {
+        var (userId, role) = GetCallerIdentity();
+        if (userId == null) return Unauthorized();
+
+        var result = await _mediator.Send(new RejectAssetRequestCommand(id, userId.Value, role == "Admin", input?.Reason));
+        return result switch
+        {
+            RejectAssetRequestResult.Success => Ok(true),
+            RejectAssetRequestResult.NotFound => NotFound(),
+            RejectAssetRequestResult.Forbidden => Forbid(),
+            RejectAssetRequestResult.InvalidStatus => Conflict(new { message = "Only pending requests can be rejected." }),
+            _ => StatusCode(500)
+        };
+    }
+
+    private (int? UserId, string? Role) GetCallerIdentity()
+    {
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        return int.TryParse(userIdStr, out var userId) ? (userId, role) : (null, role);
     }
 
     // Retrieves all asset requests made by a specific employee.
-    [HttpGet("employee/{employeeId}")] 
+    [HttpGet("employee/{employeeId}")]
     public async Task<IActionResult> GetByEmployee(string employeeId)
     {
         try
         {
+            var callerRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var callerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+
+            // Employees may only ever list their own requests; only staff roles can look
+            // up another employee's history by id (prevents IDOR via a guessed id).
+            var isStaffRole = callerRole == "Admin" || callerRole == "Procurement"
+                || callerRole == "Storekeeper" || callerRole == "DivisionHead";
+
+            if (!isStaffRole && (string.IsNullOrEmpty(callerId) || callerId != employeeId))
+            {
+                return Forbid();
+            }
+
             var result = await _mediator.Send(new GetFilteredAssetRequestsQuery(null, null, employeeId, false));
             return Ok(result);
         }
@@ -211,10 +297,19 @@ public class AssetRequestsController : ControllerBase
         return Ok(filteredResult);
     }
 
-        // Retrieves all approved asset transfer requests for a specific division.
+        // Retrieves approved asset transfer requests, scoped to the caller's own
+        // division for Division Head (Admin sees every division). The caller's id is
+        // always taken from the JWT — never trusted from the query string — so a
+        // Division Head can't see another division's approved transfers by passing a
+        // different headId (or none at all).
     [HttpGet("approved-transfers")]
-    public async Task<IActionResult> GetApprovedTransfers([FromQuery] int? headId = null)
+    [Authorize(Roles = "DivisionHead,Admin")]
+    public async Task<IActionResult> GetApprovedTransfers()
     {
+        var (userId, role) = GetCallerIdentity();
+        if (userId == null) return Unauthorized();
+
+        var headId = role == "Admin" ? (int?)null : userId;
         var result = await _mediator.Send(new GetApprovedTransfersQuery(headId));
         return Ok(result);
     }
@@ -223,13 +318,20 @@ public class AssetRequestsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await _mediator.Send(new GetAssetRequestByIdQuery { Id = id });
-        
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value;
+        int? userId = int.TryParse(userIdStr, out var uid) ? uid : null;
+
+        var roleStr = User.FindFirst(ClaimTypes.Role)?.Value;
+        Assura.Domain.Enums.UserRole? role = Enum.TryParse<Assura.Domain.Enums.UserRole>(roleStr, true, out var r) ? r : null;
+
+        var result = await _mediator.Send(new GetAssetRequestByIdQuery { Id = id, UserId = userId, Role = role });
+
         if (result == null)
         {
             return NotFound();
         }
-        
+
         return Ok(result);
     }
     

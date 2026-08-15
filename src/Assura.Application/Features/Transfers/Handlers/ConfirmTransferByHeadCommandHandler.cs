@@ -1,6 +1,7 @@
 using MediatR;
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Transfers.Handlers;
 
@@ -25,6 +26,15 @@ public class ConfirmTransferByHeadCommandHandler : IRequestHandler<Commands.Conf
         if (transfer.Status != TransferStatus.WaitingForFinalConfirmation)
         {
             throw new Exception($"Cannot confirm transfer in status {transfer.Status}");
+        }
+
+        // At this stage the transfer is awaiting the *destination* (ToDivision) head's
+        // final confirmation — see GetDivisionHeadTransferQueryHandler's "pending" tab,
+        // which scopes the same status by ToDivisionId.
+        var caller = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+        if (caller?.DivisionId == null || caller.DivisionId != transfer.ToDivisionId)
+        {
+            throw new UnauthorizedAccessException("You may only confirm transfers destined for your own division.");
         }
 
         // Update status to Active or ReadyForHandover

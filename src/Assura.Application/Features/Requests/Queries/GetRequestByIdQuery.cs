@@ -1,10 +1,11 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Requests.Queries;
 
-public record GetRequestByIdQuery(int Id) : IRequest<RequestDto?>;
+public record GetRequestByIdQuery(int Id, int? UserId = null, UserRole? Role = null) : IRequest<RequestDto?>;
 
 public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, RequestDto?>
 {
@@ -17,6 +18,25 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
 
     public async Task<RequestDto?> Handle(GetRequestByIdQuery request, CancellationToken cancellationToken)
     {
+        // Roles with cross-user visibility over requests. Every other caller (e.g. Employee)
+        // may only fetch a request they submitted themselves, to prevent IDOR.
+        var isPrivileged = request.Role == UserRole.Admin
+            || request.Role == UserRole.Procurement
+            || request.Role == UserRole.Storekeeper
+            || request.Role == UserRole.DivisionHead;
+
+        // Division Head is privileged over the *whole org* by role, but must still be
+        // scoped to their own division — unlike Admin/Procurement/Storekeeper, who
+        // genuinely see everything. Matches GetRequestsQueryHandler's list scoping.
+        int? headDivisionId = null;
+        if (request.Role == UserRole.DivisionHead && request.UserId.HasValue)
+        {
+            headDivisionId = await _context.Users
+                .Where(u => u.Id == request.UserId.Value)
+                .Select(u => u.DivisionId)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         // Negative ID means this is an AssetRequest record
         if (request.Id < 0)
         {
@@ -28,6 +48,15 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
                 .FirstOrDefaultAsync(a => a.Id == actualId, cancellationToken);
 
             if (ar == null) return null;
+
+            if (request.Role == UserRole.DivisionHead)
+            {
+                if (headDivisionId == null || ar.DivisionId != headDivisionId) return null;
+            }
+            else if (!isPrivileged && (!request.UserId.HasValue || ar.UserId != request.UserId.Value))
+            {
+                return null;
+            }
 
             return new RequestDto
             {
@@ -45,26 +74,41 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
             };
         }
 
-        return await _context.Requests
+        var entity = await _context.Requests
             .AsNoTracking()
             .Include(r => r.Requester)
             .Include(r => r.Requester.Division)
             .Include(r => r.Asset)
-            .Where(r => r.Id == request.Id)
-            .Select(r => new RequestDto
-            {
-                Id = r.Id,
-                RequesterId = r.RequesterId,
-                RequestNumber = r.RequestNumber,
-                Type = r.Type.ToString(),
-                Priority = r.Priority.ToString(),
-                Description = r.Description,
-                Status = r.Status,
-                CreatedAt = r.CreatedAt,
-                RequesterName = $"{r.Requester.FirstName} {r.Requester.LastName}",
-                Department = r.Requester.Division != null ? r.Requester.Division.Name : "N/A",
-                AssetName = r.Asset != null ? r.Asset.AssetCode : null
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (entity == null) return null;
+
+        if (request.Role == UserRole.DivisionHead)
+        {
+            var inHeadDivision = headDivisionId.HasValue &&
+                (entity.Requester.DivisionId == headDivisionId.Value ||
+                 (entity.Type == RequestType.Transfer && entity.Asset != null && entity.Asset.DivisionId == headDivisionId.Value));
+
+            if (!inHeadDivision) return null;
+        }
+        else if (!isPrivileged && (!request.UserId.HasValue || entity.RequesterId != request.UserId.Value))
+        {
+            return null;
+        }
+
+        return new RequestDto
+        {
+            Id = entity.Id,
+            RequesterId = entity.RequesterId,
+            RequestNumber = entity.RequestNumber,
+            Type = entity.Type.ToString(),
+            Priority = entity.Priority.ToString(),
+            Description = entity.Description,
+            Status = entity.Status,
+            CreatedAt = entity.CreatedAt,
+            RequesterName = $"{entity.Requester.FirstName} {entity.Requester.LastName}",
+            Department = entity.Requester.Division != null ? entity.Requester.Division.Name : "N/A",
+            AssetName = entity.Asset != null ? entity.Asset.AssetCode : null
+        };
     }
 }

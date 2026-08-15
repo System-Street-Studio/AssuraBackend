@@ -30,6 +30,15 @@ public class CancelTransferByHeadCommandHandler : IRequestHandler<CancelTransfer
         if (transfer.Status != TransferStatus.PendingOwnerApproval)
             throw new Exception($"Transfer cannot be cancelled from status {transfer.Status}. Expected status: {TransferStatus.PendingOwnerApproval}");
 
+        // At this stage the transfer is awaiting the *destination* (ToDivision) head's
+        // approval — see GetDivisionHeadTransferQueryHandler's "outgoing" tab, which
+        // scopes the same status by ToDivisionId.
+        var caller = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+        if (caller?.DivisionId == null || caller.DivisionId != transfer.ToDivisionId)
+        {
+            throw new UnauthorizedAccessException("You may only cancel transfers destined for your own division.");
+        }
+
         var oldStatus = transfer.Status;
         transfer.Status = TransferStatus.Cancelled;
         transfer.UpdatedAt = DateTime.UtcNow;

@@ -7,15 +7,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Requests.Commands;
 
-public record ReviewRequestByDivisionHeadCommand : IRequest
+public enum ReviewRequestByDivisionHeadResult
+{
+    Success,
+    NotFound,
+    Forbidden,
+    InvalidStatus
+}
+
+public record ReviewRequestByDivisionHeadCommand : IRequest<ReviewRequestByDivisionHeadResult>
 {
     public int Id { get; init; }
     public bool Approve { get; init; }
     public string? Remarks { get; init; }
     public int? ReviewedByUserId { get; init; }
+    public bool IsAdmin { get; init; }
 }
 
-public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewRequestByDivisionHeadCommand>
+public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewRequestByDivisionHeadCommand, ReviewRequestByDivisionHeadResult>
 {
     private readonly IApplicationDbContext _context;
 
@@ -24,15 +33,47 @@ public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewR
         _context = context;
     }
 
-    public async Task Handle(ReviewRequestByDivisionHeadCommand request, CancellationToken cancellationToken)
+    public async Task<ReviewRequestByDivisionHeadResult> Handle(ReviewRequestByDivisionHeadCommand request, CancellationToken cancellationToken)
     {
         var entity = await _context.Requests
             .Include(r => r.Requester)
+            .Include(r => r.Asset)
             .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
         if (entity == null)
         {
-            return;
+            return ReviewRequestByDivisionHeadResult.NotFound;
+        }
+
+        // Only a request still awaiting division-head approval can be decided —
+        // otherwise a head could re-approve/re-reject a request another head (or a
+        // later stage of the workflow) has already moved past.
+        if (entity.Status != RequestWorkflowStatus.PendingDivisionHeadApproval)
+        {
+            return ReviewRequestByDivisionHeadResult.InvalidStatus;
+        }
+
+        // Division Heads may only review requests raised within their own division —
+        // matches the scoping GetRequestsQueryHandler already applies when listing
+        // requests: the requester's division, or (for Transfer requests) the asset's
+        // division. Admin bypasses this check.
+        if (!request.IsAdmin)
+        {
+            var reviewerDivisionId = request.ReviewedByUserId.HasValue
+                ? await _context.Users
+                    .Where(u => u.Id == request.ReviewedByUserId.Value)
+                    .Select(u => u.DivisionId)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : null;
+
+            var inReviewerDivision = reviewerDivisionId.HasValue &&
+                (entity.Requester.DivisionId == reviewerDivisionId.Value ||
+                 (entity.Type == RequestType.Transfer && entity.Asset != null && entity.Asset.DivisionId == reviewerDivisionId.Value));
+
+            if (!inReviewerDivision)
+            {
+                return ReviewRequestByDivisionHeadResult.Forbidden;
+            }
         }
 
         entity.DivisionHeadReviewerId = request.ReviewedByUserId;
@@ -53,7 +94,7 @@ public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewR
             });
 
             await _context.SaveChangesAsync(cancellationToken);
-            return;
+            return ReviewRequestByDivisionHeadResult.Success;
         }
 
         entity.Status = RequestWorkflowStatus.PendingStorekeeperReview;
@@ -105,5 +146,6 @@ public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewR
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        return ReviewRequestByDivisionHeadResult.Success;
     }
 }
