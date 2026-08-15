@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Categories.Commands;
 
-public record UpdateCategoryCommand(int Id, string Name, string? Description) : IRequest<CategoryDto>;
+public record UpdateCategoryCommand(int Id, string Name, string? Description, decimal? DepreciationRate = null) : IRequest<CategoryDto>;
 
 public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryCommand, CategoryDto>
 {
@@ -27,6 +27,10 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
 
         entity.Name = request.Name;
         entity.Description = request.Description;
+        if (request.DepreciationRate.HasValue && request.DepreciationRate.Value >= 0)
+        {
+            entity.DepreciationRate = request.DepreciationRate.Value;
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -34,7 +38,8 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
         {
             Id = entity.Id,
             Name = entity.Name,
-            Description = entity.Description
+            Description = entity.Description,
+            DepreciationRate = entity.DepreciationRate
         };
     }
 }

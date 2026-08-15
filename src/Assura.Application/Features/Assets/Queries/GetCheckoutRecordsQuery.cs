@@ -24,7 +24,7 @@ public class CheckoutRecordDto
     public string Category { get; set; } = string.Empty;
     public string Serial { get; set; } = string.Empty;
     public string CheckedOutTo { get; set; } = string.Empty;
-    public string Department { get; set; } = string.Empty;
+    public string Division { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string CheckoutDate { get; set; } = string.Empty;
     public string DueDate { get; set; } = string.Empty;
@@ -106,7 +106,7 @@ public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecords
                     Category = r.Asset.Category?.Name ?? "-",
                     Serial = string.IsNullOrWhiteSpace(r.Asset.SerialNumber) ? "-" : r.Asset.SerialNumber,
                     CheckedOutTo = ((r.Requester?.FirstName ?? string.Empty) + " " + (r.Requester?.LastName ?? string.Empty)).Trim(),
-                    Department = r.Requester?.Division?.Name ?? "N/A",
+                    Division = r.Requester?.Division?.Name ?? "N/A",
                     Email = r.Requester?.Email ?? string.Empty,
                     CheckoutDate = DateOnly.FromDateTime(r.CreatedAt).ToString("yyyy-MM-dd"),
                     DueDate = dueDate?.ToString("yyyy-MM-dd") ?? DateOnly.FromDateTime(r.CreatedAt).ToString("yyyy-MM-dd"),

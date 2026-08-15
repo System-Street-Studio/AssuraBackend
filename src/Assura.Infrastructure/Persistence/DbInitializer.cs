@@ -18,6 +18,7 @@ public static class DbInitializer
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public decimal DepreciationRate { get; set; } = 10.0m;
     }
 
     /// <summary>
@@ -69,6 +70,7 @@ public static class DbInitializer
                 {
                     Name = dc.Name,
                     Description = dc.Description,
+                    DepreciationRate = dc.DepreciationRate > 0 ? dc.DepreciationRate : 10.0m
                 })
                 .ToList();
 
@@ -82,6 +84,23 @@ public static class DbInitializer
                 allCategories = await context.Categories
                     .IgnoreQueryFilters()
                     .ToListAsync();
+            }
+
+            // Also synchronize default rates for existing categories if unassigned or updated
+            bool updatedRates = false;
+            foreach (var existingCat in allCategories.Where(c => !c.IsDeleted))
+            {
+                var matchingSeed = defaultCategories.FirstOrDefault(dc => string.Equals(dc.Name, existingCat.Name, StringComparison.OrdinalIgnoreCase));
+                if (matchingSeed != null && matchingSeed.DepreciationRate > 0 && (existingCat.DepreciationRate <= 0 || existingCat.DepreciationRate == 10.0m && matchingSeed.DepreciationRate != 10.0m))
+                {
+                    existingCat.DepreciationRate = matchingSeed.DepreciationRate;
+                    updatedRates = true;
+                }
+            }
+            if (updatedRates)
+            {
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Updated standard depreciation rates for existing categories.");
             }
 
             // ── Step 2: Reassign assets from legacy categories to standard ones ──

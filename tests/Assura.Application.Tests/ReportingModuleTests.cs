@@ -131,5 +131,85 @@ public class ReportingModuleTests
         Assert.Contains(result.Logs, l => l.Status == "Flagged");
     }
 
+    [Fact]
+    public async Task ReportingAuditLogsQuery_ClassifiesVerifyActionAsCompleted()
+    {
+        using var db = CreateContext();
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            Id = 1,
+            EntityName = "Asset",
+            EntityId = "AST-1",
+            Action = "Verify",
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await db.SaveChangesAsync();
+
+        var handler = new GetReportingAuditLogsQueryHandler(db);
+        var result = await handler.Handle(new GetReportingAuditLogsQuery(), CancellationToken.None);
+
+        var verifyLog = Assert.Single(result.Logs, l => l.Action.StartsWith("Verify"));
+        Assert.Equal("Completed", verifyLog.Status);
+    }
+
+    [Fact]
+    public async Task ReportingAssetsQuery_FiltersBySearchTerm()
+    {
+        using var db = CreateContext();
+
+        var productA = new Product { Id = 1, Name = "ThinkPad T14" };
+        var productB = new Product { Id = 2, Name = "Dell 27 Monitor" };
+        db.Products.AddRange(productA, productB);
+
+        db.Assets.AddRange(
+            new Asset
+            {
+                Id = 1,
+                AssetCode = "AST-001",
+                AssetTag = "TAG-LAPTOP",
+                SerialNumber = "SN-LAPTOP-1",
+                AssetDate = DateTime.UtcNow,
+                Status = AssetStatus.InUse,
+                ProductId = productA.Id,
+                Product = productA
+            },
+            new Asset
+            {
+                Id = 2,
+                AssetCode = "AST-002",
+                AssetTag = "TAG-MONITOR",
+                SerialNumber = "SN-MONITOR-1",
+                AssetDate = DateTime.UtcNow,
+                Status = AssetStatus.InUse,
+                ProductId = productB.Id,
+                Product = productB
+            });
+
+        await db.SaveChangesAsync();
+
+        var handler = new GetReportingAssetsQueryHandler(db);
+
+        var byProductName = await handler.Handle(new GetReportingAssetsQuery(SearchTerm: "thinkpad"), CancellationToken.None);
+        Assert.Single(byProductName.Assets);
+        Assert.Equal("AST-001", byProductName.Assets[0].AssetId);
+
+        var byAssetCode = await handler.Handle(new GetReportingAssetsQuery(SearchTerm: "AST-002"), CancellationToken.None);
+        Assert.Single(byAssetCode.Assets);
+        Assert.Equal("AST-002", byAssetCode.Assets[0].AssetId);
+
+        var bySerial = await handler.Handle(new GetReportingAssetsQuery(SearchTerm: "sn-laptop-1"), CancellationToken.None);
+        Assert.Single(bySerial.Assets);
+        Assert.Equal("AST-001", bySerial.Assets[0].AssetId);
+
+        var noMatch = await handler.Handle(new GetReportingAssetsQuery(SearchTerm: "nonexistent"), CancellationToken.None);
+        Assert.Empty(noMatch.Assets);
+        Assert.Equal(0, noMatch.TotalCount);
+
+        var noFilter = await handler.Handle(new GetReportingAssetsQuery(), CancellationToken.None);
+        Assert.Equal(2, noFilter.TotalCount);
+    }
+
     private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }

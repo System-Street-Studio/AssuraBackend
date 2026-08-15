@@ -20,4 +20,19 @@ public class AccPendingItem : BaseEntity
     public decimal ValueAtPurchasing { get; set; }
     public decimal CurrentValue { get; set; }
     public bool IsHighlighted { get; set; } = false;
+
+    /// <summary>
+    /// The originating QueueItem, when this pending item was raised from a Superintendent
+    /// discard-approval decision. Used to flip the QueueItem to Discarded once the
+    /// accountant confirms the asset has actually been disposed.
+    /// </summary>
+    public int? QueueItemId { get; set; }
+
+    /// <summary>
+    /// The employee who originally requested this asset be discarded, carried over from
+    /// the source AssetRequest/QueueItem. Distinct from CurrentUser, which records whoever
+    /// most recently acted on (approved) the request.
+    /// </summary>
+    public string? RequestedById { get; set; }
+    public string? RequestedByName { get; set; }
 }

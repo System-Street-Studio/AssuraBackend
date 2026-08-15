@@ -34,7 +34,7 @@ public class AssetsController : BaseApiController
             return await _mediator.Send(new GetAssetsQuery(userId));
         }
         
-        if (role == Roles.Admin || role == Roles.Storekeeper || role == Roles.Procurement)
+        if (role == Roles.Admin || role == Roles.Storekeeper || role == Roles.Procurement || role == Roles.Auditor || role == Roles.Superintendent || role == Roles.Accountant)
         {
             return await _mediator.Send(new GetAssetsQuery());
         }

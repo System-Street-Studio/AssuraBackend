@@ -3,16 +3,19 @@ using Assura.Application.Common.Interfaces;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Assura.Application.Features.AssetRequests.Events;
 
 public class AssetRequestApprovedEventHandler : INotificationHandler<AssetRequestApprovedEvent>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ILogger<AssetRequestApprovedEventHandler> _logger;
 
-    public AssetRequestApprovedEventHandler(IApplicationDbContext context)
+    public AssetRequestApprovedEventHandler(IApplicationDbContext context, ILogger<AssetRequestApprovedEventHandler> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task Handle(AssetRequestApprovedEvent notification, CancellationToken cancellationToken)
@@ -62,7 +65,9 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                     Status = QueueItemStatus.Pending,
                     Time = DateTime.UtcNow.TimeOfDay,
                     AssetType = notification.AssetCategory,
-                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A"
+                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A",
+                    RequestedById = notification.RequesterId,
+                    RequestedByName = notification.RequesterName
                 };
 
                 _context.QueueItems.Add(queueItem);
@@ -133,12 +138,9 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
         }
 
         catch (Exception ex)
-
         {
             // Log the error but don't throw - we don't want to fail the approval
-
-            Console.WriteLine($"[ERROR] Failed to create AssetInforming for approved request {notification.Id}: {ex.Message}");
-
+            _logger.LogError(ex, "Failed to process approved asset request {AssetRequestId} (type: {RequestType})", notification.Id, notification.RequestType);
         }
     }
 }

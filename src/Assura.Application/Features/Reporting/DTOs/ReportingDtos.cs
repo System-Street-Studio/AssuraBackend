@@ -67,7 +67,6 @@ public class ReportingAuditLogEntryDto
 
 public class ReportingAssetsPageDto
 {
-    public int SelectedCount { get; set; }
     public int TotalCount { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }
@@ -78,7 +77,6 @@ public class ReportingAssetRowDto
 {
     public int Id { get; set; }
     public string AssetId { get; set; } = string.Empty;
-    public bool Selected { get; set; }
     public string Swatch { get; set; } = string.Empty;
     public string ImageClass { get; set; } = string.Empty;
     public string Product { get; set; } = string.Empty;
@@ -109,6 +107,7 @@ public class ReportingReportItemDto
     public string Generated { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string Size { get; set; } = string.Empty;
+    public bool IsSystemGenerated { get; set; }
 }
 
 public class ReportingInsightDto

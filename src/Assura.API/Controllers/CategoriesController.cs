@@ -1,13 +1,13 @@
 using Assura.Application.DTOs;
 using Assura.Application.Features.Categories.Commands;
 using Assura.Application.Features.Categories.Queries;
+using Assura.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class CategoriesController : ControllerBase
+public class CategoriesController : BaseApiController
 {
     private readonly MediatR.IMediator _mediator;
 
@@ -24,6 +24,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin},{Roles.Storekeeper}")]
     public async Task<ActionResult<CategoryDto>> CreateCategory([FromBody] CreateCategoryCommand command)
     {
         var result = await _mediator.Send(command);
@@ -31,6 +32,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin},{Roles.Storekeeper}")]
     public async Task<ActionResult<CategoryDto>> UpdateCategory(int id, [FromBody] UpdateCategoryCommand command)
     {
         if (id != command.Id) return BadRequest();
@@ -39,6 +41,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin},{Roles.Storekeeper}")]
     public async Task<ActionResult> DeleteCategory(int id)
     {
         await _mediator.Send(new DeleteCategoryCommand(id));

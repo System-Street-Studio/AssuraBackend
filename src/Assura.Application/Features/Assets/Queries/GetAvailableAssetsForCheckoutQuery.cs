@@ -26,8 +26,10 @@ public class AvailableCheckoutAssetDto
 
 /// <summary>
 /// Handler for <see cref="GetAvailableAssetsForCheckoutQuery"/>.
-/// Filters assets where Status is InStore and ReservedForUserId is null,
-/// ensuring only truly available assets are returned for checkout.
+/// Filters assets where Status is InStore, ReservedForUserId is null, and
+/// AssignedUserId is null — matching the eligibility check in
+/// <see cref="Commands.CheckoutAssetCommandHandler"/> exactly, so every asset
+/// offered here can actually be checked out.
 /// </summary>
 public class GetAvailableAssetsForCheckoutQueryHandler : IRequestHandler<GetAvailableAssetsForCheckoutQuery, List<AvailableCheckoutAssetDto>>
 {
@@ -44,7 +46,7 @@ public class GetAvailableAssetsForCheckoutQueryHandler : IRequestHandler<GetAvai
             .AsNoTracking()
             .Include(a => a.Product)
             .Include(a => a.Category)
-            .Where(a => a.Status == AssetStatus.InStore && a.ReservedForUserId == null)
+            .Where(a => a.Status == AssetStatus.InStore && a.ReservedForUserId == null && a.AssignedUserId == null)
             .Select(a => new AvailableCheckoutAssetDto
             {
                 Id = a.Id,

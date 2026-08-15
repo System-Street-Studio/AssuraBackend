@@ -32,6 +32,7 @@ public class ConfirmDiscardCommandHandler : IRequestHandler<ConfirmDiscardComman
             Date = entity.Date,
             AssetType = entity.AssetType,
             CurrentUser = entity.CurrentUser,
+            RequestedByName = entity.RequestedByName,
             SpecialNote = entity.SpecialNote,
             ValueAtPurchasing = entity.ValueAtPurchasing,
             CurrentValue = entity.CurrentValue,
@@ -39,6 +40,16 @@ public class ConfirmDiscardCommandHandler : IRequestHandler<ConfirmDiscardComman
         };
 
         _context.AccDiscardedItems.Add(discardedItem);
+
+        if (entity.QueueItemId.HasValue)
+        {
+            var queueItem = await _context.QueueItems.FindAsync(new object[] { entity.QueueItemId.Value }, cancellationToken);
+            if (queueItem != null)
+            {
+                queueItem.Status = Domain.Enums.QueueItemStatus.Discarded;
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         return true;
     }

@@ -1,14 +1,15 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Assura.Application.Features.QueueItems.Queries.GetAll;
 using Assura.Application.Features.QueueItems.Commands.UpdateStatus;
 using Assura.Application.Features.QueueItems.DTOs;
+using Assura.Domain.Constants;
 
 namespace Assura.API.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class QueueItemsController : ControllerBase
+[Authorize(Roles = $"{Roles.Superintendent},{Roles.Admin}")]
+public class QueueItemsController : BaseApiController
 {
     private readonly IMediator _mediator;
 

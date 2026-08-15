@@ -8,6 +8,7 @@ public class AccDiscardedItemDto
     public string Date { get; set; } = string.Empty;
     public string AssetType { get; set; } = string.Empty;
     public string CurrentUser { get; set; } = string.Empty;
+    public string RequestedByName { get; set; } = string.Empty;
     public string SpecialNote { get; set; } = string.Empty;
     public string ValueAtPurchasing { get; set; } = string.Empty;
     public string CurrentValue { get; set; } = string.Empty;

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-[Authorize(Roles = Roles.Admin + "," + Roles.Employee)]
+[Authorize(Roles = Roles.Admin + "," + Roles.Employee + "," + Roles.Storekeeper)]
 public class AdminController : BaseApiController
 {
     private readonly IMediator _mediator;

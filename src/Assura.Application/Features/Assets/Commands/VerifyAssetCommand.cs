@@ -43,7 +43,7 @@ public class VerifyAssetCommandHandler : IRequestHandler<VerifyAssetCommand, boo
             Action = "Verify",
             EntityName = "Asset",
             EntityId = asset.AssetCode,
-            IpAddress = "N/A",
+            IpAddress = _currentUserService.IpAddress ?? "N/A",
             NewValues = $"Verified by {_currentUserService.UserId ?? "Unknown"}"
         };
 

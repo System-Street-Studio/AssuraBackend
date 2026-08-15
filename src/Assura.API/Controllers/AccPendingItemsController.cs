@@ -1,14 +1,15 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Assura.Application.Features.AccPendingItems.Queries.GetAll;
 using Assura.Application.Features.AccPendingItems.Commands.ConfirmDiscard;
 using Assura.Application.Features.AccPendingItems.DTOs;
+using Assura.Domain.Constants;
 
 namespace Assura.API.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class AccPendingItemsController : ControllerBase
+[Authorize(Roles = $"{Roles.Accountant},{Roles.Admin}")]
+public class AccPendingItemsController : BaseApiController
 {
     private readonly IMediator _mediator;
 

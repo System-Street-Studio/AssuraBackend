@@ -4,9 +4,7 @@ using Assura.Application.Features.AssetSpecifications.Queries;
 
 namespace Assura.API.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class AssetSpecificationsController : ControllerBase
+public class AssetSpecificationsController : BaseApiController
 {
     private readonly MediatR.IMediator _mediator;
 

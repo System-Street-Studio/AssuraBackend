@@ -1,5 +1,6 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Entities;
+using FluentValidation;
 using MediatR;
 
 namespace Assura.Application.Features.Reporting.Commands;
@@ -10,6 +11,28 @@ public class CreateCustomReportCommand : IRequest<string>
     public string Type { get; set; } = string.Empty;
     public bool IsScheduled { get; set; }
     public string? ScheduleFrequency { get; set; }
+}
+
+public class CreateCustomReportCommandValidator : AbstractValidator<CreateCustomReportCommand>
+{
+    private static readonly string[] AllowedFrequencies = ["Daily", "Weekly", "Monthly"];
+
+    public CreateCustomReportCommandValidator()
+    {
+        RuleFor(x => x.Title)
+            .NotEmpty()
+            .MaximumLength(200);
+
+        RuleFor(x => x.Type)
+            .NotEmpty()
+            .MaximumLength(100);
+
+        RuleFor(x => x.ScheduleFrequency)
+            .NotEmpty()
+            .Must(f => AllowedFrequencies.Contains(f))
+            .WithMessage($"ScheduleFrequency must be one of: {string.Join(", ", AllowedFrequencies)}.")
+            .When(x => x.IsScheduled);
+    }
 }
 
 public class CreateCustomReportCommandHandler : IRequestHandler<CreateCustomReportCommand, string>

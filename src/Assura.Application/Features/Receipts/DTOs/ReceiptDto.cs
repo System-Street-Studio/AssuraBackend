@@ -6,7 +6,7 @@ public class ReceiptDto
     public string AssetName { get; set; } = string.Empty;
     public string Division { get; set; } = string.Empty;
     public string Date { get; set; } = string.Empty;
-    public string Amount { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? FileUrl { get; set; }
 }
@@ -16,5 +16,5 @@ public class CreateReceiptDto
     public string AssetName { get; set; } = string.Empty;
     public string Division { get; set; } = string.Empty;
     public string Date { get; set; } = string.Empty;
-    public string Amount { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
 }

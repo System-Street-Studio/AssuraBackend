@@ -16,4 +16,11 @@ public class QueueItem : BaseEntity
     public string AssetType { get; set; } = string.Empty;
     public string SpecialNote { get; set; } = string.Empty;
     public string? ReviewNote { get; set; }
+
+    /// <summary>
+    /// The employee who originally requested this asset be discarded (from the
+    /// source AssetRequest), distinct from whoever later reviews/approves it.
+    /// </summary>
+    public string? RequestedById { get; set; }
+    public string? RequestedByName { get; set; }
 }

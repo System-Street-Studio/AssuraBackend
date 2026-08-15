@@ -1,6 +1,7 @@
 using MediatR;
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Enums;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.DiscardedNotes.Commands.UpdateStatus;
@@ -12,13 +13,25 @@ public class UpdateDiscardedNoteStatusCommand : IRequest<bool>
     public string Note { get; set; } = string.Empty;
 }
 
+public class UpdateDiscardedNoteStatusCommandValidator : AbstractValidator<UpdateDiscardedNoteStatusCommand>
+{
+    public UpdateDiscardedNoteStatusCommandValidator()
+    {
+        RuleFor(x => x.Status)
+            .Must(status => Enum.TryParse<DiscardNoteStatus>(status, true, out _))
+            .WithMessage(x => $"'{x.Status}' is not a valid discarded note status.");
+    }
+}
+
 public class UpdateDiscardedNoteStatusCommandHandler : IRequestHandler<UpdateDiscardedNoteStatusCommand, bool>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpdateDiscardedNoteStatusCommandHandler(IApplicationDbContext context)
+    public UpdateDiscardedNoteStatusCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<bool> Handle(UpdateDiscardedNoteStatusCommand request, CancellationToken cancellationToken)
@@ -44,6 +57,8 @@ public class UpdateDiscardedNoteStatusCommandHandler : IRequestHandler<UpdateDis
 
         if (isCompleting)
         {
+            var actingUserName = await ResolveActingUserNameAsync(cancellationToken);
+
             var pendingItem = new Domain.Entities.AccPendingItem
             {
                 Name = entity.Name,
@@ -52,7 +67,7 @@ public class UpdateDiscardedNoteStatusCommandHandler : IRequestHandler<UpdateDis
                 Status = "Pending",
                 Category = Domain.Enums.AccPendingCategory.Pending,
                 AssetType = entity.AssetType,
-                CurrentUser = "Superintendent",
+                CurrentUser = actingUserName,
                 SpecialNote = entity.SpecialNote ?? string.Empty,
                 ValueAtPurchasing = 0,
                 CurrentValue = 0
@@ -69,7 +84,7 @@ public class UpdateDiscardedNoteStatusCommandHandler : IRequestHandler<UpdateDis
                 _context.Notifications.Add(new Domain.Entities.Notification
                 {
                     Title = "New Discard Confirmation Needed",
-                    Message = $"Asset '{entity.Name}' from {entity.Division} was marked as discarded by Superintendent.",
+                    Message = $"Asset '{entity.Name}' from {entity.Division} was marked as discarded by {actingUserName}.",
                     UserId = acc.Id,
                     Type = "Info",
                     ReferenceId = pendingItem.Id.ToString()
@@ -79,5 +94,23 @@ public class UpdateDiscardedNoteStatusCommandHandler : IRequestHandler<UpdateDis
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    private async Task<string> ResolveActingUserNameAsync(CancellationToken cancellationToken)
+    {
+        if (int.TryParse(_currentUserService.UserId, out var actingUserId))
+        {
+            var actingUser = await _context.Users.FindAsync(new object[] { actingUserId }, cancellationToken);
+            if (actingUser != null)
+            {
+                var fullName = $"{actingUser.FirstName} {actingUser.LastName}".Trim();
+                if (!string.IsNullOrEmpty(fullName))
+                {
+                    return fullName;
+                }
+            }
+        }
+
+        return "Unknown";
     }
 }

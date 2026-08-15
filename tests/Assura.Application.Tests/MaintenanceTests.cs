@@ -75,5 +75,37 @@ public class MaintenanceTests
         Assert.Equal("General service", maintenance!.Description);
     }
 
+    [Fact]
+    public async Task GetMaintenanceStats_ShouldCountLegacyStatusFormatting()
+    {
+        using var db = CreateContext();
+
+        var product = new Product { Name = "Office Chair Ergonomic" };
+        var category = new Category { Name = "Furniture & Fittings" };
+        db.Products.Add(product);
+        db.Categories.Add(category);
+
+        var asset = new Asset { AssetCode = "AST001", Product = product, Category = category, Status = AssetStatus.UnderMaintenance };
+        db.Assets.Add(asset);
+
+        // Reproduces the live-data mix found in the Storekeeper simulation:
+        // "In Progress" (spaced) and "Pending" (legacy short form) alongside
+        // the canonical "InProgress"/"PendingApproval" the frontend writes.
+        db.Maintenances.AddRange(
+            new Maintenance { MaintenanceNumber = "MNT-A", Asset = asset, Type = MaintenanceType.Corrective, Status = "In Progress", MaintenanceDate = DateTime.UtcNow },
+            new Maintenance { MaintenanceNumber = "MNT-B", Asset = asset, Type = MaintenanceType.Corrective, Status = "InProgress", MaintenanceDate = DateTime.UtcNow },
+            new Maintenance { MaintenanceNumber = "MNT-C", Asset = asset, Type = MaintenanceType.Corrective, Status = "Pending", MaintenanceDate = DateTime.UtcNow },
+            new Maintenance { MaintenanceNumber = "MNT-D", Asset = asset, Type = MaintenanceType.Corrective, Status = "PendingApproval", MaintenanceDate = DateTime.UtcNow }
+        );
+        await db.SaveChangesAsync();
+
+        var handler = new GetMaintenanceStatsQueryHandler(db);
+        var stats = await handler.Handle(new GetMaintenanceStatsQuery(), CancellationToken.None);
+
+        Assert.Equal(4, stats.Total);
+        Assert.Equal(2, stats.InProgress);
+        Assert.Equal(2, stats.PendingApproval);
+    }
+
     private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }

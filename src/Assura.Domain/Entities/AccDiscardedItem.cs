@@ -12,6 +12,7 @@ public class AccDiscardedItem : BaseEntity
     public DateTime Date { get; set; }
     public string AssetType { get; set; } = string.Empty;
     public string CurrentUser { get; set; } = string.Empty;
+    public string? RequestedByName { get; set; }
     public string SpecialNote { get; set; } = string.Empty;
     public decimal ValueAtPurchasing { get; set; }
     public decimal CurrentValue { get; set; }

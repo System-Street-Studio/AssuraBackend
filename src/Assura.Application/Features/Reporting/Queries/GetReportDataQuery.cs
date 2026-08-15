@@ -22,53 +22,41 @@ public class GetReportDataQueryHandler : IRequestHandler<GetReportDataQuery, Lis
         var result = new List<Dictionary<string, object>>();
 
         var assetsList = new List<dynamic>();
-        try
+
+        var query = _context.Assets
+            .AsNoTracking()
+            .Where(a => !a.IsDeleted);
+
+        if (request.DivisionId.HasValue && request.DivisionId.Value > 0)
         {
-            var query = _context.Assets
-                .AsNoTracking()
-                .Where(a => !a.IsDeleted);
-
-            if (request.DivisionId.HasValue && request.DivisionId.Value > 0)
-            {
-                query = query.Where(a => a.DivisionId == request.DivisionId.Value);
-            }
-
-            if (request.StartDate.HasValue)
-            {
-                query = query.Where(a => a.AssetDate >= request.StartDate.Value);
-            }
-
-            if (request.EndDate.HasValue)
-            {
-                query = query.Where(a => a.AssetDate <= request.EndDate.Value);
-            }
-
-            var assets = await query
-                .Select(a => new
-                {
-                    a.AssetCode,
-                    CategoryName = a.Category != null ? a.Category.Name : null,
-                    DivisionName = a.Division != null ? a.Division.Name : null,
-                    Status = (AssetStatus?)a.Status,
-                    a.LastVerifiedAt,
-                    a.Notes,
-                    a.AssetDate,
-                    a.PurchaseValue
-                })
-                .ToListAsync(cancellationToken);
-                
-            assetsList.AddRange(assets);
+            query = query.Where(a => a.DivisionId == request.DivisionId.Value);
         }
-        catch (Exception ex)
+
+        if (request.StartDate.HasValue)
         {
-            var row = new Dictionary<string, object>
-            {
-                { "Error", ex.Message },
-                { "InnerError", ex.InnerException?.Message ?? "" },
-                { "StackTrace", ex.StackTrace ?? "" }
-            };
-            return new List<Dictionary<string, object>> { row };
+            query = query.Where(a => a.AssetDate >= request.StartDate.Value);
         }
+
+        if (request.EndDate.HasValue)
+        {
+            query = query.Where(a => a.AssetDate <= request.EndDate.Value);
+        }
+
+        var assets = await query
+            .Select(a => new
+            {
+                a.AssetCode,
+                CategoryName = a.Category != null ? a.Category.Name : null,
+                DivisionName = a.Division != null ? a.Division.Name : null,
+                Status = (AssetStatus?)a.Status,
+                a.LastVerifiedAt,
+                a.Notes,
+                a.AssetDate,
+                a.PurchaseValue
+            })
+            .ToListAsync(cancellationToken);
+
+        assetsList.AddRange(assets);
 
         var type = request.ReportType?.ToLower() ?? "audit";
 

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.Reporting.Queries;
 
-public record GetReportingAssetsQuery(int PageNumber = 1, int PageSize = 20) : IRequest<ReportingAssetsPageDto>;
+public record GetReportingAssetsQuery(int PageNumber = 1, int PageSize = 20, string? SearchTerm = null) : IRequest<ReportingAssetsPageDto>;
 
 public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssetsQuery, ReportingAssetsPageDto>
 {
@@ -23,6 +23,16 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
         var query = _context.Assets
             .AsNoTracking()
             .Where(a => !a.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var term = request.SearchTerm.Trim().ToUpper();
+            query = query.Where(a =>
+                a.AssetCode.ToUpper().Contains(term) ||
+                (a.AssetTag != null && a.AssetTag.ToUpper().Contains(term)) ||
+                (a.SerialNumber != null && a.SerialNumber.ToUpper().Contains(term)) ||
+                (a.Product != null && a.Product.Name.ToUpper().Contains(term)));
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -100,7 +110,6 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
             {
                 Id = asset.Id,
                 AssetId = asset.AssetCode ?? string.Empty,
-                Selected = false,
                 Swatch = ReportingQueryHelpers.GetColor(index),
                 ImageClass = ReportingQueryHelpers.ResolveImageClass(asset.ProductName ?? "unknown"),
                 Product = asset.ProductName ?? "Unknown Product",
@@ -122,7 +131,6 @@ public class GetReportingAssetsQueryHandler : IRequestHandler<GetReportingAssets
             TotalCount = totalCount,
             PageNumber = request.PageNumber,
             PageSize = request.PageSize,
-            SelectedCount = 0,
             Assets = rows
         };
     }

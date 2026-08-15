@@ -33,9 +33,9 @@ public class ReportingController : BaseApiController
     }
 
     [HttpGet("assets")]
-    public async Task<ActionResult<ReportingAssetsPageDto>> GetAssets([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+    public async Task<ActionResult<ReportingAssetsPageDto>> GetAssets([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, [FromQuery] string? searchTerm = null)
     {
-        var result = await _mediator.Send(new GetReportingAssetsQuery(pageNumber, pageSize));
+        var result = await _mediator.Send(new GetReportingAssetsQuery(pageNumber, pageSize, searchTerm));
         return Ok(result);
     }
 
@@ -64,11 +64,20 @@ public class ReportingController : BaseApiController
         return Ok(result);
     }
 
+    [HttpPost("reports/{id}/complete")]
+    public async Task<ActionResult<bool>> MarkReportCompleted(string id)
+    {
+        var result = await _mediator.Send(new Assura.Application.Features.Reporting.Commands.MarkReportCompletedCommand(id));
+        if (!result) return NotFound();
+        return Ok(result);
+    }
+
 
     [HttpPost("assets/{id}/verify")]
     public async Task<ActionResult<bool>> VerifyAsset(int id)
     {
         var result = await _mediator.Send(new VerifyAssetCommand(id));
+        if (!result) return NotFound();
         return Ok(result);
     }
 }
