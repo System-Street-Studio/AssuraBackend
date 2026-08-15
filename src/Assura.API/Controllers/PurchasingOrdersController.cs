@@ -20,10 +20,26 @@ public class PurchasingOrdersController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<PurchasingOrderSummaryDto>>> GetPurchasingOrders()
+    public async Task<ActionResult<List<PurchasingOrderSummaryDto>>> GetPurchasingOrders([FromQuery] bool unregisteredOnly = false)
     {
-        _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPurchasingOrders called");
-        return await _mediator.Send(new GetPurchasingOrdersQuery());
+        _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPurchasingOrders called (unregisteredOnly={UnregisteredOnly})", unregisteredOnly);
+        return await _mediator.Send(new GetPurchasingOrdersQuery(unregisteredOnly));
+    }
+
+    [HttpPut("{id}/status")]
+    public async Task<ActionResult<bool>> UpdateStatus(int id, [FromBody] string? status)
+    {
+        var result = await _mediator.Send(new UpdatePurchasingOrderStatusCommand(id, string.IsNullOrWhiteSpace(status) ? "Registered" : status));
+        if (!result) return NotFound();
+        return Ok(true);
+    }
+
+    [HttpPut("{id}/complete")]
+    public async Task<ActionResult<bool>> CompleteOrder(int id)
+    {
+        var result = await _mediator.Send(new UpdatePurchasingOrderStatusCommand(id, "Registered"));
+        if (!result) return NotFound();
+        return Ok(true);
     }
 
     [HttpGet("{id}")]
