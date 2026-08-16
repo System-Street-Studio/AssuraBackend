@@ -40,18 +40,10 @@ public class TransferOverdueCheckerServiceTests
         var mockLogger = new Mock<ILogger<TransferOverdueCheckerService>>();
         var service = new TransferOverdueCheckerService(serviceProvider, mockLogger.Object);
 
-        try
-        {
-            // Task.Delay(_checkInterval, stoppingToken) throwing once the loop sees the
-            // token cancelled is normal BackgroundService shutdown behavior — the real
-            // host's StopAsync swallows it too. It's unrelated to the bug under test
-            // (whether LogError got called), so it's tolerated here rather than treated
-            // as a test failure.
-            await service.StartAsync(cts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        // ExecuteAsync now catches the cancellation from Task.Delay internally (see
+        // ExecuteAsync_CancelledDuringDelay_CompletesWithoutThrowing below), so
+        // StartAsync should complete without throwing here at all.
+        await service.StartAsync(cts.Token);
 
         mockLogger.Verify(
             l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
@@ -77,5 +69,33 @@ public class TransferOverdueCheckerServiceTests
         mockLogger.Verify(
             l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
+    }
+
+    // Covers the log observed live: "BackgroundService failed" /
+    // TaskCanceledException from Task.Delay(_checkInterval, stoppingToken). Unlike
+    // the two tests above (which race cancellation against the DB check), this
+    // cancels the token *while the loop is asleep in Task.Delay* — the exact path
+    // that used to escape ExecuteAsync uncaught and reach the host's error log.
+    [Fact]
+    public async Task ExecuteAsync_CancelledDuringDelay_CompletesWithoutThrowing()
+    {
+        var mockContext = new Mock<IApplicationDbContext>();
+        mockContext.Setup(c => c.Transfers).Throws(new InvalidOperationException("transient DB error"));
+        var serviceProvider = BuildServiceProvider(mockContext.Object);
+
+        var mockLogger = new Mock<ILogger<TransferOverdueCheckerService>>();
+        var service = new TransferOverdueCheckerService(serviceProvider, mockLogger.Object);
+
+        using var cts = new CancellationTokenSource();
+        await service.StartAsync(cts.Token);
+
+        // Let the first (failing) check run so the loop reaches Task.Delay(24h,
+        // token), then cancel while it's asleep there.
+        await Task.Delay(50);
+        cts.Cancel();
+
+        var completed = await Task.WhenAny(service.ExecuteTask!, Task.Delay(TimeSpan.FromSeconds(2)));
+        Assert.Same(service.ExecuteTask, completed);
+        Assert.True(service.ExecuteTask!.IsCompletedSuccessfully);
     }
 }

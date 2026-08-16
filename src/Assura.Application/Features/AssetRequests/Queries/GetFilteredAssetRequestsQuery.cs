@@ -23,6 +23,7 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
             .Include(x => x.User)
             .Include(x => x.Division)
             .Include(x => x.Attachments)
+            .Include(x => x.Asset!.AssignedUser)
             .AsQueryable();
 
         // Filter by employee
@@ -88,6 +89,9 @@ public class GetFilteredAssetRequestsQueryHandler : IRequestHandler<GetFilteredA
             ProcessorRemarks = x.ProcessorRemarks,
             ProcessedAt = x.ProcessedAt,
             RejectionReason = x.RejectionReason,
+            AssigneeName = x.Asset != null && x.Asset.AssignedUser != null
+                ? $"{x.Asset.AssignedUser.FirstName} {x.Asset.AssignedUser.LastName}"
+                : null,
             Attachments = x.Attachments.Select(a => new AttachmentDto
             {
                 Id = a.Id,

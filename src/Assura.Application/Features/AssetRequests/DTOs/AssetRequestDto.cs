@@ -20,6 +20,7 @@ public class AssetRequestDto
     public string? ProcessorRemarks { get; set; }
     public DateTime? ProcessedAt { get; set; }
     public string? RejectionReason { get; set; }
+    public string? AssigneeName { get; set; }
     public List<AttachmentDto> Attachments { get; set; } = new();
 }
 

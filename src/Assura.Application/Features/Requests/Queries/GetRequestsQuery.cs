@@ -22,6 +22,7 @@ public class RequestDto
     public string? AssetName { get; set; }
     public string? AssetCode { get; set; }
     public string? AssetDivisionName { get; set; }
+    public string? AssigneeName { get; set; }
 }
 
 public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<RequestDto>>

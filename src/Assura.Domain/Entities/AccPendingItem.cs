@@ -35,4 +35,11 @@ public class AccPendingItem : BaseEntity
     /// </summary>
     public string? RequestedById { get; set; }
     public string? RequestedByName { get; set; }
+
+    /// <summary>
+    /// The Asset being disposed of, carried over from the source DiscardedNote/QueueItem.
+    /// Used by ConfirmDiscardCommand to flip the real Asset record to Discarded once the
+    /// accountant confirms the physical disposal.
+    /// </summary>
+    public int? AssetId { get; set; }
 }

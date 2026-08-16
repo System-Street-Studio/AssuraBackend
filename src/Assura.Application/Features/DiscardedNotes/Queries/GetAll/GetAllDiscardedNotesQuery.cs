@@ -21,7 +21,31 @@ public class GetAllDiscardedNotesQueryHandler : IRequestHandler<GetAllDiscardedN
 
     public async Task<List<DiscardedNoteDto>> Handle(GetAllDiscardedNotesQuery request, CancellationToken cancellationToken)
     {
-        var notes = await _context.DiscardedNotes.AsNoTracking().ToListAsync(cancellationToken);
-        return _mapper.Map<List<DiscardedNoteDto>>(notes);
+        var notes = await _context.DiscardedNotes
+            .AsNoTracking()
+            .Where(n => n.Status == Domain.Enums.DiscardNoteStatus.Completed)
+            .OrderByDescending(x => x.Date)
+            .ToListAsync(cancellationToken);
+        var dtos = _mapper.Map<List<DiscardedNoteDto>>(notes);
+
+        var assetIds = notes.Where(n => n.AssetId.HasValue).Select(n => n.AssetId!.Value).Distinct().ToList();
+        var assigneeByAssetId = await _context.Assets
+            .AsNoTracking()
+            .Include(a => a.AssignedUser)
+            .Where(a => assetIds.Contains(a.Id))
+            .ToDictionaryAsync(
+                a => a.Id,
+                a => a.AssignedUser != null ? $"{a.AssignedUser.FirstName} {a.AssignedUser.LastName}" : null,
+                cancellationToken);
+
+        for (var i = 0; i < notes.Count; i++)
+        {
+            if (notes[i].AssetId.HasValue && assigneeByAssetId.TryGetValue(notes[i].AssetId!.Value, out var assigneeName))
+            {
+                dtos[i].AssigneeName = assigneeName;
+            }
+        }
+
+        return dtos;
     }
 }

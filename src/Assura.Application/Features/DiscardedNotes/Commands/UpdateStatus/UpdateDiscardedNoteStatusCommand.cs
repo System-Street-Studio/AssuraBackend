@@ -55,9 +55,35 @@ public class UpdateDiscardedNoteStatusCommandHandler : IRequestHandler<UpdateDis
             entity.SpecialNote = request.Note;
         }
 
+        if (entity.QueueItemId.HasValue && status == DiscardNoteStatus.Rejected)
+        {
+            var queueItem = await _context.QueueItems.FindAsync(new object[] { entity.QueueItemId.Value }, cancellationToken);
+            if (queueItem != null)
+            {
+                queueItem.Status = QueueItemStatus.Rejected;
+                if (!string.IsNullOrEmpty(request.Note))
+                {
+                    queueItem.ReviewNote = request.Note;
+                }
+            }
+        }
+
         if (isCompleting)
         {
             var actingUserName = await ResolveActingUserNameAsync(cancellationToken);
+
+            decimal purchasePrice = 0;
+            decimal currentValue = 0;
+
+            if (entity.AssetId.HasValue)
+            {
+                var asset = await _context.Assets.FindAsync(new object[] { entity.AssetId.Value }, cancellationToken);
+                if (asset != null)
+                {
+                    purchasePrice = asset.PurchaseValue;
+                    currentValue = asset.PurchaseValue;
+                }
+            }
 
             var pendingItem = new Domain.Entities.AccPendingItem
             {
@@ -69,8 +95,12 @@ public class UpdateDiscardedNoteStatusCommandHandler : IRequestHandler<UpdateDis
                 AssetType = entity.AssetType,
                 CurrentUser = actingUserName,
                 SpecialNote = entity.SpecialNote ?? string.Empty,
-                ValueAtPurchasing = 0,
-                CurrentValue = 0
+                ValueAtPurchasing = purchasePrice,
+                CurrentValue = currentValue,
+                AssetId = entity.AssetId,
+                QueueItemId = entity.QueueItemId,
+                RequestedById = entity.RequestedByUserId?.ToString(),
+                RequestedByName = entity.RequestedByName
             };
 
             _context.AccPendingItems.Add(pendingItem);

@@ -95,6 +95,16 @@ public class CreateMaintenanceCommandHandler : IRequestHandler<CreateMaintenance
                 {
                     originalRequest.Status = "Completed";
                 }
+                else
+                {
+                    var originalAssetRequest = await _context.AssetRequests
+                        .FirstOrDefaultAsync(ar => ar.Id == request.RequestId.Value, cancellationToken);
+
+                    if (originalAssetRequest != null && originalAssetRequest.Status == RequestStatus.PendingProcurement)
+                    {
+                        originalAssetRequest.Status = RequestStatus.Passed;
+                    }
+                }
             }
         }
 

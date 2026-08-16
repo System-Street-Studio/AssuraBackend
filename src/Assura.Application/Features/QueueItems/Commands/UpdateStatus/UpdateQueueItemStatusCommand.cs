@@ -56,9 +56,43 @@ public class UpdateQueueItemStatusCommandHandler : IRequestHandler<UpdateQueueIt
             entity.ReviewNote = request.ReviewNote;
         }
 
+        var matchingNote = await _context.DiscardedNotes
+            .FirstOrDefaultAsync(d => d.QueueItemId == entity.Id || (d.Name == entity.Name && d.Division == entity.Division && d.Status == DiscardNoteStatus.Pending), cancellationToken);
+
+        if (matchingNote != null)
+        {
+            if (isApproving)
+            {
+                matchingNote.Status = DiscardNoteStatus.Completed;
+            }
+            else if (string.Equals(request.Status, "Rejected", StringComparison.OrdinalIgnoreCase))
+            {
+                matchingNote.Status = DiscardNoteStatus.Rejected;
+            }
+
+            if (!string.IsNullOrEmpty(request.ReviewNote))
+            {
+                matchingNote.SpecialNote = request.ReviewNote;
+            }
+        }
+
         if (isApproving)
         {
             var actingUserName = await ResolveActingUserNameAsync(cancellationToken);
+
+            int? assetId = matchingNote?.AssetId;
+            decimal purchasePrice = 0;
+            decimal currentValue = 0;
+
+            if (assetId.HasValue)
+            {
+                var asset = await _context.Assets.FindAsync(new object[] { assetId.Value }, cancellationToken);
+                if (asset != null)
+                {
+                    purchasePrice = asset.PurchaseValue;
+                    currentValue = asset.PurchaseValue;
+                }
+            }
 
             var pendingItem = new Domain.Entities.AccPendingItem
             {
@@ -70,8 +104,9 @@ public class UpdateQueueItemStatusCommandHandler : IRequestHandler<UpdateQueueIt
                 AssetType = entity.AssetType,
                 CurrentUser = actingUserName,
                 SpecialNote = entity.SpecialNote ?? string.Empty,
-                ValueAtPurchasing = 0,
-                CurrentValue = 0,
+                ValueAtPurchasing = purchasePrice,
+                CurrentValue = currentValue,
+                AssetId = assetId,
                 QueueItemId = entity.Id,
                 RequestedById = entity.RequestedById,
                 RequestedByName = entity.RequestedByName

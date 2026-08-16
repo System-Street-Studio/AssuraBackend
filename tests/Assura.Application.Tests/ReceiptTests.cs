@@ -41,7 +41,6 @@ public class ReceiptTests
     [InlineData("", "Engineering", "15 Aug 2026", 100)]
     [InlineData("MacBook", "", "15 Aug 2026", 100)]
     [InlineData("MacBook", "Engineering", "not-a-date", 100)]
-    [InlineData("MacBook", "Engineering", "15 Aug 2026", 0)]
     [InlineData("MacBook", "Engineering", "15 Aug 2026", -50)]
     public void Validator_WithInvalidCommand_ShouldFail(string assetName, string division, string date, decimal amount)
     {
@@ -80,7 +79,7 @@ public class ReceiptTests
     }
 
     [Fact]
-    public async Task Behavior_ShouldRejectZeroAmount_BeforeReachingHandler()
+    public async Task Behavior_ShouldRejectNegativeAmount_BeforeReachingHandler()
     {
         using var context = TestContextFactory.CreateContext();
         var handler = new CreateReceiptCommandHandler(context);
@@ -92,7 +91,7 @@ public class ReceiptTests
             AssetName = "Dell XPS 15",
             Division = "Engineering",
             Date = "10 Aug 2026",
-            Amount = 0
+            Amount = -10
         };
 
         await Assert.ThrowsAsync<ValidationException>(() =>

@@ -42,8 +42,17 @@ public class TransferOverdueCheckerService : BackgroundService
                 }
             }
 
-            // Wait for next check interval
-            await Task.Delay(_checkInterval, stoppingToken);
+            // Wait for next check interval. A cancelled delay here just means the host
+            // is shutting down while we're asleep — that's the normal, expected way this
+            // loop ends, not a failure, so it's swallowed instead of left to escape
+            // ExecuteAsync (which the host logs as "BackgroundService failed").
+            try
+            {
+                await Task.Delay(_checkInterval, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+            }
         }
     }
 

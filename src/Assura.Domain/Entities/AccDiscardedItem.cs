@@ -17,4 +17,10 @@ public class AccDiscardedItem : BaseEntity
     public decimal ValueAtPurchasing { get; set; }
     public decimal CurrentValue { get; set; }
     public TimeSpan Time { get; set; }
+
+    /// <summary>
+    /// The Receipt the Accountant attached as proof of disposal when confirming this
+    /// discard — required by ConfirmDiscardCommand, so every discarded item has one.
+    /// </summary>
+    public int? ReceiptId { get; set; }
 }

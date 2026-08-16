@@ -11,4 +11,5 @@ public class DiscardedNoteDto
     public string AssetType { get; set; } = string.Empty;
     public string SpecialNote { get; set; } = string.Empty;
     public string? RequestedByName { get; set; }
+    public string? AssigneeName { get; set; }
 }

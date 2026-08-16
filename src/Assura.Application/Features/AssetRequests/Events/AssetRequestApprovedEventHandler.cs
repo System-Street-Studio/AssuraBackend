@@ -53,7 +53,8 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                     AssetType = notification.AssetCategory,
                     SpecialNote = notification.Reason ?? notification.Description ?? "N/A",
                     RequestedByUserId = int.TryParse(notification.RequesterId, out var requesterIdVal) ? requesterIdVal : null,
-                    RequestedByName = notification.RequesterName
+                    RequestedByName = notification.RequesterName,
+                    AssetId = request.AssetId
                 };
 
                 _context.DiscardedNotes.Add(discardedNote);
@@ -73,9 +74,13 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                 };
 
                 _context.QueueItems.Add(queueItem);
-                
-                // Save to database first to generate the discardedNote.Id
+
+                // Save to database first to generate the discardedNote.Id and queueItem.Id
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // Link the note back to its matching QueueItem so completing it later
+                // can carry the link through to the AccPendingItem it spawns.
+                discardedNote.QueueItemId = queueItem.Id;
 
                 var superintendents = await _context.Users
                     .Where(u => u.Role == UserRole.Superintendent || u.Role == UserRole.Admin)

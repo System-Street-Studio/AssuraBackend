@@ -22,6 +22,26 @@ public class GetAllAccPendingItemsQueryHandler : IRequestHandler<GetAllAccPendin
     public async Task<List<AccPendingItemDto>> Handle(GetAllAccPendingItemsQuery request, CancellationToken cancellationToken)
     {
         var items = await _context.AccPendingItems.AsNoTracking().OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
-        return _mapper.Map<List<AccPendingItemDto>>(items);
+        var dtos = _mapper.Map<List<AccPendingItemDto>>(items);
+
+        var assetIds = items.Where(i => i.AssetId.HasValue).Select(i => i.AssetId!.Value).Distinct().ToList();
+        var assigneeByAssetId = await _context.Assets
+            .AsNoTracking()
+            .Include(a => a.AssignedUser)
+            .Where(a => assetIds.Contains(a.Id))
+            .ToDictionaryAsync(
+                a => a.Id,
+                a => a.AssignedUser != null ? $"{a.AssignedUser.FirstName} {a.AssignedUser.LastName}" : null,
+                cancellationToken);
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (items[i].AssetId.HasValue && assigneeByAssetId.TryGetValue(items[i].AssetId!.Value, out var assigneeName))
+            {
+                dtos[i].AssigneeName = assigneeName;
+            }
+        }
+
+        return dtos;
     }
 }

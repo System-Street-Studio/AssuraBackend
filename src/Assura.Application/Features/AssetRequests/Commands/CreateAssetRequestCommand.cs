@@ -49,6 +49,13 @@ public class CreateAssetRequestCommandValidator : AbstractValidator<CreateAssetR
         RuleFor(x => x.RequestType).NotEmpty().MaximumLength(50);
         RuleFor(x => x.Quantity).GreaterThanOrEqualTo(0);
         RuleFor(x => x.AssetId).GreaterThan(0).When(x => x.AssetId.HasValue);
+
+        // Discard specifically requires a reason to be given — the frontend already
+        // marks this field required for a discard request, but only client-side.
+        RuleFor(x => x.Reason)
+            .NotEmpty()
+            .WithMessage("Reason is required for a discard request.")
+            .When(x => string.Equals(x.RequestType, "Discard", StringComparison.OrdinalIgnoreCase));
     }
 }
 
@@ -75,6 +82,23 @@ public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestComma
             if (user != null)
             {
                 requesterName = $"{user.FirstName} {user.LastName}";
+            }
+        }
+
+        // A discard request must target an asset actually assigned to the requester —
+        // without this, any employee could get any other employee's (or division's)
+        // asset discarded by simply supplying its AssetId.
+        if (string.Equals(request.RequestType, "Discard", StringComparison.OrdinalIgnoreCase) && request.AssetId.HasValue)
+        {
+            var asset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.Id == request.AssetId.Value, cancellationToken);
+
+            if (asset == null || !userId.HasValue || asset.AssignedUserId != userId.Value)
+            {
+                throw new FluentValidation.ValidationException(new[]
+                {
+                    new FluentValidation.Results.ValidationFailure(nameof(request.AssetId), "You can only request a discard for an asset assigned to you.")
+                });
             }
         }
 

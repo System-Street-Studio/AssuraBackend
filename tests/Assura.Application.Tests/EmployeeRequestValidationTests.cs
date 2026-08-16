@@ -114,4 +114,60 @@ public class EmployeeRequestValidationTests
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName == nameof(CreateAssetRequestCommand.Quantity));
     }
+
+    // Covers the /verify-workflow finding in WORKFLOW_BASELINE_discarding.md: the
+    // discard-form UI marks "Reason" required and disables the submit button without
+    // one, but the API itself accepted a Discard request with Reason omitted entirely —
+    // live-confirmed by posting one directly and getting a 200. Non-Discard types keep
+    // Reason optional, matching their existing (looser) UI.
+    [Fact]
+    public void CreateAssetRequestCommand_Discard_WithEmptyReason_ShouldFail()
+    {
+        var command = new CreateAssetRequestCommand
+        {
+            EmployeeId = "1",
+            SubmittedBy = "Employee One",
+            AssetName = "Laptop",
+            Priority = "Normal",
+            RequestType = "Discard",
+            Reason = ""
+        };
+
+        var result = _assetRequestValidator.Validate(command);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == nameof(CreateAssetRequestCommand.Reason));
+    }
+
+    [Fact]
+    public void CreateAssetRequestCommand_Discard_WithReason_ShouldPass()
+    {
+        var command = new CreateAssetRequestCommand
+        {
+            EmployeeId = "1",
+            SubmittedBy = "Employee One",
+            AssetName = "Laptop",
+            Priority = "Normal",
+            RequestType = "Discard",
+            Reason = "Beyond economical repair"
+        };
+
+        Assert.True(_assetRequestValidator.Validate(command).IsValid);
+    }
+
+    [Fact]
+    public void CreateAssetRequestCommand_NonDiscard_WithEmptyReason_ShouldStillPass()
+    {
+        var command = new CreateAssetRequestCommand
+        {
+            EmployeeId = "1",
+            SubmittedBy = "Employee One",
+            AssetName = "Laptop",
+            Priority = "Normal",
+            RequestType = "NewAsset",
+            Reason = ""
+        };
+
+        Assert.True(_assetRequestValidator.Validate(command).IsValid);
+    }
 }

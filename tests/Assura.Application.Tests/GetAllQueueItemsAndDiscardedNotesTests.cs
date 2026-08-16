@@ -69,7 +69,7 @@ public class GetAllQueueItemsAndDiscardedNotesTests
         using var db = TestContextFactory.CreateContext();
         var mapper = CreateMapper();
 
-        db.DiscardedNotes.Add(new DiscardedNote { Name = "Broken Chair", Division = "Facilities", AssetType = "Furniture", Status = DiscardNoteStatus.Pending });
+        db.DiscardedNotes.Add(new DiscardedNote { Name = "Broken Chair", Division = "Facilities", AssetType = "Furniture", Status = DiscardNoteStatus.Completed });
         await db.SaveChangesAsync();
 
         var handler = new GetAllDiscardedNotesQueryHandler(db, mapper);
@@ -77,6 +77,35 @@ public class GetAllQueueItemsAndDiscardedNotesTests
 
         var dto = Assert.Single(result);
         Assert.Equal("Broken Chair", dto.Name);
-        Assert.Equal("Pending", dto.Status);
+        Assert.Equal("Completed", dto.Status);
+    }
+
+    // Covers the new "show the assignee of the asset to be discarded" requirement
+    // requested alongside the WORKFLOW_BASELINE_discarding.md fixes: the Superintendent
+    // reviewing a discard note had no way to see who the asset was assigned to, only who
+    // requested the discard.
+    [Fact]
+    public async Task GetAllDiscardedNotesQueryHandler_ShouldReturnAssigneeName_FromLinkedAsset()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var mapper = CreateMapper();
+
+        var assignee = new User { FirstName = "IT", LastName = "Employee", Role = UserRole.Employee };
+        db.Users.Add(assignee);
+        var asset = new Asset { AssetCode = "AST-0100", Status = AssetStatus.InUse };
+        db.Assets.Add(asset);
+        await db.SaveChangesAsync();
+
+        asset.AssignedUserId = assignee.Id;
+        await db.SaveChangesAsync();
+
+        db.DiscardedNotes.Add(new DiscardedNote { Name = "Broken Chair", Division = "Facilities", AssetType = "Furniture", Status = DiscardNoteStatus.Completed, AssetId = asset.Id });
+        await db.SaveChangesAsync();
+
+        var handler = new GetAllDiscardedNotesQueryHandler(db, mapper);
+        var result = await handler.Handle(new GetAllDiscardedNotesQuery(), CancellationToken.None);
+
+        var dto = Assert.Single(result);
+        Assert.Equal("IT Employee", dto.AssigneeName);
     }
 }

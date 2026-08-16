@@ -16,4 +16,5 @@ public class AccPendingItemDto
     public string ValueAtPurchasing { get; set; } = string.Empty;
     public string CurrentValue { get; set; } = string.Empty;
     public bool IsHighlighted { get; set; }
+    public string? AssigneeName { get; set; }
 }

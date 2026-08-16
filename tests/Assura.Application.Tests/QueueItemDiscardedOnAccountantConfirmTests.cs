@@ -41,8 +41,12 @@ public class QueueItemDiscardedOnAccountantConfirmTests
         var stillApproved = await db.QueueItems.FindAsync(queueItem.Id);
         Assert.Equal(QueueItemStatus.Approved, stillApproved!.Status);
 
+        var receipt = new Receipt { AssetName = "Old Printer", Division = "IT", Amount = 50, FileUrl = "/uploads/receipts/r1.pdf" };
+        db.Receipts.Add(receipt);
+        await db.SaveChangesAsync();
+
         var confirmHandler = new ConfirmDiscardCommandHandler(db);
-        var result = await confirmHandler.Handle(new ConfirmDiscardCommand { Id = pendingItem.Id }, CancellationToken.None);
+        var result = await confirmHandler.Handle(new ConfirmDiscardCommand { Id = pendingItem.Id, ReceiptId = receipt.Id }, CancellationToken.None);
 
         Assert.True(result);
         var discardedQueueItem = await db.QueueItems.FindAsync(queueItem.Id);
@@ -82,8 +86,12 @@ public class QueueItemDiscardedOnAccountantConfirmTests
         // CurrentUser records the approver, distinct from the original requester.
         Assert.NotEqual(pendingItem.CurrentUser, pendingItem.RequestedByName);
 
+        var receipt = new Receipt { AssetName = "Old Printer", Division = "IT", Amount = 50, FileUrl = "/uploads/receipts/r2.pdf" };
+        db.Receipts.Add(receipt);
+        await db.SaveChangesAsync();
+
         var confirmHandler = new ConfirmDiscardCommandHandler(db);
-        await confirmHandler.Handle(new ConfirmDiscardCommand { Id = pendingItem.Id }, CancellationToken.None);
+        await confirmHandler.Handle(new ConfirmDiscardCommand { Id = pendingItem.Id, ReceiptId = receipt.Id }, CancellationToken.None);
 
         var discardedItem = await db.AccDiscardedItems.SingleAsync();
         Assert.Equal("Jane Employee", discardedItem.RequestedByName);

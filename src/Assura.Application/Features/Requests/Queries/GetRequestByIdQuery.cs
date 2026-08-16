@@ -45,6 +45,7 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
                 .AsNoTracking()
                 .Include(a => a.User)
                 .Include(a => a.Division)
+                .Include(a => a.Asset!.AssignedUser)
                 .FirstOrDefaultAsync(a => a.Id == actualId, cancellationToken);
 
             if (ar == null) return null;
@@ -70,7 +71,10 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
                 CreatedAt = ar.SubmittedDate,
                 RequesterName = ar.RequesterName ?? "N/A",
                 Department = ar.Division?.Name ?? "N/A",
-                AssetName = ar.AssetName
+                AssetName = ar.AssetName,
+                AssigneeName = ar.Asset != null && ar.Asset.AssignedUser != null
+                    ? $"{ar.Asset.AssignedUser.FirstName} {ar.Asset.AssignedUser.LastName}"
+                    : null
             };
         }
 

@@ -26,10 +26,15 @@ public class AccPendingItemsController : BaseApiController
     }
 
     [HttpPost("{id}/discard")]
-    public async Task<ActionResult> ConfirmDiscard(int id)
+    public async Task<ActionResult> ConfirmDiscard(int id, [FromBody] ConfirmDiscardApiInput input)
     {
-        var result = await _mediator.Send(new ConfirmDiscardCommand { Id = id });
+        var result = await _mediator.Send(new ConfirmDiscardCommand { Id = id, ReceiptId = input.ReceiptId });
         if (!result) return NotFound();
         return NoContent();
+    }
+
+    public class ConfirmDiscardApiInput
+    {
+        public int ReceiptId { get; set; }
     }
 }

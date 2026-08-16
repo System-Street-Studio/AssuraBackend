@@ -33,7 +33,7 @@ public class CreateReceiptCommandValidator : AbstractValidator<CreateReceiptComm
             .WithMessage("Date must be a valid date.");
 
         RuleFor(x => x.Amount)
-            .GreaterThan(0);
+            .GreaterThanOrEqualTo(0);
     }
 }
 

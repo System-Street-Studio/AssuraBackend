@@ -155,4 +155,60 @@ public class EmployeeIdorAndOwnershipTests
         Assert.Equal("Real Employee", saved!.RequesterName);
         Assert.NotEqual("Spoofed Name", saved.RequesterName);
     }
+
+    // Covers the /verify-workflow finding in WORKFLOW_BASELINE_discarding.md: no
+    // backend check tied a Discard request's AssetId to the requester, so any employee
+    // could get any other employee's asset discarded — live-confirmed by discarding an
+    // asset assigned to a different user while authenticated as someone else.
+    [Fact]
+    public async Task CreateAssetRequestCommand_Discard_RejectsAssetNotAssignedToRequester()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        db.Users.AddRange(
+            new User { Id = 1, FirstName = "Owner", Role = UserRole.Employee },
+            new User { Id = 2, FirstName = "Attacker", Role = UserRole.Employee });
+        db.Assets.Add(new Asset { Id = 100, AssetCode = "AST-0100", Status = AssetStatus.InUse, AssignedUserId = 1 });
+        await db.SaveChangesAsync();
+
+        var handler = new CreateAssetRequestHandler(db);
+
+        await Assert.ThrowsAsync<FluentValidation.ValidationException>(() => handler.Handle(new CreateAssetRequestCommand
+        {
+            EmployeeId = "2", // attacker, not the asset's assignee
+            SubmittedBy = "Attacker",
+            AssetName = "Laptop (AST-0100)",
+            Priority = "Normal",
+            RequestType = "Discard",
+            Reason = "Not mine but I want it gone",
+            AssetId = 100
+        }, CancellationToken.None));
+
+        Assert.Empty(db.AssetRequests);
+    }
+
+    [Fact]
+    public async Task CreateAssetRequestCommand_Discard_AllowsAssetAssignedToRequester()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        db.Users.Add(new User { Id = 1, FirstName = "Owner", Role = UserRole.Employee });
+        db.Assets.Add(new Asset { Id = 101, AssetCode = "AST-0101", Status = AssetStatus.InUse, AssignedUserId = 1 });
+        await db.SaveChangesAsync();
+
+        var handler = new CreateAssetRequestHandler(db);
+
+        var id = await handler.Handle(new CreateAssetRequestCommand
+        {
+            EmployeeId = "1",
+            SubmittedBy = "Owner",
+            AssetName = "Laptop (AST-0101)",
+            Priority = "Normal",
+            RequestType = "Discard",
+            Reason = "Beyond repair",
+            AssetId = 101
+        }, CancellationToken.None);
+
+        Assert.NotEqual(0, id);
+    }
 }
