@@ -62,26 +62,27 @@ public class CreateMaintenanceCommandHandler : IRequestHandler<CreateMaintenance
         // try the `Requests` table first, then fall back to `AssetRequests`.
         if (request.RequestId.HasValue)
         {
-            var originalRequest = await _context.Requests
-                .FirstOrDefaultAsync(r => r.Id == request.RequestId.Value, cancellationToken);
-
-            if (originalRequest != null)
+            if (request.RequestId.Value < 0)
             {
-                if (originalRequest.Status == RequestWorkflowStatus.PendingProcurement)
-                {
-                    originalRequest.Status = "Completed";
-                }
-            }
-            else
-            {
+                var actualId = Math.Abs(request.RequestId.Value);
                 var originalAssetRequest = await _context.AssetRequests
-                    .FirstOrDefaultAsync(ar => ar.Id == request.RequestId.Value, cancellationToken);
+                    .FirstOrDefaultAsync(ar => ar.Id == actualId, cancellationToken);
 
                 if (originalAssetRequest != null && originalAssetRequest.Status == RequestStatus.PendingProcurement)
                 {
                     // RequestStatus.Passed is otherwise unused; repurposed here to mean
                     // "resolved via a Procurement-created Maintenance note".
                     originalAssetRequest.Status = RequestStatus.Passed;
+                }
+            }
+            else
+            {
+                var originalRequest = await _context.Requests
+                    .FirstOrDefaultAsync(r => r.Id == request.RequestId.Value, cancellationToken);
+
+                if (originalRequest != null && originalRequest.Status == RequestWorkflowStatus.PendingProcurement)
+                {
+                    originalRequest.Status = "Completed";
                 }
             }
         }

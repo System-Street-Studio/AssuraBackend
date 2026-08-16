@@ -194,6 +194,7 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                         Priority = request.Priority,
                         RequestedByUserId = request.UserId,
                         ApprovedByUserId = notification.ApprovedByUserId,
+                        OriginalRequestId = request.Id,
                         ApprovedAt = DateTime.UtcNow,
                         AssetId = request.AssetId.Value
                     };

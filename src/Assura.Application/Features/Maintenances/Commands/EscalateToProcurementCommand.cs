@@ -35,6 +35,28 @@ public class EscalateToProcurementCommandHandler : IRequestHandler<EscalateToPro
         if (!string.IsNullOrEmpty(request.Notes))
             maintenance.Notes = request.Notes;
 
+        if (maintenance.OriginalRequestId.HasValue)
+        {
+            bool isAssetRequest = maintenance.MaintenanceNumber != null && maintenance.MaintenanceNumber.Contains("-AR");
+
+            if (isAssetRequest)
+            {
+                var originalAssetRequest = await _context.AssetRequests.FindAsync(new object[] { maintenance.OriginalRequestId.Value }, cancellationToken);
+                if (originalAssetRequest != null)
+                {
+                    originalAssetRequest.Status = Assura.Domain.Enums.RequestStatus.PendingProcurement;
+                }
+            }
+            else
+            {
+                var originalRequest = await _context.Requests.FindAsync(new object[] { maintenance.OriginalRequestId.Value }, cancellationToken);
+                if (originalRequest != null)
+                {
+                    originalRequest.Status = "PendingProcurement";
+                }
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("[Maintenance] {Id} escalated to procurement by storekeeper {UserId}",
             request.MaintenanceId, request.StorekeeperUserId);

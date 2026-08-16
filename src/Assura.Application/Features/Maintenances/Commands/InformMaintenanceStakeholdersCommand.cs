@@ -90,10 +90,23 @@ public class InformMaintenanceStakeholdersCommandHandler : IRequestHandler<Infor
 
         if (maintenance.OriginalRequestId.HasValue)
         {
-            var originalRequest = await _context.Requests.FindAsync(new object[] { maintenance.OriginalRequestId.Value }, cancellationToken);
-            if (originalRequest != null)
+            bool isAssetRequest = maintenance.MaintenanceNumber != null && maintenance.MaintenanceNumber.Contains("-AR");
+
+            if (isAssetRequest)
             {
-                originalRequest.Status = "Completed";
+                var originalAssetRequest = await _context.AssetRequests.FindAsync(new object[] { maintenance.OriginalRequestId.Value }, cancellationToken);
+                if (originalAssetRequest != null)
+                {
+                    originalAssetRequest.Status = Assura.Domain.Enums.RequestStatus.Completed;
+                }
+            }
+            else
+            {
+                var originalRequest = await _context.Requests.FindAsync(new object[] { maintenance.OriginalRequestId.Value }, cancellationToken);
+                if (originalRequest != null)
+                {
+                    originalRequest.Status = "Completed";
+                }
             }
         }
 
