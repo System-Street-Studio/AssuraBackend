@@ -14,5 +14,6 @@ public enum RequestStatus
     TemporaryAssigned = 5,
     PendingProcurement = 6,
     PendingStorekeeperReview = 7,
-    Cancelled = 8
+    Cancelled = 8,
+    Completed = 9
 }

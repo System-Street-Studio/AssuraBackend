@@ -88,6 +88,15 @@ public class InformMaintenanceStakeholdersCommandHandler : IRequestHandler<Infor
         maintenance.Status = "Submitted";
         maintenance.StorekeeperUserId = request.StorekeeperUserId;
 
+        if (maintenance.OriginalRequestId.HasValue)
+        {
+            var originalRequest = await _context.Requests.FindAsync(new object[] { maintenance.OriginalRequestId.Value }, cancellationToken);
+            if (originalRequest != null)
+            {
+                originalRequest.Status = "Completed";
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("[Maintenance] {Id} stakeholders informed and submitted by storekeeper {UserId}",
             request.MaintenanceId, request.StorekeeperUserId);
