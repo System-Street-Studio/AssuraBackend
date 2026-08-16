@@ -1,4 +1,5 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,16 @@ public class ToggleUserLockCommandHandler : IRequestHandler<ToggleUserLockComman
         if (user.Username == "sysadmin") return false;
 
         user.IsLocked = !user.IsLocked;
+
+        _context.Notifications.Add(new Notification
+        {
+            Title = user.IsLocked ? "Account Locked" : "Account Unlocked",
+            Message = user.IsLocked
+                ? "Your account was locked by an administrator. Contact them if you believe this is a mistake."
+                : "Your account has been unlocked by an administrator. You can log in again.",
+            UserId = user.Id,
+            Type = user.IsLocked ? "Warning" : "Info"
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;

@@ -49,6 +49,14 @@ public class RejectHrUserCommandHandler : IRequestHandler<RejectHrUserCommand, b
         user.EmploymentStatus = "Rejected";
         user.IsActive = false;
 
+        _context.Notifications.Add(new Notification
+        {
+            Title = "Registration Rejected",
+            Message = $"Your registration was rejected by HR.{(string.IsNullOrWhiteSpace(request.Notes) ? "" : $" Reason: {request.Notes}")} Contact HR for more information.",
+            UserId = user.Id,
+            Type = "Error"
+        });
+
         _context.AuditLogs.Add(new AuditLog
         {
             EntityName = "HR",

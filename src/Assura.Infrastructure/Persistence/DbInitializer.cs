@@ -1,7 +1,9 @@
 using Assura.Domain.Entities;
+using Assura.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 
 using Microsoft.Extensions.Configuration;
 
@@ -234,10 +236,74 @@ public static class DbInitializer
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Legacy division cleanup complete.");
             }
+
+            // ── Step 5: Bootstrap a default Admin account if no Admin/SystemAdmin exists ──
+            // Without this, locking down SeedController's unauthenticated /test-users endpoint
+            // (a separate fix) would leave a fresh deployment with no way to ever create its
+            // first privileged user. The generated password is logged once at startup — the
+            // operator must change it immediately after first login.
+            var hasPrivilegedUser = await context.Users
+                .AnyAsync(u => u.Role == UserRole.Admin || u.Role == UserRole.SystemAdmin);
+
+            if (!hasPrivilegedUser)
+            {
+                var tempPassword = GenerateBootstrapPassword();
+                var bootstrapAdmin = new User
+                {
+                    Username = "admin",
+                    Email = "admin@assura.local",
+                    FirstName = "System",
+                    LastName = "Admin",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
+                    Role = UserRole.Admin,
+                    IsActive = true,
+                    EmploymentStatus = "Assigned",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Users.Add(bootstrapAdmin);
+                await context.SaveChangesAsync();
+
+                logger?.LogWarning(
+                    "No Admin/SystemAdmin user existed — bootstrapped a default Admin account. " +
+                    "Username: 'admin', Password: '{Password}'. Log in and change this password immediately.",
+                    tempPassword);
+            }
         }
         catch (Exception ex)
         {
             logger?.LogError(ex, "An error occurred while seeding the database.");
         }
+    }
+
+    /// <summary>
+    /// Generates a random password for the one-time bootstrap Admin account, guaranteed to
+    /// contain an uppercase letter, a lowercase letter, a digit, and a special character.
+    /// </summary>
+    private static string GenerateBootstrapPassword()
+    {
+        const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string lower = "abcdefghijkmnpqrstuvwxyz";
+        const string digits = "23456789";
+        const string special = "!@#$%^&*";
+        const string all = upper + lower + digits + special;
+
+        var chars = new char[16];
+        chars[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
+        chars[1] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
+        chars[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
+        chars[3] = special[RandomNumberGenerator.GetInt32(special.Length)];
+        for (var i = 4; i < chars.Length; i++)
+        {
+            chars[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
+        }
+
+        // Shuffle so the guaranteed-category characters aren't always in the same positions.
+        for (var i = chars.Length - 1; i > 0; i--)
+        {
+            var j = RandomNumberGenerator.GetInt32(i + 1);
+            (chars[i], chars[j]) = (chars[j], chars[i]);
+        }
+
+        return new string(chars);
     }
 }

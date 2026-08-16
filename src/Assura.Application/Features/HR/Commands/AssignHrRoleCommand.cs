@@ -122,6 +122,14 @@ public class AssignHrRoleCommandHandler : IRequestHandler<AssignHrRoleCommand, A
         user.EmploymentStatus = "Assigned";
         user.AssignedAt = DateTime.UtcNow;
 
+        _context.Notifications.Add(new Notification
+        {
+            Title = "Role Assigned",
+            Message = $"You have been assigned the role of {primary.Role} in {(await _context.Divisions.FirstOrDefaultAsync(d => d.Id == primary.DivisionId, cancellationToken))?.Name ?? "your division"}. Log out and back in to see your updated access.",
+            UserId = user.Id,
+            Type = "Success"
+        });
+
         _context.AuditLogs.Add(new AuditLog
         {
             EntityName = "HR",

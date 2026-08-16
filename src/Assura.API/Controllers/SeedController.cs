@@ -2,11 +2,18 @@ using Assura.Application.Common.Interfaces;
 using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assura.API.Controllers;
 
+// These are dev/test data-seeding utilities, not application features — every action mutates
+// or resets data (including resetting the admin/sysadmin passwords to hardcoded defaults and
+// running raw SQL updates), so the whole controller is restricted to Admin/SystemAdmin.
+// A fresh deployment can still reach this: DbInitializer.SeedAsync bootstraps a default Admin
+// account (with a randomly generated, logged-once password) if none exists yet.
+[Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin}")]
 [ApiController]
 [Route("api/[controller]")]
 public class SeedController : ControllerBase

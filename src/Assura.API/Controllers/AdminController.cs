@@ -7,7 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
-[Authorize(Roles = Roles.Admin + "," + Roles.Employee + "," + Roles.Storekeeper)]
+// Storekeeper was previously included here only because the mobile app's shared
+// "Admin dashboard" screen also let Storekeeper accounts log in. The mobile app is now
+// Admin-only (see BUGS.md), so Storekeeper no longer needs access to this endpoint.
+[Authorize(Roles = Roles.Admin + "," + Roles.Employee)]
 public class AdminController : BaseApiController
 {
     private readonly IMediator _mediator;

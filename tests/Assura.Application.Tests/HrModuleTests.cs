@@ -352,6 +352,80 @@ public class HrModuleTests
     }
 
     [Fact]
+    public async Task AssignHrRoleCommand_CreatesNotificationForAssignedUser()
+    {
+        using var db = CreateContext();
+
+        var division = new Division { Id = 3, Name = "Operations" };
+        var user = new User { Id = 33, Username = "notify_assign", Email = "notify_assign@assura.test", PasswordHash = "x" };
+
+        db.Divisions.Add(division);
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        await new AssignHrRoleCommandHandler(db).Handle(new AssignHrRoleCommand
+        {
+            UserId = user.Id,
+            Assignments = new List<DivisionRoleAssignment> { new() { DivisionId = division.Id, Role = UserRole.Storekeeper.ToString() } },
+            ActorName = "HR Manager"
+        }, CancellationToken.None);
+
+        var notification = await db.Notifications.FirstOrDefaultAsync(n => n.UserId == user.Id);
+        Assert.NotNull(notification);
+        Assert.Equal("Role Assigned", notification!.Title);
+    }
+
+    [Fact]
+    public async Task RejectHrUserCommand_CreatesNotificationForRejectedUser()
+    {
+        using var db = CreateContext();
+
+        var user = new User { Id = 34, Username = "notify_reject", Email = "notify_reject@assura.test", PasswordHash = "x", EmploymentStatus = "PendingAssignment" };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        await new RejectHrUserCommandHandler(db).Handle(new RejectHrUserCommand
+        {
+            UserId = user.Id,
+            Notes = "Incomplete documentation",
+            ActorName = "HR Manager"
+        }, CancellationToken.None);
+
+        var notification = await db.Notifications.FirstOrDefaultAsync(n => n.UserId == user.Id);
+        Assert.NotNull(notification);
+        Assert.Equal("Registration Rejected", notification!.Title);
+        Assert.Contains("Incomplete documentation", notification.Message);
+    }
+
+    [Fact]
+    public async Task ReconsiderHrUserCommand_CreatesNotificationForReconsideredUser()
+    {
+        using var db = CreateContext();
+
+        var user = new User { Id = 35, Username = "notify_reconsider", Email = "notify_reconsider@assura.test", PasswordHash = "x", EmploymentStatus = "PendingAssignment" };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        await new RejectHrUserCommandHandler(db).Handle(new RejectHrUserCommand
+        {
+            UserId = user.Id,
+            Notes = "Incomplete documentation",
+            ActorName = "HR Manager"
+        }, CancellationToken.None);
+
+        await new ReconsiderHrUserCommandHandler(db).Handle(new ReconsiderHrUserCommand
+        {
+            UserId = user.Id,
+            ActorName = "HR Manager"
+        }, CancellationToken.None);
+
+        var notification = await db.Notifications
+            .Where(n => n.UserId == user.Id && n.Title == "Registration Reconsidered")
+            .FirstOrDefaultAsync();
+        Assert.NotNull(notification);
+    }
+
+    [Fact]
     public async Task ReconsiderHrUserCommand_CannotReconsiderNonRejectedUser()
     {
         using var db = CreateContext();

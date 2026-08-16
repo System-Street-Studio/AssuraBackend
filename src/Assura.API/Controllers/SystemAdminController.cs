@@ -1,10 +1,13 @@
 using Assura.Application.DTOs;
 using Assura.Application.Features.SystemAdmin.Commands;
 using Assura.Application.Features.SystemAdmin.Queries;
+using Assura.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
+[Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin}")]
 public class SystemAdminController : BaseApiController
 {
     [HttpGet("dashboard")]
@@ -53,8 +56,8 @@ public class SystemAdminController : BaseApiController
     [HttpPost("users/{id}/reset-password")]
     public async Task<IActionResult> ResetUserPassword(int id)
     {
-        var success = await Mediator.Send(new ResetUserPasswordCommand(id));
-        if (!success) return BadRequest("Failed to reset user password. Cannot reset system admin.");
-        return Ok();
+        var result = await Mediator.Send(new ResetUserPasswordCommand(id));
+        if (!result.Success) return BadRequest("Failed to reset user password. Cannot reset system admin.");
+        return Ok(new { temporaryPassword = result.TemporaryPassword });
     }
 }

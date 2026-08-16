@@ -53,6 +53,14 @@ public class ReconsiderHrUserCommandHandler : IRequestHandler<ReconsiderHrUserCo
         user.IsActive = true;
         user.EmploymentStatus = "PendingAssignment";
 
+        _context.Notifications.Add(new Notification
+        {
+            Title = "Registration Reconsidered",
+            Message = "HR has reconsidered your registration. You may log in again — your account is now pending role assignment.",
+            UserId = user.Id,
+            Type = "Info"
+        });
+
         _context.AuditLogs.Add(new AuditLog
         {
             EntityName = "HR",
