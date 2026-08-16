@@ -245,5 +245,94 @@ public class MaintenanceTests
         Assert.Equal(2, stats.PendingApproval);
     }
 
+    // Covers a bug found by the test-workflow simulation: Procurement's maintenance
+    // note-creation form/endpoint accepted submission without a Repair Firm, even
+    // though the form marks it as required in the UI convention used by every other
+    // field on the page. CreateMaintenanceCommand had no FluentValidation validator
+    // at all.
+    [Fact]
+    public void CreateMaintenanceCommandValidator_WithoutRepairingFirmId_Fails()
+    {
+        var validator = new CreateMaintenanceCommandValidator();
+        var command = new CreateMaintenanceCommand
+        {
+            MaintenanceNumber = "MTN-1",
+            Type = MaintenanceType.Preventive,
+            MaintenanceDate = DateTime.UtcNow,
+            Description = "Screen replacement",
+            Cost = 100,
+            Status = "Scheduled",
+            AssetId = 1,
+            RepairingFirmId = null
+        };
+
+        var result = validator.Validate(command);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == nameof(CreateMaintenanceCommand.RepairingFirmId));
+    }
+
+    [Fact]
+    public void CreateMaintenanceCommandValidator_WithRepairingFirmId_Passes()
+    {
+        var validator = new CreateMaintenanceCommandValidator();
+        var command = new CreateMaintenanceCommand
+        {
+            MaintenanceNumber = "MTN-1",
+            Type = MaintenanceType.Preventive,
+            MaintenanceDate = DateTime.UtcNow,
+            Description = "Screen replacement",
+            Cost = 100,
+            Status = "Scheduled",
+            AssetId = 1,
+            RepairingFirmId = 5
+        };
+
+        Assert.True(validator.Validate(command).IsValid);
+    }
+
+    // Confirms every field submitted by the maintenance note-creation form actually
+    // persists on the created Maintenance record (empirically verified live against
+    // the running app before writing this; nothing was actually lost at the
+    // handler/entity layer — the reported "fields not appearing" symptom traced back
+    // to a frontend status-string mismatch, not a backend mapping gap).
+    [Fact]
+    public async Task CreateMaintenance_AllFormFields_PersistCorrectly()
+    {
+        using var db = CreateContext();
+        var handler = new CreateMaintenanceCommandHandler(db, NullLogger<CreateMaintenanceCommandHandler>.Instance);
+
+        var asset = new Asset { Id = 500, AssetCode = "AST-500" };
+        var firm = new RepairingFirm { Id = 7, Name = "Acme Repairs" };
+        db.Assets.Add(asset);
+        db.RepairingFirms.Add(firm);
+        await db.SaveChangesAsync();
+
+        var command = new CreateMaintenanceCommand
+        {
+            MaintenanceNumber = "MTN-ALLFIELDS",
+            Type = MaintenanceType.Preventive,
+            MaintenanceDate = new DateTime(2026, 8, 16),
+            Description = "Full field test description",
+            Cost = 1234.56m,
+            Status = "InProgress",
+            AssetId = asset.Id,
+            RepairingFirmId = firm.Id
+        };
+
+        var id = await handler.Handle(command, CancellationToken.None);
+
+        var maintenance = await db.Maintenances.FindAsync(id);
+        Assert.NotNull(maintenance);
+        Assert.Equal("MTN-ALLFIELDS", maintenance!.MaintenanceNumber);
+        Assert.Equal(MaintenanceType.Preventive, maintenance.Type);
+        Assert.Equal(new DateTime(2026, 8, 16), maintenance.MaintenanceDate);
+        Assert.Equal("Full field test description", maintenance.Description);
+        Assert.Equal(1234.56m, maintenance.Cost);
+        Assert.Equal("InProgress", maintenance.Status);
+        Assert.Equal(asset.Id, maintenance.AssetId);
+        Assert.Equal(firm.Id, maintenance.RepairingFirmId);
+    }
+
     private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }

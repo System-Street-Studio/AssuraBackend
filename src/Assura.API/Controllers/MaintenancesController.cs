@@ -58,41 +58,79 @@ public class MaintenancesController : BaseApiController
     [HttpPatch("{id:int}/approve")]
     public async Task<ActionResult> Approve(int id)
     {
-        var userId = GetCurrentUserId();
-        await _mediator.Send(new UpdateMaintenanceStatusCommand(id, "Approved", userId));
-        return Ok();
+        var (userId, isDivisionHead) = GetCallerIdentity();
+        try
+        {
+            await _mediator.Send(new UpdateMaintenanceStatusCommand(id, "Approved", userId, isDivisionHead));
+            return Ok();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPatch("{id:int}/start")]
     public async Task<ActionResult> Start(int id)
     {
-        var userId = GetCurrentUserId();
-        await _mediator.Send(new UpdateMaintenanceStatusCommand(id, "InProgress", userId));
-        return Ok();
+        var (userId, isDivisionHead) = GetCallerIdentity();
+        try
+        {
+            await _mediator.Send(new UpdateMaintenanceStatusCommand(id, "InProgress", userId, isDivisionHead));
+            return Ok();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPatch("{id:int}/assign-temp")]
     public async Task<ActionResult> AssignTemp(int id, [FromBody] AssignTemporaryAssetCommand command)
     {
-        command = command with { MaintenanceId = id, StorekeeperUserId = GetCurrentUserId() };
-        await _mediator.Send(command);
-        return Ok();
+        var (userId, isDivisionHead) = GetCallerIdentity();
+        command = command with { MaintenanceId = id, StorekeeperUserId = userId, IsDivisionHead = isDivisionHead };
+        try
+        {
+            await _mediator.Send(command);
+            return Ok();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPatch("{id:int}/send-for-repair")]
     public async Task<ActionResult> SendForRepair(int id, [FromBody] SendForRepairCommand command)
     {
-        command = command with { MaintenanceId = id, StorekeeperUserId = GetCurrentUserId() };
-        await _mediator.Send(command);
-        return Ok();
+        var (userId, isDivisionHead) = GetCallerIdentity();
+        command = command with { MaintenanceId = id, StorekeeperUserId = userId, IsDivisionHead = isDivisionHead };
+        try
+        {
+            await _mediator.Send(command);
+            return Ok();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPatch("{id:int}/escalate-procurement")]
     public async Task<ActionResult> EscalateToProcurement(int id, [FromBody] EscalateToProcurementCommand command)
     {
-        command = command with { MaintenanceId = id, StorekeeperUserId = GetCurrentUserId() };
-        await _mediator.Send(command);
-        return Ok();
+        var (userId, isDivisionHead) = GetCallerIdentity();
+        command = command with { MaintenanceId = id, StorekeeperUserId = userId, IsDivisionHead = isDivisionHead };
+        try
+        {
+            await _mediator.Send(command);
+            return Ok();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPatch("{id:int}/inform-stakeholders")]
@@ -117,25 +155,47 @@ public class MaintenancesController : BaseApiController
     [HttpPatch("{id:int}/complete")]
     public async Task<ActionResult> Complete(int id)
     {
-        var userId = GetCurrentUserId();
-        await _mediator.Send(new UpdateMaintenanceStatusCommand(id, "Completed", userId));
-        return Ok();
+        var (userId, isDivisionHead) = GetCallerIdentity();
+        try
+        {
+            await _mediator.Send(new UpdateMaintenanceStatusCommand(id, "Completed", userId, isDivisionHead));
+            return Ok();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPatch("{id:int}/reject")]
     public async Task<ActionResult> Reject(int id, [FromBody] RejectMaintenanceCommand command)
     {
-        command = command with { MaintenanceId = id, RejectedByUserId = GetCurrentUserId() };
-        await _mediator.Send(command);
-        return Ok();
+        var (userId, isDivisionHead) = GetCallerIdentity();
+        command = command with { MaintenanceId = id, RejectedByUserId = userId, IsDivisionHead = isDivisionHead };
+        try
+        {
+            await _mediator.Send(command);
+            return Ok();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPut("{id:int}/status")]
     public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdateMaintenanceStatusRequest request)
     {
-        var userId = GetCurrentUserId();
-        await _mediator.Send(new UpdateMaintenanceStatusCommand(id, request.Status, userId));
-        return Ok();
+        var (userId, isDivisionHead) = GetCallerIdentity();
+        try
+        {
+            await _mediator.Send(new UpdateMaintenanceStatusCommand(id, request.Status, userId, isDivisionHead));
+            return Ok();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     private int GetCurrentUserId()
@@ -143,6 +203,19 @@ public class MaintenancesController : BaseApiController
         var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                         ?? User.FindFirst("sub")?.Value;
         return int.TryParse(userIdStr, out var id) ? id : 0;
+    }
+
+    // Mirrors AssetRequestsController's GetCallerIdentity/division-scoping pattern:
+    // DivisionHead callers are scoped to their own division's maintenance records in
+    // the command handlers; Admin/Procurement/Storekeeper/Maintenance remain fully
+    // privileged (IsDivisionHead is false for them, so handlers skip the check).
+    private (int UserId, bool IsDivisionHead) GetCallerIdentity()
+    {
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value;
+        var userId = int.TryParse(userIdStr, out var id) ? id : 0;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        return (userId, role == Roles.DivisionHead);
     }
 }
 

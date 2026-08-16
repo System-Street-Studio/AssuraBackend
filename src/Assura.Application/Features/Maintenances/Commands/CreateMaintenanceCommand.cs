@@ -2,6 +2,7 @@ using Assura.Application.Common.Interfaces;
 using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,16 @@ public record CreateMaintenanceCommand : IRequest<int>
     // queue once a note has been raised for it. Optional because notes can also be
     // created ad hoc, with no originating request.
     public int? RequestId { get; set; }
+}
+
+public class CreateMaintenanceCommandValidator : AbstractValidator<CreateMaintenanceCommand>
+{
+    public CreateMaintenanceCommandValidator()
+    {
+        RuleFor(x => x.RepairingFirmId)
+            .NotNull()
+            .WithMessage("Repair Firm is required.");
+    }
 }
 
 public class CreateMaintenanceCommandHandler : IRequestHandler<CreateMaintenanceCommand, int>

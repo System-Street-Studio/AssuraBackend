@@ -31,7 +31,15 @@ public class TransferOverdueCheckerService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred executing Overdue Transfers check.");
+                // Don't log once shutdown has started: by this point the host may have
+                // already disposed the logging providers (e.g. the default Windows
+                // EventLog provider), and logging through a disposed provider throws
+                // ObjectDisposedException, which escapes ExecuteAsync and permanently
+                // kills this background service instead of just ending the loop.
+                if (!stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogError(ex, "Error occurred executing Overdue Transfers check.");
+                }
             }
 
             // Wait for next check interval

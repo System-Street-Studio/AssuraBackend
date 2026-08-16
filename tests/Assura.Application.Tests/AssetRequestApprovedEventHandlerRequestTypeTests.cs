@@ -110,7 +110,7 @@ public class AssetRequestApprovedEventHandlerRequestTypeTests
         Assert.Equal("Approved", maintenance.Status);
         Assert.Equal(1, maintenance.RequestedByUserId);
         Assert.Equal(3, maintenance.ApprovedByUserId);
-        Assert.Null(maintenance.OriginalRequestId); // no matching row in the Requests table to link to
+        Assert.Equal(60, maintenance.OriginalRequestId); // links back to the AssetRequest that raised it
     }
 
     // Covers a display gap reported directly by a user: DiscardedNote never recorded
@@ -201,5 +201,31 @@ public class AssetRequestApprovedEventHandlerRequestTypeTests
         var notification = await db.Notifications.FirstOrDefaultAsync(n => n.UserId == storekeeper.Id);
         Assert.NotNull(notification);
         Assert.Contains("awaiting procurement", notification!.Message);
+    }
+
+    // Regression guard for a bug the live test-workflow simulation caught that this
+    // file's in-memory-database tests could not: Maintenance.OriginalRequestId used
+    // to carry a real foreign key to the Requests table (added by migration
+    // 20260510111058_EnterpriseMaintenanceWorkflowFix, via a now-removed
+    // `Maintenance.OriginalRequest` navigation property), while the handler above
+    // unconditionally sets it from an AssetRequest's Id — a different table/ID-space
+    // entirely. Every approval of a Maintenance-type AssetRequest threw
+    // DbUpdateException against the real MySQL database (silently swallowed by this
+    // handler's catch block), so the Maintenance record — and the Storekeeper's only
+    // way to see the request — was never created. The in-memory provider used above
+    // doesn't enforce foreign keys, so none of the tests in this file could catch it;
+    // this test instead asserts directly on the EF model that no such FK exists.
+    [Fact]
+    public void MaintenanceOriginalRequestId_HasNoForeignKeyConstraint()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var maintenanceType = db.Model.FindEntityType(typeof(Maintenance));
+        Assert.NotNull(maintenanceType);
+
+        var foreignKeysOnOriginalRequestId = maintenanceType!.GetForeignKeys()
+            .Where(fk => fk.Properties.Any(p => p.Name == nameof(Maintenance.OriginalRequestId)));
+
+        Assert.Empty(foreignKeysOnOriginalRequestId);
     }
 }
