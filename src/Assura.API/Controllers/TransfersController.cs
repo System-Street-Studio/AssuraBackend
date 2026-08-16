@@ -163,19 +163,25 @@ public class TransfersController : ControllerBase
     }
 
 
-    // Accept transfer endpoint
+    // Accept transfer endpoint — only the asset's current holder may accept
     [HttpPost("{id}/accept")]
     public async Task<IActionResult> AcceptTransfer(int id)
     {
         try
         {
-            
-            var result = await _mediator.Send(new AcceptTransferCommand(id));
-            
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int userId = int.Parse(userIdClaim ?? "0");
+
+            var result = await _mediator.Send(new AcceptTransferCommand(id, userId));
+
             if (result)
-                return Ok(new { message = "Transfer status updated to Waiting for Final Confirmation" });
-            
+                return Ok(new { message = "Transfer accepted and is now pending your division head's approval." });
+
             return BadRequest("Failed to update transfer status");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -183,19 +189,25 @@ public class TransfersController : ControllerBase
         }
     }
 
-    // Reject transfer endpoint
+    // Reject transfer endpoint — only the asset's current holder may reject
     [HttpPost("{id}/reject")]
     public async Task<IActionResult> RejectTransfer(int id)
     {
         try
         {
-            
-            var result = await _mediator.Send(new RejectTransferCommand(id));
-            
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int userId = int.Parse(userIdClaim ?? "0");
+
+            var result = await _mediator.Send(new RejectTransferCommand(id, userId));
+
             if (result)
                 return Ok(new { message = "Transfer rejected successfully" });
-            
+
             return BadRequest("Failed to update transfer status");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
         catch (Exception ex)
         {
