@@ -15,6 +15,7 @@ public interface IApplicationDbContext
     DbSet<User> Users { get; }
     DbSet<PurchasingOrder> PurchasingOrders { get; }
     DbSet<GRN> GRNs { get; }
+    DbSet<GIN> GINs { get; }
     DbSet<QRN> QRNs { get; }
     DbSet<TIN> TINs { get; }
     DbSet<Transfer> Transfers { get; }

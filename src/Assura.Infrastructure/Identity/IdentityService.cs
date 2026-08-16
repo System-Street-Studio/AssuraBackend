@@ -71,6 +71,15 @@ public class IdentityService : IIdentifyServices
             throw new UnauthorizedAccessException("Your account has been locked by the system administrator.");
         }
 
+        if (!user.IsActive)
+        {
+            Console.WriteLine("[DEBUG] User is inactive");
+            throw new UnauthorizedAccessException(
+                user.EmploymentStatus == "Rejected"
+                    ? "Your registration was rejected by HR. Please contact HR for more information."
+                    : "Your account is inactive. Please contact HR for more information.");
+        }
+
         Console.WriteLine("[DEBUG] User found, verifying password...");
         bool isPasswordValid = false;
         try {

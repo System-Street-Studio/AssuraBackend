@@ -75,6 +75,44 @@ public class EmployeeIdorAndOwnershipTests
         Assert.NotNull(asAdmin);
     }
 
+    // Covers a bug found by the test-workflow simulation: GetAssetRequestByIdQuery
+    // treated DivisionHead as fully privileged like Admin/Procurement/Storekeeper, so a
+    // Division Head from one division could read the full detail of another division's
+    // asset request — confirmed live even though the write-side (approve/reject) was
+    // already correctly division-scoped. This mirrors the same fix already applied to
+    // the sibling Requests entity's GetRequestByIdQuery.
+    [Fact]
+    public async Task GetAssetRequestByIdQuery_DivisionHead_CannotViewAnotherDivisionsRequest()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var itHead = new User { Id = 3, FirstName = "IT", LastName = "Head", Role = UserRole.DivisionHead, DivisionId = 1 };
+        var astroHead = new User { Id = 4, FirstName = "Astro", LastName = "Head", Role = UserRole.DivisionHead, DivisionId = 2 };
+        db.Users.AddRange(itHead, astroHead);
+        db.AssetRequests.Add(new AssetRequest
+        {
+            Id = 21,
+            AssetName = "Monitor",
+            Priority = "Normal",
+            RequesterId = "1",
+            RequesterName = "IT Employee",
+            RequestType = "New Asset",
+            UserId = 1,
+            DivisionId = 1
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new GetAssetRequestByIdQueryHandler(db);
+
+        var asWrongDivisionHead = await handler.Handle(
+            new GetAssetRequestByIdQuery { Id = 21, UserId = astroHead.Id, Role = UserRole.DivisionHead }, CancellationToken.None);
+        Assert.Null(asWrongDivisionHead);
+
+        var asOwningDivisionHead = await handler.Handle(
+            new GetAssetRequestByIdQuery { Id = 21, UserId = itHead.Id, Role = UserRole.DivisionHead }, CancellationToken.None);
+        Assert.NotNull(asOwningDivisionHead);
+    }
+
     [Fact]
     public async Task MarkNotificationAsRead_CannotMarkAnotherUsersNotification()
     {

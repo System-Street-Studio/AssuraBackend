@@ -46,7 +46,24 @@ public class GetAssetRequestByIdQueryHandler : IRequestHandler<GetAssetRequestBy
             || request.Role == UserRole.Storekeeper
             || request.Role == UserRole.DivisionHead;
 
-        if (!isPrivileged && (!request.UserId.HasValue || entity.RequesterId != request.UserId.Value.ToString()))
+        // Division Head is privileged over the *whole org* by role, but must still be
+        // scoped to their own division — unlike Admin/Procurement/Storekeeper, who
+        // genuinely see everything. Matches the write-side check already enforced in
+        // ApproveAssetRequestCommand/RejectAssetRequestCommand and GetRequestByIdQuery's
+        // equivalent scoping for the sibling Requests entity — this query was the one
+        // place that still let a Division Head read any other division's asset request.
+        if (request.Role == UserRole.DivisionHead)
+        {
+            if (!request.UserId.HasValue) return null;
+
+            var headDivisionId = await _context.Users
+                .Where(u => u.Id == request.UserId.Value)
+                .Select(u => u.DivisionId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (headDivisionId == null || entity.DivisionId != headDivisionId) return null;
+        }
+        else if (!isPrivileged && (!request.UserId.HasValue || entity.RequesterId != request.UserId.Value.ToString()))
         {
             return null;
         }

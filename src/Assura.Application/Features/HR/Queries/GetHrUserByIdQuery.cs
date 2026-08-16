@@ -45,12 +45,15 @@ public class GetHrUserByIdQueryHandler : IRequestHandler<GetHrUserByIdQuery, HrU
 
     public async Task<HrUserDetailDto?> Handle(GetHrUserByIdQuery request, CancellationToken cancellationToken)
     {
+        // Deliberately not filtered on IsActive: HR must still be able to look up a
+        // rejected user's details (e.g. to review or reconsider the rejection) via this
+        // same endpoint, not just users who are pending/assigned.
         var user = await _context.Users
             .AsNoTracking()
             .Include(u => u.Division)
             .Include(u => u.DivisionRoles)
                 .ThenInclude(dr => dr.Division)
-            .Where(u => u.Id == request.UserId && u.IsActive)
+            .Where(u => u.Id == request.UserId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (user == null) return null;

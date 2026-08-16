@@ -101,40 +101,79 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                 return;
             }
 
-            // Create AssetInforming record (adds to inventory/new arrivals)
-            var assetInforming = new AssetInforming
+            // Only a genuine new-asset purchase request should create an
+            // AssetInforming "new arrival" record — that record means "stock
+            // physically arrived and needs registering", which is meaningless for
+            // Maintenance/Transfer/other non-purchase request types. Those still
+            // need Storekeepers to know the request was approved, just without
+            // fabricating a nonexistent arrival (confirmed live via the
+            // test-workflow simulation: approving a Maintenance request was
+            // creating a bogus "new arrival" entry with no purchase price/model,
+            // polluting Procurement's Informed Arrivals queue).
+            var isNewAssetPurchase = string.Equals(notification.RequestType, "New Asset", StringComparison.OrdinalIgnoreCase);
+
+            if (isNewAssetPurchase)
             {
-                ItemName = notification.AssetName,
-                Model = notification.AssetCategory,
-                Warranty = "N/A",
-                Quantity = notification.Quantity,
-                PurchasedDate = notification.SubmittedDate,
-                PurchasedPrice = 0, // Can be updated later
-                DivisionId = request.DivisionId.Value,
-                Status = "Pending"
-            };
-
-            _context.AssetInformings.Add(assetInforming);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // Notify Storekeepers about the new approved request
-            var storekeepers = await _context.Users
-                .Where(u => u.Role == UserRole.Storekeeper)
-                .ToListAsync(cancellationToken);
-
-            foreach (var storekeeper in storekeepers)
-            {
-                _context.Notifications.Add(new Notification
+                // Create AssetInforming record (adds to inventory/new arrivals)
+                var assetInforming = new AssetInforming
                 {
-                    Title = "Asset Request Approved",
-                    Message = $"Request for '{notification.AssetName}' (Qty: {notification.Quantity}) has been approved and is awaiting procurement.",
-                    UserId = storekeeper.Id,
-                    Type = "Info",
-                    ReferenceId = assetInforming.Id.ToString()
-                });
-            }
+                    ItemName = notification.AssetName,
+                    Model = notification.AssetCategory,
+                    Warranty = "N/A",
+                    Quantity = notification.Quantity,
+                    PurchasedDate = notification.SubmittedDate,
+                    PurchasedPrice = 0, // Can be updated later
+                    DivisionId = request.DivisionId.Value,
+                    Status = "Pending"
+                };
 
-            await _context.SaveChangesAsync(cancellationToken);
+                _context.AssetInformings.Add(assetInforming);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // Notify Storekeepers about the new approved request
+                var storekeepers = await _context.Users
+                    .Where(u => u.Role == UserRole.Storekeeper)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var storekeeper in storekeepers)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        Title = "Asset Request Approved",
+                        Message = $"Request for '{notification.AssetName}' (Qty: {notification.Quantity}) has been approved and is awaiting procurement.",
+                        UserId = storekeeper.Id,
+                        Type = "Info",
+                        ReferenceId = assetInforming.Id.ToString()
+                    });
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                // Maintenance/Transfer/other non-purchase request types: notify
+                // Storekeepers the request is approved and ready to process,
+                // without creating a fake inventory arrival. Storekeeper's normal
+                // approved-requests queue (ProcessRequestCommand's negative-id
+                // AssetRequests branch) already surfaces the request itself.
+                var storekeepers = await _context.Users
+                    .Where(u => u.Role == UserRole.Storekeeper)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var storekeeper in storekeepers)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        Title = "Asset Request Approved",
+                        Message = $"Request '{notification.RequestType}' for '{notification.AssetName}' has been approved and is ready for processing.",
+                        UserId = storekeeper.Id,
+                        Type = "Info",
+                        ReferenceId = request.Id.ToString()
+                    });
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+            }
         }
 
         catch (Exception ex)
