@@ -1,6 +1,7 @@
 using Assura.Application.Features.Maintenances.Commands;
 using Assura.Application.Features.Maintenances.Queries;
 using Assura.Application.Tests.Common;
+using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -73,6 +74,143 @@ public class MaintenanceTests
         var maintenance = await db.Maintenances.FindAsync(id);
         Assert.NotNull(maintenance);
         Assert.Equal("General service", maintenance!.Description);
+    }
+
+    // Covers a user-reported bug: after Procurement creates a Maintenance Note for a
+    // queue item, that item stayed stuck in the "PendingProcurement" pending-requests
+    // queue forever, because CreateMaintenanceCommand never told the originating
+    // Request/AssetRequest it had been resolved.
+    [Fact]
+    public async Task CreateMaintenance_WithRequestId_ClearsMatchingRequestFromProcurementQueue()
+    {
+        using var db = CreateContext();
+        var handler = new CreateMaintenanceCommandHandler(db, NullLogger<CreateMaintenanceCommandHandler>.Instance);
+
+        var requester = new User { Id = 1, FirstName = "IT", LastName = "Employee" };
+        db.Users.Add(requester);
+        var pendingRequest = new Request
+        {
+            Id = 100,
+            RequesterId = requester.Id,
+            RequestNumber = "REQ-100",
+            Status = RequestWorkflowStatus.PendingProcurement
+        };
+        db.Requests.Add(pendingRequest);
+        await db.SaveChangesAsync();
+
+        var command = new CreateMaintenanceCommand
+        {
+            AssetId = 1,
+            Type = MaintenanceType.Preventive,
+            Description = "Screen replacement",
+            MaintenanceDate = DateTime.UtcNow,
+            RequestId = pendingRequest.Id
+        };
+
+        await handler.Handle(command, CancellationToken.None);
+
+        var updated = await db.Requests.FirstAsync(r => r.Id == pendingRequest.Id);
+        Assert.NotEqual(RequestWorkflowStatus.PendingProcurement, updated.Status);
+    }
+
+    [Fact]
+    public async Task CreateMaintenance_WithRequestId_ClearsMatchingAssetRequestFromProcurementQueue()
+    {
+        using var db = CreateContext();
+        var handler = new CreateMaintenanceCommandHandler(db, NullLogger<CreateMaintenanceCommandHandler>.Instance);
+
+        var pendingAssetRequest = new AssetRequest
+        {
+            Id = 200,
+            RequesterId = "1",
+            RequesterName = "IT Employee",
+            AssetName = "Broken Printer",
+            Priority = "Normal",
+            RequestType = "Maintenance",
+            Status = RequestStatus.PendingProcurement
+        };
+        db.AssetRequests.Add(pendingAssetRequest);
+        await db.SaveChangesAsync();
+
+        var command = new CreateMaintenanceCommand
+        {
+            AssetId = 1,
+            Type = MaintenanceType.Preventive,
+            Description = "Printer repair",
+            MaintenanceDate = DateTime.UtcNow,
+            RequestId = pendingAssetRequest.Id
+        };
+
+        await handler.Handle(command, CancellationToken.None);
+
+        var updated = await db.AssetRequests.FirstAsync(r => r.Id == pendingAssetRequest.Id);
+        Assert.Equal(RequestStatus.Passed, updated.Status);
+    }
+
+    // Covers the requested Storekeeper workflow: once Procurement marks a Maintenance
+    // Note "Completed", the Storekeeper should be able to inform both the requesting
+    // employee and their Division Head, which also flips the record to "Submitted".
+    [Fact]
+    public async Task InformStakeholders_OnCompletedMaintenance_NotifiesEmployeeAndDivisionHeadAndSubmits()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var division = new Division { Id = 1, Name = "IT" };
+        var employee = new User { Id = 10, FirstName = "IT", LastName = "Employee", Role = UserRole.Employee, DivisionId = division.Id };
+        var head = new User { Id = 11, FirstName = "Division", LastName = "Head", Role = UserRole.DivisionHead, DivisionId = division.Id };
+        var storekeeper = new User { Id = 12, FirstName = "Store", LastName = "Keeper", Role = UserRole.Storekeeper };
+        var asset = new Asset { Id = 20, AssetCode = "AST-20", DivisionId = division.Id };
+        db.Divisions.Add(division);
+        db.Users.AddRange(employee, head, storekeeper);
+        db.Assets.Add(asset);
+        db.Maintenances.Add(new Maintenance
+        {
+            Id = 30,
+            MaintenanceNumber = "MNT-30",
+            Type = MaintenanceType.Corrective,
+            MaintenanceDate = DateTime.UtcNow,
+            Status = "Completed",
+            AssetId = asset.Id,
+            RequestedByUserId = employee.Id
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new InformMaintenanceStakeholdersCommandHandler(db, Microsoft.Extensions.Logging.Abstractions.NullLogger<InformMaintenanceStakeholdersCommandHandler>.Instance);
+        var result = await handler.Handle(new InformMaintenanceStakeholdersCommand { MaintenanceId = 30, StorekeeperUserId = storekeeper.Id }, CancellationToken.None);
+
+        Assert.Equal(InformMaintenanceStakeholdersResult.Success, result);
+
+        var maintenance = await db.Maintenances.FirstAsync(m => m.Id == 30);
+        Assert.Equal("Submitted", maintenance.Status);
+        Assert.Equal(storekeeper.Id, maintenance.StorekeeperUserId);
+
+        Assert.NotNull(await db.Notifications.FirstOrDefaultAsync(n => n.UserId == employee.Id));
+        Assert.NotNull(await db.Notifications.FirstOrDefaultAsync(n => n.UserId == head.Id));
+    }
+
+    [Fact]
+    public async Task InformStakeholders_OnNonCompletedMaintenance_ReturnsInvalidStatus()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var asset = new Asset { Id = 21, AssetCode = "AST-21" };
+        db.Assets.Add(asset);
+        db.Maintenances.Add(new Maintenance
+        {
+            Id = 31,
+            MaintenanceNumber = "MNT-31",
+            Type = MaintenanceType.Corrective,
+            MaintenanceDate = DateTime.UtcNow,
+            Status = "InProgress",
+            AssetId = asset.Id
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new InformMaintenanceStakeholdersCommandHandler(db, Microsoft.Extensions.Logging.Abstractions.NullLogger<InformMaintenanceStakeholdersCommandHandler>.Instance);
+        var result = await handler.Handle(new InformMaintenanceStakeholdersCommand { MaintenanceId = 31, StorekeeperUserId = 1 }, CancellationToken.None);
+
+        Assert.Equal(InformMaintenanceStakeholdersResult.InvalidStatus, result);
+        Assert.Empty(db.Notifications);
     }
 
     [Fact]

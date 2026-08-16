@@ -51,7 +51,9 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                     Date = DateTime.UtcNow,
                     Status = DiscardNoteStatus.Pending,
                     AssetType = notification.AssetCategory,
-                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A"
+                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A",
+                    RequestedByUserId = int.TryParse(notification.RequesterId, out var requesterIdVal) ? requesterIdVal : null,
+                    RequestedByName = notification.RequesterName
                 };
 
                 _context.DiscardedNotes.Add(discardedNote);
@@ -153,9 +155,7 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
             {
                 // Maintenance/Transfer/other non-purchase request types: notify
                 // Storekeepers the request is approved and ready to process,
-                // without creating a fake inventory arrival. Storekeeper's normal
-                // approved-requests queue (ProcessRequestCommand's negative-id
-                // AssetRequests branch) already surfaces the request itself.
+                // without creating a fake inventory arrival.
                 var storekeepers = await _context.Users
                     .Where(u => u.Role == UserRole.Storekeeper)
                     .ToListAsync(cancellationToken);
@@ -170,6 +170,34 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                         Type = "Info",
                         ReferenceId = request.Id.ToString()
                     });
+                }
+
+                // A Maintenance-type AssetRequest needs its own Maintenance record the
+                // moment it's approved — Storekeepers only work maintenance items from
+                // the dedicated Maintenance queue (GetMaintenancesQuery), and escalating
+                // to Procurement (EscalateToProcurementCommand) requires an existing
+                // Maintenance row. Without this, a Division-Head-approved Maintenance
+                // AssetRequest never appeared anywhere a Storekeeper could act on it.
+                // Mirrors the equivalent handling already done for the sibling `Request`
+                // entity in ReviewRequestByDivisionHeadCommand.
+                if (string.Equals(notification.RequestType, "Maintenance", StringComparison.OrdinalIgnoreCase)
+                    && request.AssetId.HasValue)
+                {
+                    var maintenance = new Maintenance
+                    {
+                        MaintenanceNumber = "MNT-" + DateTime.Now.ToString("yyyyMMdd") + "-AR" + request.Id,
+                        Type = MaintenanceType.Corrective,
+                        MaintenanceDate = DateTime.UtcNow,
+                        Description = request.Description,
+                        Cost = 0,
+                        Status = "Approved",
+                        Priority = request.Priority,
+                        RequestedByUserId = request.UserId,
+                        ApprovedByUserId = notification.ApprovedByUserId,
+                        ApprovedAt = DateTime.UtcNow,
+                        AssetId = request.AssetId.Value
+                    };
+                    _context.Maintenances.Add(maintenance);
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);

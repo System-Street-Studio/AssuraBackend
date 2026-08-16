@@ -95,6 +95,25 @@ public class MaintenancesController : BaseApiController
         return Ok();
     }
 
+    [HttpPatch("{id:int}/inform-stakeholders")]
+    [Authorize(Roles = $"{Roles.Storekeeper},{Roles.Admin}")]
+    public async Task<ActionResult> InformStakeholders(int id)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _mediator.Send(new InformMaintenanceStakeholdersCommand
+        {
+            MaintenanceId = id,
+            StorekeeperUserId = userId
+        });
+
+        return result switch
+        {
+            InformMaintenanceStakeholdersResult.NotFound => NotFound(),
+            InformMaintenanceStakeholdersResult.InvalidStatus => Conflict("Maintenance must be Completed before stakeholders can be informed."),
+            _ => Ok()
+        };
+    }
+
     [HttpPatch("{id:int}/complete")]
     public async Task<ActionResult> Complete(int id)
     {
@@ -111,10 +130,23 @@ public class MaintenancesController : BaseApiController
         return Ok();
     }
 
+    [HttpPut("{id:int}/status")]
+    public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdateMaintenanceStatusRequest request)
+    {
+        var userId = GetCurrentUserId();
+        await _mediator.Send(new UpdateMaintenanceStatusCommand(id, request.Status, userId));
+        return Ok();
+    }
+
     private int GetCurrentUserId()
     {
         var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                         ?? User.FindFirst("sub")?.Value;
         return int.TryParse(userIdStr, out var id) ? id : 0;
     }
+}
+
+public class UpdateMaintenanceStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
 }

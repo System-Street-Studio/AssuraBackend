@@ -12,4 +12,9 @@ public class DiscardedNote : BaseEntity
     public TimeSpan Time { get; set; }
     public string AssetType { get; set; } = string.Empty;
     public string SpecialNote { get; set; } = string.Empty;
+
+    // Employee who originally raised the discard request, so Superintendent/Admin
+    // can see who is responsible for it alongside the originating division.
+    public int? RequestedByUserId { get; set; }
+    public string? RequestedByName { get; set; }
 }

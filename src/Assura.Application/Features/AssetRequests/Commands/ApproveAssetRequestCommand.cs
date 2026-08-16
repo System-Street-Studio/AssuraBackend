@@ -83,7 +83,8 @@ public class ApproveAssetRequestHandler : IRequestHandler<ApproveAssetRequestCom
                 : "N/A",
             entity.SubmittedDate,
             entity.Description ?? "N/A",
-            entity.Reason ?? "N/A"
+            entity.Reason ?? "N/A",
+            request.UserId
         ), cancellationToken);
 
         return ApproveAssetRequestResult.Success;

@@ -64,6 +64,86 @@ public class AssetRequestApprovedEventHandlerRequestTypeTests
         Assert.DoesNotContain("awaiting procurement", notification.Message);
     }
 
+    // Covers the bug reported directly by a user: after a Division Head approves a
+    // Maintenance request, the Storekeeper cannot see it anywhere and so can't
+    // escalate it to Procurement to create a Maintenance Note. Root cause: employees
+    // submit maintenance requests through the AssetRequest entity
+    // (employee/maintenance-form -> AssetRequestService), but unlike the sibling
+    // `Request` entity's ReviewRequestByDivisionHeadCommand (which creates a
+    // Maintenance row the moment the head approves), this handler only ever sent a
+    // notification — no Maintenance row was created until a Storekeeper separately
+    // marked the request "not in stock" via a completely different page, so the
+    // Storekeeper's actual Maintenance queue (GetMaintenancesQuery) and the
+    // Escalate-to-Procurement action (which requires an existing Maintenance row)
+    // never had anything to show or act on.
+    [Fact]
+    public async Task Handle_MaintenanceRequest_CreatesMaintenanceRecordVisibleToStorekeeper()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var division = new Division { Id = 1, Name = "IT" };
+        var asset = new Asset { Id = 10, AssetCode = "AST-10", DivisionId = division.Id };
+        var storekeeper = new User { Id = 2, FirstName = "Store", LastName = "Keeper", Role = UserRole.Storekeeper };
+        db.Divisions.Add(division);
+        db.Assets.Add(asset);
+        db.Users.Add(storekeeper);
+        db.AssetRequests.Add(new AssetRequest
+        {
+            Id = 60,
+            AssetName = "WF Test Laptop",
+            Priority = "Normal",
+            RequesterId = "1",
+            RequesterName = "IT Employee",
+            RequestType = "Maintenance",
+            Description = "Screen is broken",
+            UserId = 1,
+            AssetId = asset.Id,
+            DivisionId = division.Id
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new AssetRequestApprovedEventHandler(db, Mock.Of<ILogger<AssetRequestApprovedEventHandler>>());
+        await handler.Handle(BuildEvent(60, "Maintenance") with { ApprovedByUserId = 3 }, CancellationToken.None);
+
+        var maintenance = Assert.Single(db.Maintenances);
+        Assert.Equal(asset.Id, maintenance.AssetId);
+        Assert.Equal("Approved", maintenance.Status);
+        Assert.Equal(1, maintenance.RequestedByUserId);
+        Assert.Equal(3, maintenance.ApprovedByUserId);
+        Assert.Null(maintenance.OriginalRequestId); // no matching row in the Requests table to link to
+    }
+
+    // Covers a display gap reported directly by a user: DiscardedNote never recorded
+    // which employee raised the discard request, so Superintendent/Admin could see
+    // the originating division but not who to follow up with.
+    [Fact]
+    public async Task Handle_DiscardRequest_RecordsRequesterOnDiscardedNote()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var division = new Division { Id = 1, Name = "IT" };
+        db.Divisions.Add(division);
+        db.AssetRequests.Add(new AssetRequest
+        {
+            Id = 53,
+            AssetName = "WF Test Laptop",
+            Priority = "Normal",
+            RequesterId = "1",
+            RequesterName = "IT Employee",
+            RequestType = "Discard",
+            UserId = 1,
+            DivisionId = division.Id
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new AssetRequestApprovedEventHandler(db, Mock.Of<ILogger<AssetRequestApprovedEventHandler>>());
+        await handler.Handle(BuildEvent(53, "Discard") with { RequesterId = "1", RequesterName = "IT Employee" }, CancellationToken.None);
+
+        var note = Assert.Single(db.DiscardedNotes);
+        Assert.Equal(1, note.RequestedByUserId);
+        Assert.Equal("IT Employee", note.RequestedByName);
+    }
+
     [Fact]
     public async Task Handle_TransferRequest_DoesNotCreateAssetInforming()
     {

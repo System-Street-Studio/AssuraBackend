@@ -37,6 +37,7 @@ public class GetMaintenanceStatsQueryHandler : IRequestHandler<GetMaintenanceSta
             EscalatedToProcurement = all.Count(m => Normalize(m.Status) == "EscalatedToProcurement"),
             Completed = all.Count(m => Normalize(m.Status) == "Completed"),
             Rejected = all.Count(m => Normalize(m.Status) == "Rejected"),
+            Submitted = all.Count(m => Normalize(m.Status) == "Submitted"),
         };
     }
 }
