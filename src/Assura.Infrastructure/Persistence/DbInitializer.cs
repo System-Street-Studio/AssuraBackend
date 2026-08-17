@@ -84,6 +84,27 @@ public static class DbInitializer
             }
 
             // ── Step 1: Seed standard categories ──
+            try
+            {
+                var poProducts = await context.Products.Where(p => p.Name.StartsWith("PO-") && p.ModelNumber != null && p.ModelNumber != "").ToListAsync();
+                foreach (var p in poProducts)
+                {
+                    p.Name = p.ModelNumber!;
+                }
+
+                var informings = await context.AssetInformings.Where(ai => ai.Remarks != null && ai.Remarks.Contains("GRN ") && ai.Status == "Completed").ToListAsync();
+                foreach (var ai in informings)
+                {
+                    ai.Status = "GRN Recorded";
+                }
+
+                await context.SaveChangesAsync();
+            }
+            catch
+            {
+                // Non-fatal
+            }
+
             var allCategories = await context.Categories
                 .IgnoreQueryFilters()
                 .ToListAsync();

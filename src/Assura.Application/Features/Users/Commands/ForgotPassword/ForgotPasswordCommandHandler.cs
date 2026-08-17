@@ -15,12 +15,14 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
 {
     private readonly IIdentifyServices _identifyServices;
     private readonly IEmailService _emailService;
+    private readonly IAppUrlsService _appUrlsService;
     private readonly ILogger<ForgotPasswordCommandHandler> _logger;
 
-    public ForgotPasswordCommandHandler(IIdentifyServices identifyServices, IEmailService emailService, ILogger<ForgotPasswordCommandHandler> logger)
+    public ForgotPasswordCommandHandler(IIdentifyServices identifyServices, IEmailService emailService, IAppUrlsService appUrlsService, ILogger<ForgotPasswordCommandHandler> logger)
     {
         _identifyServices = identifyServices;
         _emailService = emailService;
+        _appUrlsService = appUrlsService;
         _logger = logger;
     }
 
@@ -36,7 +38,7 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
         if (token != null)
         {
             var subject = "Assura - Password Reset Request";
-            var resetLink = $"http://localhost:4200/auth/reset-password?token={token}&email={request.Email}";
+            var resetLink = $"{_appUrlsService.FrontendBaseUrl}/auth/reset-password?token={token}&email={request.Email}";
             var body = $@"
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;'>
                     <h2 style='color: #003366; text-align: center;'>Password Reset Request</h2>

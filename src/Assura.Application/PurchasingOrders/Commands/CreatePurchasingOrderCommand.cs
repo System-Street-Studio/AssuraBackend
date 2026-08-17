@@ -63,25 +63,35 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
 
         int? divisionId = request.DivisionId;
 
+        // The pending-requests queue (GetPendingAssetRequestsQuery) merges two tables with
+        // unqualified ids: `Requests` rows keep their real positive id, `AssetRequests` rows
+        // are given a negated id to avoid collisions. Un-negate before querying `AssetRequests`
+        // so the originating request actually gets marked Approved and drops out of the queue.
         if (request.RequestId.HasValue)
         {
-            var req = await _context.Requests.Include(r => r.Requester).FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Constants.RequestWorkflowStatus.PendingProcurement, cancellationToken);
-            if (req != null)
+            if (request.RequestId.Value < 0)
             {
-                req.Status = Assura.Domain.Constants.RequestWorkflowStatus.Approved;
-                if (!divisionId.HasValue && req.Requester != null)
+                var actualId = Math.Abs(request.RequestId.Value);
+                var assetReq = await _context.AssetRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == actualId && r.Status == Assura.Domain.Enums.RequestStatus.PendingProcurement, cancellationToken);
+                if (assetReq != null)
                 {
-                    divisionId = req.Requester.DivisionId;
+                    assetReq.Status = Assura.Domain.Enums.RequestStatus.Approved;
+                    if (!divisionId.HasValue)
+                    {
+                        divisionId = assetReq.DivisionId ?? assetReq.User?.DivisionId;
+                    }
                 }
             }
-
-            var assetReq = await _context.AssetRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Enums.RequestStatus.PendingProcurement, cancellationToken);
-            if (assetReq != null)
+            else
             {
-                assetReq.Status = Assura.Domain.Enums.RequestStatus.Approved;
-                if (!divisionId.HasValue)
+                var req = await _context.Requests.Include(r => r.Requester).FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Constants.RequestWorkflowStatus.PendingProcurement, cancellationToken);
+                if (req != null)
                 {
-                    divisionId = assetReq.DivisionId ?? assetReq.User?.DivisionId;
+                    req.Status = Assura.Domain.Constants.RequestWorkflowStatus.Approved;
+                    if (!divisionId.HasValue && req.Requester != null)
+                    {
+                        divisionId = req.Requester.DivisionId;
+                    }
                 }
             }
         }

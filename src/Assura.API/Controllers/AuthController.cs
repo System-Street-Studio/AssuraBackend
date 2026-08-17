@@ -5,6 +5,7 @@ using Assura.Application.Features.Users.Commands.ResetPassword;
 using Assura.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Assura.API.Controllers;
 
@@ -56,6 +57,7 @@ public class AuthController : ControllerBase
         return Ok(new { Message = "Logged out successfully." });
     }
 
+    [EnableRateLimiting("PasswordReset")]
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
     {
@@ -66,6 +68,7 @@ public class AuthController : ControllerBase
         return Ok(new { Message = "If an account exists with that email, a reset link has been sent." });
     }
 
+    [EnableRateLimiting("PasswordReset")]
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
     {

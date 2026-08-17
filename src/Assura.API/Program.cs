@@ -4,7 +4,9 @@ using Assura.Application;
 using Assura.Infrastructure;
 using Assura.Infrastructure.Persistence;
 using DotNetEnv;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
+using System.Threading.RateLimiting;
 
 Env.TraversePath().Load();
 
@@ -49,7 +51,15 @@ builder.Configuration["Smtp:Host"] = GetFirstEnvValue("SMTP_HOST") ?? builder.Co
 builder.Configuration["Smtp:Port"] = GetFirstEnvValue("SMTP_PORT") ?? builder.Configuration["Smtp:Port"];
 builder.Configuration["Smtp:Username"] = GetFirstEnvValue("SMTP_USER", "SMTP_USERNAME") ?? builder.Configuration["Smtp:Username"];
 builder.Configuration["Smtp:Password"] = GetFirstEnvValue("SMTP_PASSWORD") ?? builder.Configuration["Smtp:Password"];
-builder.Configuration["Smtp:FromEmail"] = GetFirstEnvValue("SMTP_FROM_EMAIL", "SMTP_FROM_NAME") ?? builder.Configuration["Smtp:FromEmail"];
+// FromEmail must be a real email address (used to build a System.Net.Mail.MailAddress);
+// FromName is just the display name. These used to be conflated - falling back
+// FromEmail to SMTP_FROM_NAME let a deployment that only set SMTP_FROM_NAME pass a
+// non-address string into MailAddress, throwing and silently killing all outbound
+// password-reset email.
+builder.Configuration["Smtp:FromEmail"] = GetFirstEnvValue("SMTP_FROM_EMAIL") ?? builder.Configuration["Smtp:FromEmail"];
+builder.Configuration["Smtp:FromName"] = GetFirstEnvValue("SMTP_FROM_NAME") ?? builder.Configuration["Smtp:FromName"];
+
+builder.Configuration["App:FrontendBaseUrl"] = GetFirstEnvValue("FRONTEND_BASE_URL") ?? builder.Configuration["App:FrontendBaseUrl"];
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -69,6 +79,22 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
+});
+
+// Throttles the password-reset endpoints per client IP so they can't be used to
+// flood an arbitrary victim's inbox or brute-force a reset token.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("PasswordReset", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 5,
+                QueueLimit = 0
+            }));
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -110,6 +136,7 @@ app.UseCors("DefaultPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.UseStaticFiles();
 app.MapControllers();

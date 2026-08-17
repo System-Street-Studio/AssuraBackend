@@ -53,6 +53,14 @@ public class ResetUserPasswordCommandHandler : IRequestHandler<ResetUserPassword
         var temporaryPassword = GenerateTemporaryPassword();
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword);
 
+        // Invalidate any existing session/refresh token so a user who is being locked
+        // out (e.g. a compromised or departing account) doesn't stay authenticated on
+        // an already-logged-in device after an administrator forces this reset. Must be
+        // a fresh value, not null - see IdentityService.ResetPasswordAsync for why.
+        user.CurrentSessionId = Guid.NewGuid().ToString();
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = null;
+
         _context.Notifications.Add(new Notification
         {
             Title = "Password Reset by Administrator",

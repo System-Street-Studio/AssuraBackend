@@ -171,7 +171,7 @@ public class AssetRequestApprovedEventHandlerRequestTypeTests
     }
 
     [Fact]
-    public async Task Handle_NewAssetRequest_StillCreatesAssetInformingAndNotifiesStorekeepers()
+    public async Task Handle_NewAssetRequest_DoesNotCreateAssetInforming_NotifiesStorekeepers()
     {
         using var db = TestContextFactory.CreateContext();
 
@@ -195,8 +195,7 @@ public class AssetRequestApprovedEventHandlerRequestTypeTests
         var handler = new AssetRequestApprovedEventHandler(db, Mock.Of<ILogger<AssetRequestApprovedEventHandler>>());
         await handler.Handle(BuildEvent(52, "New Asset"), CancellationToken.None);
 
-        var informing = Assert.Single(db.AssetInformings);
-        Assert.Equal("WF Test Laptop", informing.ItemName);
+        Assert.Empty(db.AssetInformings);
 
         var notification = await db.Notifications.FirstOrDefaultAsync(n => n.UserId == storekeeper.Id);
         Assert.NotNull(notification);

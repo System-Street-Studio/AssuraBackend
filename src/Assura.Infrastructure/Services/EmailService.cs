@@ -22,6 +22,7 @@ public class EmailService : IEmailService
         var username = smtpSettings["Username"];
         var password = smtpSettings["Password"];
         var fromEmail = smtpSettings["FromEmail"] ?? "no-reply@assura.com";
+        var fromName = smtpSettings["FromName"];
 
         using var client = new SmtpClient(host, port)
         {
@@ -31,7 +32,7 @@ public class EmailService : IEmailService
 
         var mailMessage = new MailMessage
         {
-            From = new MailAddress(fromEmail),
+            From = string.IsNullOrWhiteSpace(fromName) ? new MailAddress(fromEmail) : new MailAddress(fromEmail, fromName),
             Subject = subject,
             Body = body,
             IsBodyHtml = true

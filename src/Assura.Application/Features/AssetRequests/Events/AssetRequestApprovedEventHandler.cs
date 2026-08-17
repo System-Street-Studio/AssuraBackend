@@ -121,23 +121,8 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
 
             if (isNewAssetPurchase)
             {
-                // Create AssetInforming record (adds to inventory/new arrivals)
-                var assetInforming = new AssetInforming
-                {
-                    ItemName = notification.AssetName,
-                    Model = notification.AssetCategory,
-                    Warranty = "N/A",
-                    Quantity = notification.Quantity,
-                    PurchasedDate = notification.SubmittedDate,
-                    PurchasedPrice = 0, // Can be updated later
-                    DivisionId = request.DivisionId.Value,
-                    Status = "Pending"
-                };
-
-                _context.AssetInformings.Add(assetInforming);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                // Notify Storekeepers about the new approved request
+                // Notify Storekeepers about the new approved request awaiting procurement.
+                // Note: AssetInforming (New Arrival) is only created when goods physically arrive and Procurement informs stores.
                 var storekeepers = await _context.Users
                     .Where(u => u.Role == UserRole.Storekeeper)
                     .ToListAsync(cancellationToken);
@@ -150,7 +135,7 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                         Message = $"Request for '{notification.AssetName}' (Qty: {notification.Quantity}) has been approved and is awaiting procurement.",
                         UserId = storekeeper.Id,
                         Type = "Info",
-                        ReferenceId = assetInforming.Id.ToString()
+                        ReferenceId = request.Id.ToString()
                     });
                 }
 
