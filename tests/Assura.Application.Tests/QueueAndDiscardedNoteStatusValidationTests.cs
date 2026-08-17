@@ -57,4 +57,29 @@ public class QueueAndDiscardedNoteStatusValidationTests
 
         Assert.True(result.IsValid);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void UpdateQueueItemStatusCommandValidator_ShouldReject_InvalidId(int id)
+    {
+        var validator = new UpdateQueueItemStatusCommandValidator();
+        var result = validator.Validate(new UpdateQueueItemStatusCommand { Id = id, Status = "Approved" });
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == nameof(UpdateQueueItemStatusCommand.Id));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void UpdateDiscardedNoteStatusCommandValidator_ShouldReject_InvalidId(int id)
+    {
+        var validator = new UpdateDiscardedNoteStatusCommandValidator();
+        var result = validator.Validate(new UpdateDiscardedNoteStatusCommand { Id = id, Status = "Completed", Note = "" });
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == nameof(UpdateDiscardedNoteStatusCommand.Id));
+    }
 }
+

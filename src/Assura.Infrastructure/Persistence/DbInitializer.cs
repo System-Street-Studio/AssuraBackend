@@ -57,7 +57,31 @@ public static class DbInitializer
         try
         {
             // Ensure the database schema is up to date
-            await context.Database.MigrateAsync();
+            try
+            {
+                await context.Database.MigrateAsync();
+            }
+            catch (Exception migEx)
+            {
+                logger?.LogWarning(migEx, "MigrateAsync failed or partially completed.");
+            }
+
+            // Ensure CurrentSessionId column exists on Users table
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync("ALTER TABLE `Users` ADD COLUMN IF NOT EXISTS `CurrentSessionId` LONGTEXT NULL;");
+            }
+            catch
+            {
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync("ALTER TABLE `Users` ADD COLUMN `CurrentSessionId` LONGTEXT NULL;");
+                }
+                catch (Exception addColEx)
+                {
+                    logger?.LogDebug(addColEx, "CurrentSessionId column already present or check bypassed.");
+                }
+            }
 
             // ── Step 1: Seed standard categories ──
             var allCategories = await context.Categories
