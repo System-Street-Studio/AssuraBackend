@@ -40,7 +40,10 @@ public class GRNsController : BaseApiController
             request.AssetId,
             request.ReceivedDate,
             request.ReceivedBy,
-            request.Notes));
+            request.Notes,
+            request.InformingId,
+            request.ItemName,
+            request.Model));
 
         return CreatedAtAction(nameof(GetGRN), new { id = result.Id }, result);
     }
@@ -49,8 +52,11 @@ public class GRNsController : BaseApiController
 public class CreateGRNRequest
 {
     public int PurchasingOrderId { get; set; }
-    public int AssetId { get; set; }
+    public int? AssetId { get; set; }
     public DateTime ReceivedDate { get; set; }
     public string? ReceivedBy { get; set; }
     public string? Notes { get; set; }
+    public int? InformingId { get; set; }
+    public string? ItemName { get; set; }
+    public string? Model { get; set; }
 }

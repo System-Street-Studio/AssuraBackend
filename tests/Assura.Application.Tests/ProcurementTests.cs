@@ -94,5 +94,77 @@ public class ProcurementTests
         Assert.Equal("High-end PC", result[0].Specifications);
     }
 
+    [Fact]
+    public async Task CreatePurchasingOrder_FromRequestsTableQueueItem_ShouldRemoveFromQueue()
+    {
+        using var db = CreateContext();
+        var requester = new User { Id = 1, FirstName = "John", LastName = "Doe" };
+        db.Users.Add(requester);
+        var req = new Request { Status = "PendingProcurement", Requester = requester, CreatedAt = DateTime.UtcNow, Specifications = "High-end PC" };
+        db.Requests.Add(req);
+        await db.SaveChangesAsync();
+
+        var handler = new CreatePurchasingOrderCommandHandler(db);
+        var command = new CreatePurchasingOrderCommand
+        {
+            SupplierName = "Acme",
+            RequestId = req.Id,
+            Items = new List<CreatePurchasingOrderItemDto>
+            {
+                new CreatePurchasingOrderItemDto { ItemName = "Laptop", Quantity = 1, UnitPrice = 1000 }
+            }
+        };
+
+        await handler.Handle(command, CancellationToken.None);
+
+        var updated = await db.Requests.FirstAsync(r => r.Id == req.Id);
+        Assert.Equal("Approved", updated.Status);
+
+        var pendingHandler = new GetPendingAssetRequestsQueryHandler(db);
+        var pending = await pendingHandler.Handle(new GetPendingAssetRequestsQuery(), CancellationToken.None);
+        Assert.Empty(pending);
+    }
+
+    [Fact]
+    public async Task CreatePurchasingOrder_FromAssetRequestsTableQueueItem_ShouldRemoveFromQueue()
+    {
+        using var db = CreateContext();
+        var assetReq = new AssetRequest
+        {
+            AssetName = "Printer",
+            Priority = "Normal",
+            RequesterId = "1",
+            RequesterName = "Jane Doe",
+            RequestType = "NewAsset",
+            Status = Assura.Domain.Enums.RequestStatus.PendingProcurement
+        };
+        db.AssetRequests.Add(assetReq);
+        await db.SaveChangesAsync();
+
+        // The pending-requests queue negates AssetRequests-table ids so they don't
+        // collide with Requests-table ids; this is what the frontend actually sends back.
+        var negatedRequestId = -assetReq.Id;
+
+        var handler = new CreatePurchasingOrderCommandHandler(db);
+        var command = new CreatePurchasingOrderCommand
+        {
+            SupplierName = "Acme",
+            RequestId = negatedRequestId,
+            Items = new List<CreatePurchasingOrderItemDto>
+            {
+                new CreatePurchasingOrderItemDto { ItemName = "Printer", Quantity = 1, UnitPrice = 500 }
+            }
+        };
+
+        await handler.Handle(command, CancellationToken.None);
+
+        var updated = await db.AssetRequests.FirstAsync(r => r.Id == assetReq.Id);
+        Assert.Equal(Assura.Domain.Enums.RequestStatus.Approved, updated.Status);
+
+        var pendingHandler = new GetPendingAssetRequestsQueryHandler(db);
+        var pending = await pendingHandler.Handle(new GetPendingAssetRequestsQuery(), CancellationToken.None);
+        Assert.Empty(pending);
+    }
+
     private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }
