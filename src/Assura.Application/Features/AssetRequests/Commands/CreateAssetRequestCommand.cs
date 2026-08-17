@@ -47,7 +47,7 @@ public class CreateAssetRequestCommandValidator : AbstractValidator<CreateAssetR
         RuleFor(x => x.Reason).MaximumLength(2000);
         RuleFor(x => x.Priority).NotEmpty().MaximumLength(50);
         RuleFor(x => x.RequestType).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.Quantity).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be at least 1.");
         RuleFor(x => x.AssetId).GreaterThan(0).When(x => x.AssetId.HasValue);
 
         // Discard specifically requires a reason to be given — the frontend already

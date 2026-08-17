@@ -33,32 +33,24 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
     {
-        Console.WriteLine($"[DEBUG] AuthController: Login request received for {command.Username}");
         try {
             var result = await _mediator.Send(command);
-            if (result != null) {
-                Console.WriteLine("[DEBUG] AuthController: Login successful, returning 200 OK");
-                return Ok(result);
-            } else {
-                Console.WriteLine("[DEBUG] AuthController: Login failed (null result), returning 401 Unauthorized");
-                return Unauthorized(new { Message = "Invalid username or password." });
-            }
+            return result != null
+                ? Ok(result)
+                : Unauthorized(new { Message = "Invalid username or password." });
         } catch (UnauthorizedAccessException ex) {
-            Console.WriteLine($"[DEBUG] AuthController: Login failed (UnauthorizedAccess): {ex.Message}");
             return Unauthorized(new { Message = ex.Message });
-        } catch (Exception ex) {
-            Console.WriteLine($"[DEBUG] AuthController: Error during login: {ex.Message}");
-            throw;
         }
     }
 
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
     {
-        var token = await _mediator.Send(command);
-        // In production, we wouldn't return the token.
-        // But for development/testing, returning it helps if you don't have email setup.
-        return Ok(new { Message = "If an account exists with that email, a reset link has been sent.", Token = token });
+        await _mediator.Send(command);
+        // Always return a generic message and never the token itself - the reset token
+        // must only ever reach the user via the email channel, or anyone who knows a
+        // victim's email could reset their password without touching their inbox.
+        return Ok(new { Message = "If an account exists with that email, a reset link has been sent." });
     }
 
     [HttpPost("reset-password")]

@@ -45,6 +45,12 @@ builder.Configuration["Jwt:Issuer"] = Env.GetString("JWT_ISSUER") ?? builder.Con
 builder.Configuration["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"];
 builder.Configuration["Jwt:ExpiryMinutes"] = Env.GetString("JWT_EXPIRY_MINUTES", builder.Configuration["Jwt:ExpiryMinutes"] ?? "60");
 
+builder.Configuration["Smtp:Host"] = GetFirstEnvValue("SMTP_HOST") ?? builder.Configuration["Smtp:Host"];
+builder.Configuration["Smtp:Port"] = GetFirstEnvValue("SMTP_PORT") ?? builder.Configuration["Smtp:Port"];
+builder.Configuration["Smtp:Username"] = GetFirstEnvValue("SMTP_USER", "SMTP_USERNAME") ?? builder.Configuration["Smtp:Username"];
+builder.Configuration["Smtp:Password"] = GetFirstEnvValue("SMTP_PASSWORD") ?? builder.Configuration["Smtp:Password"];
+builder.Configuration["Smtp:FromEmail"] = GetFirstEnvValue("SMTP_FROM_EMAIL", "SMTP_FROM_NAME") ?? builder.Configuration["Smtp:FromEmail"];
+
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers()

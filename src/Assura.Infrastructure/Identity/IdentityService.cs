@@ -55,49 +55,35 @@ public class IdentityService : IIdentifyServices
 
     public async Task<Assura.Application.Common.Models.AuthResponse?> AuthenticateAsync(string username, string password)
     {
-        Console.WriteLine($"[DEBUG] AuthenticateAsync started for user: {username}");
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Username == username || u.Email == username);
 
-        if (user == null) 
+        if (user == null)
         {
-            Console.WriteLine("[DEBUG] User not found");
             return null;
         }
 
         if (user.IsLocked)
         {
-            Console.WriteLine("[DEBUG] User is locked");
             throw new UnauthorizedAccessException("Your account has been locked by the system administrator.");
         }
 
         if (!user.IsActive)
         {
-            Console.WriteLine("[DEBUG] User is inactive");
             throw new UnauthorizedAccessException(
                 user.EmploymentStatus == "Rejected"
                     ? "Your registration was rejected by HR. Please contact HR for more information."
                     : "Your account is inactive. Please contact HR for more information.");
         }
 
-        Console.WriteLine("[DEBUG] User found, verifying password...");
-        bool isPasswordValid = false;
-        try {
-            isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
-        } catch (Exception ex) {
-            Console.WriteLine($"[DEBUG] BCrypt error: {ex.Message}");
-            throw;
-        }
+        var isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
 
         if (!isPasswordValid)
         {
-            Console.WriteLine("[DEBUG] Password verification failed");
             return null;
         }
 
-        Console.WriteLine("[DEBUG] Password verified, generating token...");
         var token = _jwtTokenGenerator.GenerateToken(user);
-        Console.WriteLine("[DEBUG] Token generated successfully");
 
         return new Assura.Application.Common.Models.AuthResponse
         {

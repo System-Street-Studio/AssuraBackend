@@ -1,5 +1,7 @@
 using Assura.Application.Common.Interfaces;
 
+using Microsoft.Extensions.Logging;
+
 using MediatR;
 
 
@@ -13,11 +15,13 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
 {
     private readonly IIdentifyServices _identifyServices;
     private readonly IEmailService _emailService;
+    private readonly ILogger<ForgotPasswordCommandHandler> _logger;
 
-    public ForgotPasswordCommandHandler(IIdentifyServices identifyServices, IEmailService emailService)
+    public ForgotPasswordCommandHandler(IIdentifyServices identifyServices, IEmailService emailService, ILogger<ForgotPasswordCommandHandler> logger)
     {
         _identifyServices = identifyServices;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<string?> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
@@ -52,7 +56,16 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
                     <p style='font-size: 12px; color: #888; text-align: center;'>Thank you,<br/>Assura Team</p>
                 </div>";
 
-            await _emailService.SendEmailAsync(request.Email, subject, body);
+            try
+            {
+                await _emailService.SendEmailAsync(request.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                // Don't let a mail-server failure surface as a 500 to the caller - that would
+                // let an attacker distinguish existing vs non-existing accounts by response code.
+                _logger.LogError(ex, "Failed to send password reset email to {Email}", request.Email);
+            }
         }
 
         return token;
