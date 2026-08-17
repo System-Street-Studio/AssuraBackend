@@ -31,6 +31,7 @@ public class ConfirmAssetArrivalCommandHandler : IRequestHandler<ConfirmAssetArr
             throw new Exception("Asset arrival record not found.");
 
         informing.Status = "Confirmed";
+        informing.TargetEmployeeId = request.UserId;
         informing.UpdatedAt = DateTime.UtcNow;
 
         var employee = await _context.Users.FindAsync(new object[] { request.UserId }, cancellationToken);
