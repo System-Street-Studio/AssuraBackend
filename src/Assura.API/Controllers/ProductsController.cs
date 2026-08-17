@@ -12,10 +12,14 @@ namespace Assura.API.Controllers;
 public class ProductsController : BaseApiController
 {
     private readonly IMediator _mediator;
+    private readonly IWebHostEnvironment _env;
+    private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+    private const long MaxImageSizeBytes = 5 * 1024 * 1024;
 
-    public ProductsController(IMediator mediator)
+    public ProductsController(IMediator mediator, IWebHostEnvironment env)
     {
         _mediator = mediator;
+        _env = env;
     }
 
     [HttpGet]
@@ -54,5 +58,39 @@ public class ProductsController : BaseApiController
         var result = await _mediator.Send(new DeleteProductCommand(id));
         if (!result) return NotFound();
         return NoContent();
+    }
+
+    [HttpPost("{id}/upload")]
+    public async Task<ActionResult<ProductDto>> UploadImage(int id, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("No file provided.");
+
+        if (file.Length > MaxImageSizeBytes)
+            return BadRequest("Image must be 5MB or smaller.");
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!AllowedImageExtensions.Contains(ext))
+            return BadRequest("Only JPG, PNG, WEBP or GIF images are allowed.");
+
+        var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", "products");
+        Directory.CreateDirectory(uploadsDir);
+
+        var fileName = $"{id}_{DateTime.UtcNow:yyyyMMddHHmmss}{ext}";
+        var filePath = Path.Combine(uploadsDir, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var result = await _mediator.Send(new UploadProductImageCommand(id, $"/uploads/products/{fileName}"));
+        if (result == null)
+        {
+            System.IO.File.Delete(filePath);
+            return NotFound();
+        }
+
+        return Ok(result);
     }
 }

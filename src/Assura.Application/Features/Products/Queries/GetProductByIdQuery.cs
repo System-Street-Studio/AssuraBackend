@@ -27,7 +27,8 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, P
                 Name = p.Name,
                 ModelNumber = p.ModelNumber,
                 Manufacturer = p.Manufacturer,
-                Description = p.Description
+                Description = p.Description,
+                ImageUrl = p.ImageUrl
             })
             .FirstOrDefaultAsync(cancellationToken);
 
