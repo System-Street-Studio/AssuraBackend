@@ -14,6 +14,8 @@ public class AssetDto
     public string? Warranty { get; set; }
     public string? Notes { get; set; }
     public string? QrCode { get; set; }
+    public DateTime? LastVerifiedAt { get; set; }
+    public string? LastVerifiedByName { get; set; }
 
     public int CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
