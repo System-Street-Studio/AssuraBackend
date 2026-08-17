@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Assura.Application.DTOs;
 using Assura.Application.Features.SystemAdmin.Commands;
 using Assura.Application.Features.SystemAdmin.Queries;
@@ -34,7 +35,13 @@ public class SystemAdminController : BaseApiController
     [HttpPut("users/{id}/toggle-lock")]
     public async Task<IActionResult> ToggleUserLock(int id)
     {
-        var success = await Mediator.Send(new ToggleUserLockCommand(id));
+        var callerUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(callerUserIdStr, out var callerUserId))
+        {
+            return Unauthorized();
+        }
+
+        var success = await Mediator.Send(new ToggleUserLockCommand(id, callerUserId));
         if (!success) return BadRequest("Failed to toggle user lock status.");
         return Ok();
     }
@@ -56,7 +63,13 @@ public class SystemAdminController : BaseApiController
     [HttpPost("users/{id}/reset-password")]
     public async Task<IActionResult> ResetUserPassword(int id)
     {
-        var result = await Mediator.Send(new ResetUserPasswordCommand(id));
+        var callerUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(callerUserIdStr, out var callerUserId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await Mediator.Send(new ResetUserPasswordCommand(id, callerUserId));
         if (!result.Success) return BadRequest("Failed to reset user password. Cannot reset system admin.");
         return Ok(new { temporaryPassword = result.TemporaryPassword });
     }

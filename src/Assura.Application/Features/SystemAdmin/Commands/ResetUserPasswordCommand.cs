@@ -1,14 +1,25 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Entities;
+using Assura.Domain.Enums;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
 namespace Assura.Application.Features.SystemAdmin.Commands;
 
-public record ResetUserPasswordCommand(int UserId) : IRequest<ResetUserPasswordResult>;
+public record ResetUserPasswordCommand(int UserId, int CallerUserId) : IRequest<ResetUserPasswordResult>;
 
 public record ResetUserPasswordResult(bool Success, string? TemporaryPassword);
+
+public class ResetUserPasswordCommandValidator : AbstractValidator<ResetUserPasswordCommand>
+{
+    public ResetUserPasswordCommandValidator()
+    {
+        RuleFor(x => x.UserId).GreaterThan(0).WithMessage("User ID must be greater than 0.");
+        RuleFor(x => x.CallerUserId).GreaterThan(0).WithMessage("Caller User ID must be greater than 0.");
+    }
+}
 
 public class ResetUserPasswordCommandHandler : IRequestHandler<ResetUserPasswordCommand, ResetUserPasswordResult>
 {
@@ -21,11 +32,23 @@ public class ResetUserPasswordCommandHandler : IRequestHandler<ResetUserPassword
 
     public async Task<ResetUserPasswordResult> Handle(ResetUserPasswordCommand request, CancellationToken cancellationToken)
     {
+        // Prevent self-targeting
+        if (request.UserId == request.CallerUserId)
+        {
+            return new ResetUserPasswordResult(false, null);
+        }
+
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
         if (user == null) return new ResetUserPasswordResult(false, null);
 
-        // Prevent resetting the master system admin password if needed (optional safety check)
+        // Prevent resetting the master system admin password (hardcoded check)
         if (user.Username == "sysadmin") return new ResetUserPasswordResult(false, null);
+
+        // Prevent resetting other Admin or SystemAdmin accounts
+        if (user.Role == UserRole.Admin || user.Role == UserRole.SystemAdmin)
+        {
+            return new ResetUserPasswordResult(false, null);
+        }
 
         var temporaryPassword = GenerateTemporaryPassword();
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword);
