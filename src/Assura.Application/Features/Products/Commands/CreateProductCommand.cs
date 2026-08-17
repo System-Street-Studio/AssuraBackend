@@ -35,7 +35,8 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             Name = entity.Name,
             ModelNumber = entity.ModelNumber,
             Manufacturer = entity.Manufacturer,
-            Description = entity.Description
+            Description = entity.Description,
+            ImageUrl = entity.ImageUrl
         };
     }
 }

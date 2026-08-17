@@ -26,7 +26,8 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, List<Pr
                 Name = p.Name,
                 ModelNumber = p.ModelNumber,
                 Manufacturer = p.Manufacturer,
-                Description = p.Description
+                Description = p.Description,
+                ImageUrl = p.ImageUrl
             })
             .ToListAsync(cancellationToken);
     }
