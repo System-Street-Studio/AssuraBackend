@@ -46,22 +46,18 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
         
 
+        var sessionId = user.CurrentSessionId ?? Guid.NewGuid().ToString();
+
         var claims = new List<Claim>
-
         {
-
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-new(ClaimTypes.NameIdentifier, user.Id.ToString()), // Explicit mapping for ASP.NET Core controllers
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()), // Explicit mapping for ASP.NET Core controllers
             new(JwtRegisteredClaimNames.UniqueName, user.Username),
-
             new(JwtRegisteredClaimNames.Email, user.Email),
-
             new(ClaimTypes.Role, user.Role?.ToString() ?? string.Empty),
-
             new("DivisionId", user.DivisionId?.ToString() ?? ""),
-
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-
+            new("SessionId", sessionId),
+            new(JwtRegisteredClaimNames.Jti, sessionId)
         };
 
 

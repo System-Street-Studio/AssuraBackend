@@ -149,6 +149,7 @@ public class EmployeeRequestValidationTests
             AssetName = "Laptop",
             Priority = "Normal",
             RequestType = "Discard",
+            Quantity = 1,
             Reason = "Beyond economical repair"
         };
 
@@ -165,6 +166,7 @@ public class EmployeeRequestValidationTests
             AssetName = "Laptop",
             Priority = "Normal",
             RequestType = "NewAsset",
+            Quantity = 1,
             Reason = ""
         };
 

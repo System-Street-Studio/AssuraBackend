@@ -14,6 +14,7 @@ public class User : BaseEntity
     public DateTime? RefreshTokenExpiryTime { get; set; }
     public string? PasswordResetToken { get; set; }
     public DateTime? ResetTokenExpiryTime { get; set; }
+    public string? CurrentSessionId { get; set; }
     public bool IsLocked { get; set; } = false;
     public bool IsActive { get; set; } = true;
 

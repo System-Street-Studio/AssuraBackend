@@ -17,9 +17,16 @@ public class UpdateDiscardedNoteStatusCommandValidator : AbstractValidator<Updat
 {
     public UpdateDiscardedNoteStatusCommandValidator()
     {
+        RuleFor(x => x.Id)
+            .GreaterThan(0).WithMessage("Valid Discarded Note ID is required.");
+
         RuleFor(x => x.Status)
+            .NotEmpty().WithMessage("Status is required.")
             .Must(status => Enum.TryParse<DiscardNoteStatus>(status, true, out _))
             .WithMessage(x => $"'{x.Status}' is not a valid discarded note status.");
+
+        RuleFor(x => x.Note)
+            .MaximumLength(1000).WithMessage("Note cannot exceed 1000 characters.");
     }
 }
 

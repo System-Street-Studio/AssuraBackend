@@ -43,6 +43,19 @@ public class AuthController : ControllerBase
         }
     }
 
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+        {
+            await _identifyServices.LogoutAsync(userId);
+        }
+        return Ok(new { Message = "Logged out successfully." });
+    }
+
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
     {

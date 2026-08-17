@@ -20,4 +20,5 @@ public interface IIdentifyServices
     Task<bool> UserExistsAsync(string username, string email);
     Task<string?> GeneratePasswordResetTokenAsync(string email);
     Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
+    Task LogoutAsync(int userId);
 }
