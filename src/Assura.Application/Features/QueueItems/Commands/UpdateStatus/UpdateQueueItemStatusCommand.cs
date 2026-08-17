@@ -17,9 +17,16 @@ public class UpdateQueueItemStatusCommandValidator : AbstractValidator<UpdateQue
 {
     public UpdateQueueItemStatusCommandValidator()
     {
+        RuleFor(x => x.Id)
+            .GreaterThan(0).WithMessage("Valid Queue Item ID is required.");
+
         RuleFor(x => x.Status)
+            .NotEmpty().WithMessage("Status is required.")
             .Must(status => Enum.TryParse<QueueItemStatus>(status, true, out _))
             .WithMessage(x => $"'{x.Status}' is not a valid queue item status.");
+
+        RuleFor(x => x.ReviewNote)
+            .MaximumLength(1000).WithMessage("Review note cannot exceed 1000 characters.");
     }
 }
 
@@ -99,8 +106,8 @@ public class UpdateQueueItemStatusCommandHandler : IRequestHandler<UpdateQueueIt
                 Name = entity.Name,
                 Division = entity.Division,
                 Date = DateTime.UtcNow,
-                Status = "Pending",
-                Category = Domain.Enums.AccPendingCategory.Pending,
+                Status = "Approved",
+                Category = Domain.Enums.AccPendingCategory.Approved,
                 AssetType = entity.AssetType,
                 CurrentUser = actingUserName,
                 SpecialNote = entity.SpecialNote ?? string.Empty,

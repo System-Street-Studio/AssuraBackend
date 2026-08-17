@@ -69,6 +69,36 @@ public static class DependencyInjection
                 ValidAudience = jwtSettings.GetValue<string>("Audience"),
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
             };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnTokenValidated = async context =>
+                {
+                    var dbContext = context.HttpContext.RequestServices.GetRequiredService<IApplicationDbContext>();
+                    var userIdClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                                      ?? context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+                    var sessionClaim = context.Principal?.FindFirst("SessionId")?.Value
+                                       ?? context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+
+                    if (int.TryParse(userIdClaim, out var userId))
+                    {
+                        var user = await dbContext.Users
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(u => u.Id == userId);
+
+                        if (user == null || !user.IsActive || user.IsLocked)
+                        {
+                            context.Fail("User account is inactive or locked.");
+                            return;
+                        }
+
+                        if (!string.IsNullOrEmpty(user.CurrentSessionId) && !string.IsNullOrEmpty(sessionClaim) && user.CurrentSessionId != sessionClaim)
+                        {
+                            context.Fail("Session expired: Account logged in from another device.");
+                        }
+                    }
+                }
+            };
         });
 
         services.AddAuthorization();

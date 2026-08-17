@@ -126,5 +126,66 @@ public class IdentityServiceAuthenticationTests
         Assert.Equal("fake-jwt-token", result!.Token);
     }
 
+    [Fact]
+    public async Task AuthenticateAsync_AssignsNewCurrentSessionId_OnEachLogin()
+    {
+        var service = CreateService(out var db);
+
+        var user = new User
+        {
+            Id = 54,
+            Username = "session_user",
+            Email = "session@assura.test",
+            FirstName = "Session",
+            LastName = "User",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!"),
+            IsActive = true,
+            EmploymentStatus = "Assigned",
+            Role = UserRole.Employee
+        };
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var firstResult = await service.AuthenticateAsync("session_user", "Password123!");
+        Assert.NotNull(firstResult);
+        var firstSessionId = user.CurrentSessionId;
+        Assert.False(string.IsNullOrWhiteSpace(firstSessionId));
+
+        // Second login from another device generates a different session ID
+        var secondResult = await service.AuthenticateAsync("session_user", "Password123!");
+        Assert.NotNull(secondResult);
+        var secondSessionId = user.CurrentSessionId;
+        Assert.False(string.IsNullOrWhiteSpace(secondSessionId));
+        Assert.NotEqual(firstSessionId, secondSessionId);
+    }
+
+    [Fact]
+    public async Task LogoutAsync_ClearsCurrentSessionId()
+    {
+        var service = CreateService(out var db);
+
+        var user = new User
+        {
+            Id = 55,
+            Username = "logout_user",
+            Email = "logout@assura.test",
+            FirstName = "Logout",
+            LastName = "User",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!"),
+            CurrentSessionId = "active-session-123",
+            IsActive = true,
+            EmploymentStatus = "Assigned",
+            Role = UserRole.Employee
+        };
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        await service.LogoutAsync(55);
+
+        Assert.Null(user.CurrentSessionId);
+    }
+
     private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
 }

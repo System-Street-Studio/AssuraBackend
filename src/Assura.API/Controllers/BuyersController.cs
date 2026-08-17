@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Assura.Application.Features.Buyers.Queries.GetAll;
 using Assura.Application.Features.Buyers.Commands.Create;
+using Assura.Application.Features.Buyers.Commands.Update;
 using Assura.Application.Features.Buyers.DTOs;
 using Assura.Domain.Constants;
 
@@ -30,6 +31,20 @@ public class BuyersController : BaseApiController
     {
         var id = await _mediator.Send(command);
         return CreatedAtAction(nameof(GetAll), new { id }, id);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<bool>> Update(int id, [FromBody] UpdateBuyerCommand command)
+    {
+        command.Id = id;
+
+        var result = await _mediator.Send(command);
+        if (!result)
+        {
+            return NotFound($"Buyer with ID {id} not found.");
+        }
+
+        return Ok(true);
     }
 }
 

@@ -83,6 +83,11 @@ public class IdentityService : IIdentifyServices
             return null;
         }
 
+        // Invalidate any previous session by assigning a fresh session identifier
+        var sessionId = Guid.NewGuid().ToString();
+        user.CurrentSessionId = sessionId;
+        await _context.SaveChangesAsync(default);
+
         var token = _jwtTokenGenerator.GenerateToken(user);
 
         return new Assura.Application.Common.Models.AuthResponse
@@ -96,6 +101,16 @@ public class IdentityService : IIdentifyServices
                 Roles = new List<string> { user.Role?.ToString() ?? "Employee" }
             }
         };
+    }
+
+    public async Task LogoutAsync(int userId)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user != null)
+        {
+            user.CurrentSessionId = null;
+            await _context.SaveChangesAsync(default);
+        }
     }
 
     public async Task<string?> GeneratePasswordResetTokenAsync(string email)
