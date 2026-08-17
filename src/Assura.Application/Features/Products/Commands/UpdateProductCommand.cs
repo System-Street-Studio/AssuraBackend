@@ -36,7 +36,8 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             Name = entity.Name,
             ModelNumber = entity.ModelNumber,
             Manufacturer = entity.Manufacturer,
-            Description = entity.Description
+            Description = entity.Description,
+            ImageUrl = entity.ImageUrl
         };
     }
 }

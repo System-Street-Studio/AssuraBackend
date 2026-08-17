@@ -13,6 +13,7 @@ public class CreateProductCommandValidator : AbstractValidator<CreateProductComm
             .MaximumLength(120);
 
         RuleFor(x => x.Product.Manufacturer)
+            .NotEmpty().WithMessage("Manufacturer is required.")
             .MaximumLength(120);
 
         RuleFor(x => x.Product.ModelNumber)
@@ -64,6 +65,7 @@ public class UpdateProductCommandValidator : AbstractValidator<UpdateProductComm
             .MaximumLength(120);
 
         RuleFor(x => x.Product.Manufacturer)
+            .NotEmpty().WithMessage("Manufacturer is required.")
             .MaximumLength(120);
 
         RuleFor(x => x.Product.ModelNumber)
