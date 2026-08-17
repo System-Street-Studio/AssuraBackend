@@ -41,8 +41,26 @@ public class ConfirmTransferByHeadCommandHandler : IRequestHandler<Commands.Conf
         // According to flow, after confirmation it's either ReadyForHandover or Active.
         transfer.Status = TransferStatus.Active;
         transfer.UpdatedAt = DateTime.UtcNow;
-        
+        transfer.ExpectedReturnDate = ParseExpectedReturnDate(transfer.TransferPeriod);
+
         await _context.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    // TransferPeriod is free text of the form "<start> to <end>" (see
+    // CreateTransferCommandHandler.ExtractTransferPeriod / transfer-form.ts), built from
+    // the browser's locale-formatted date string. Best-effort parse of the end date; if
+    // it can't be parsed, ExpectedReturnDate is left null and the transfer simply won't
+    // be flagged overdue, matching today's behavior for periods with no end date.
+    private static DateTime? ParseExpectedReturnDate(string? transferPeriod)
+    {
+        if (string.IsNullOrWhiteSpace(transferPeriod))
+            return null;
+
+        var parts = transferPeriod.Split(" to ", StringSplitOptions.TrimEntries);
+        if (parts.Length != 2)
+            return null;
+
+        return DateTime.TryParse(parts[1], out var endDate) ? endDate : null;
     }
 }

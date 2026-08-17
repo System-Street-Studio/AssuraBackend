@@ -62,9 +62,9 @@ public class TransferOverdueCheckerService : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
         var overdueTransfers = await context.Transfers
-            .Where(t => t.Status == TransferStatus.Active 
-                     && t.ReturnDate.HasValue 
-                     && t.ReturnDate.Value.Date < DateTime.UtcNow.Date)
+            .Where(t => t.Status == TransferStatus.Active
+                     && t.ExpectedReturnDate.HasValue
+                     && t.ExpectedReturnDate.Value.Date < DateTime.UtcNow.Date)
             .ToListAsync(cancellationToken);
 
         if (!overdueTransfers.Any())

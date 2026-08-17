@@ -26,6 +26,7 @@ public class TransfersController : ControllerBase
     //Creates a new transfer record linking a specific asset to an approved transfer request
    
    [HttpPost]
+    [Authorize(Roles = "DivisionHead,Admin")]
     public async Task<IActionResult> CreateTransfer([FromBody] CreateTransferDto dto)
     {
         try
@@ -336,13 +337,23 @@ public class TransfersController : ControllerBase
     {
         try
         {
-            var result = await _mediator.Send(new ReturnActiveTransferCommand(id));
-            
+            var callerIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(callerIdClaim, out var callerId)) return Unauthorized();
+
+            var isAdmin = User.IsInRole("Admin");
+            var isDivisionHead = User.IsInRole("DivisionHead");
+
+            var result = await _mediator.Send(new ReturnActiveTransferCommand(id, callerId, isAdmin, isDivisionHead));
+
             if (!result)
             {
                 return NotFound(new { success = false, message = $"Transfer record with ID {id} not found, already completed, or not active." });
             }
             return Ok(new { success = true, message = "Asset returned successfully. Transfer marked as Completed and Asset status updated to In Use." });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { success = false, message = ex.Message });
         }
         catch (Exception ex)
         {

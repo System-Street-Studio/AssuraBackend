@@ -10,6 +10,12 @@ public class Transfer : BaseEntity
     public string TransferNumber { get; set; } = string.Empty;
     public DateTime TransferDate { get; set; }
     public DateTime? ReturnDate { get; set; }
+
+    // Due date the asset is expected back by, parsed from TransferPeriod when the
+    // transfer is confirmed Active. Distinct from ReturnDate, which instead records
+    // when the asset was actually returned (set by ReturnActiveTransferCommand) —
+    // TransferOverdueCheckerService compares against this field, not ReturnDate.
+    public DateTime? ExpectedReturnDate { get; set; }
     public string? Reason { get; set; }
 
     public string? TransferPeriod { get; set; }
