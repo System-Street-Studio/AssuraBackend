@@ -129,13 +129,27 @@ public class IdentityService : IIdentifyServices
     public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.PasswordResetToken == token);
-        
+
         if (user == null || user.ResetTokenExpiryTime < DateTime.UtcNow)
+            return false;
+
+        if (user.IsLocked || !user.IsActive)
             return false;
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordResetToken = null;
         user.ResetTokenExpiryTime = null;
+
+        // Invalidate any existing session/refresh token so a device that was already
+        // logged in (potentially an attacker's, if this reset is recovering a
+        // compromised account) doesn't stay authenticated after the password changes.
+        // Note: this must be a fresh value, not null - the JWT session-check in
+        // Infrastructure/DependencyInjection.cs's OnTokenValidated only rejects a
+        // stale token when CurrentSessionId is non-empty AND mismatches the token's
+        // claim, so a null value would actually disable the check entirely.
+        user.CurrentSessionId = Guid.NewGuid().ToString();
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = null;
 
         return await _context.SaveChangesAsync(default) > 0;
     }

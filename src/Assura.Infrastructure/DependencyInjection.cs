@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddSingleton<IAppUrlsService, AppUrlsService>();
         services.AddHttpContextAccessor();
 
         // Custom Auth Services from feature/auth
