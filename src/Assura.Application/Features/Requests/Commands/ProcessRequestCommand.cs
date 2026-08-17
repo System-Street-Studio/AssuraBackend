@@ -156,6 +156,21 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
 
     private async Task ProcessAssetRequest(AssetRequest assetRequest, ProcessRequestCommand request, CancellationToken cancellationToken)
     {
+        assetRequest.ProcessorRemarks = request.Remarks;
+        assetRequest.ProcessedByUserId = request.ProcessedByUserId;
+        assetRequest.ProcessedAt = DateTime.UtcNow;
+
+        if (request.ProcessedByUserId.HasValue)
+        {
+            var processor = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == request.ProcessedByUserId.Value, cancellationToken);
+
+            if (processor != null)
+            {
+                assetRequest.ProcessedByName = $"{processor.FirstName} {processor.LastName}";
+            }
+        }
+
         if (request.IsInStock)
         {
             if (!request.AssetId.HasValue) return;
@@ -208,21 +223,11 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
                 });
             }
 
-            // Auto-create a Maintenance record when the request type is Maintenance
-            if (assetRequest.RequestType == "Maintenance" && assetRequest.AssetId.HasValue)
-            {
-                var maintenanceNumber = $"MAINT-{DateTime.UtcNow:yyyyMMdd}-{assetRequest.Id}";
-                _context.Maintenances.Add(new Domain.Entities.Maintenance
-                {
-                    MaintenanceNumber = maintenanceNumber,
-                    Type = Domain.Enums.MaintenanceType.Corrective,
-                    MaintenanceDate = DateTime.UtcNow,
-                    Description = assetRequest.Description ?? $"Maintenance required. Raised from Request '{assetRequest.AssetName}'.",
-                    Cost = 0,
-                    Status = "Pending",
-                    AssetId = assetRequest.AssetId.Value
-                });
-            }
+            // No Maintenance record is created here anymore: for Maintenance-type
+            // AssetRequests, AssetRequestApprovedEventHandler already creates it the
+            // moment the Division Head approves the request (so Storekeepers can see
+            // and act on it immediately from the Maintenance queue). Creating a second
+            // one here would leave a duplicate, orphaned Maintenance row behind.
         }
 
         await _context.SaveChangesAsync(cancellationToken);

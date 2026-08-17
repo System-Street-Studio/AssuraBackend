@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using FluentValidation;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.HR.Commands;
 
-public record UpdateHrUserCommand : IRequest<bool>
+public record UpdateHrUserCommand : IRequest<UpdateHrUserResult>
 {
     public int UserId { get; init; }
     public List<DivisionRoleAssignment> Assignments { get; init; } = new();
@@ -20,6 +21,19 @@ public record UpdateHrUserCommand : IRequest<bool>
     public string? ActorName { get; init; }
     public string? IpAddress { get; init; }
     public string? Device { get; init; }
+}
+
+public record UpdateHrUserResult
+{
+    public bool Success { get; init; }
+
+    /// <summary>
+    /// Assignments from the request that were dropped instead of applied — either because
+    /// the role wasn't a valid/HR-assignable <see cref="UserRole"/>, or the division didn't
+    /// exist. Non-empty even on a successful (<see cref="Success"/> = true) result means the
+    /// request partially succeeded and the caller should be told which entries were skipped.
+    /// </summary>
+    public List<DivisionRoleAssignment> SkippedAssignments { get; init; } = new();
 }
 
 public class UpdateHrUserCommandValidator : AbstractValidator<UpdateHrUserCommand>
@@ -34,7 +48,7 @@ public class UpdateHrUserCommandValidator : AbstractValidator<UpdateHrUserComman
     }
 }
 
-public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, bool>
+public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, UpdateHrUserResult>
 {
     private readonly IApplicationDbContext _context;
 
@@ -43,7 +57,7 @@ public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, b
         _context = context;
     }
 
-    public async Task<bool> Handle(UpdateHrUserCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateHrUserResult> Handle(UpdateHrUserCommand request, CancellationToken cancellationToken)
     {
         var user = await _context.Users
             .Include(u => u.DivisionRoles)
@@ -51,8 +65,10 @@ public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, b
 
         if (user == null)
         {
-            return false;
+            return new UpdateHrUserResult { Success = false };
         }
+
+        var skipped = new List<DivisionRoleAssignment>();
 
         if (request.Assignments is not null && request.Assignments.Count > 0)
         {
@@ -61,15 +77,21 @@ public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, b
 
             foreach (var assignment in request.Assignments)
             {
-                if (!Enum.TryParse<UserRole>(assignment.Role, true, out var parsedRole))
+                if (!Enum.TryParse<UserRole>(assignment.Role, true, out var parsedRole) ||
+                    !Roles.HrAssignableRoles.Contains(parsedRole))
                 {
+                    skipped.Add(assignment);
                     continue;
                 }
 
                 var division = await _context.Divisions
                     .FirstOrDefaultAsync(d => d.Id == assignment.DivisionId, cancellationToken);
 
-                if (division == null) continue;
+                if (division == null)
+                {
+                    skipped.Add(assignment);
+                    continue;
+                }
 
                 user.DivisionRoles.Add(new UserDivisionRole
                 {
@@ -121,13 +143,14 @@ public class UpdateHrUserCommandHandler : IRequestHandler<UpdateHrUserCommand, b
             {
                 employee = $"{user.FirstName} {user.LastName}".Trim(),
                 assignments = request.Assignments?.Select(a => new { a.DivisionId, a.Role }),
+                skipped = skipped.Select(a => new { a.DivisionId, a.Role }),
                 notes = request.Notes ?? "Employee details updated by HR",
-                result = "Success",
+                result = skipped.Count > 0 ? "Partial Success" : "Success",
                 device = request.Device
             })
         });
 
         await _context.SaveChangesAsync(cancellationToken);
-        return true;
+        return new UpdateHrUserResult { Success = true, SkippedAssignments = skipped };
     }
 }

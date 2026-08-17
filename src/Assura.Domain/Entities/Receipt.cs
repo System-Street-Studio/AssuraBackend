@@ -11,7 +11,7 @@ public class Receipt : BaseEntity
     public string AssetName { get; set; } = string.Empty;
     public string Division { get; set; } = string.Empty;
     public DateTime Date { get; set; }
-    public string Amount { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
     public ReceiptStatus Status { get; set; } = ReceiptStatus.Pending;
     public string? FileUrl { get; set; }
 }

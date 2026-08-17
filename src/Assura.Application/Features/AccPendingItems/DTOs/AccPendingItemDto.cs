@@ -11,8 +11,10 @@ public class AccPendingItemDto
     public string Time { get; set; } = string.Empty;
     public string AssetType { get; set; } = string.Empty;
     public string CurrentUser { get; set; } = string.Empty;
+    public string RequestedByName { get; set; } = string.Empty;
     public string SpecialNote { get; set; } = string.Empty;
     public string ValueAtPurchasing { get; set; } = string.Empty;
     public string CurrentValue { get; set; } = string.Empty;
     public bool IsHighlighted { get; set; }
+    public string? AssigneeName { get; set; }
 }

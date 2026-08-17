@@ -32,7 +32,10 @@ public class NotificationsController : BaseApiController
     [HttpPost("{id}/mark-as-read")]
     public async Task<ActionResult> MarkAsRead(int id)
     {
-        await _mediator.Send(new MarkNotificationAsReadCommand(id));
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
+
+        await _mediator.Send(new MarkNotificationAsReadCommand(id, userId));
         return NoContent();
     }
 

@@ -14,7 +14,6 @@ public record AssetRequestApprovedEvent(
     string Attachments,
     DateTime SubmittedDate,
     string Description,
-    string Reason
-     //string ApprovalBy 
-
+    string Reason,
+    int? ApprovedByUserId = null
 ) : INotification;

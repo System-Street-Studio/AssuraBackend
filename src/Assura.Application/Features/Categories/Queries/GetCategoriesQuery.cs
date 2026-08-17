@@ -25,7 +25,8 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
             {
                 Id = c.Id,
                 Name = c.Name,
-                Description = c.Description
+                Description = c.Description,
+                DepreciationRate = c.DepreciationRate
             })
             .ToListAsync(cancellationToken);
 

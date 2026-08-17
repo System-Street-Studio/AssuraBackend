@@ -48,7 +48,7 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
             .OrderByDescending(x => x.SubmittedDate)
             .Select(x => new AssetRequestDto
             {
-                Id = x.Id,
+                Id = -x.Id,
                 EmployeeName = x.RequesterName,
                 DivisionName = x.Division != null ? x.Division.Name : (x.User != null && x.User.Division != null ? x.User.Division.Name : "N/A"),
                 Date = x.SubmittedDate,

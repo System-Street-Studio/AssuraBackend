@@ -31,11 +31,28 @@ public class TransferOverdueCheckerService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred executing Overdue Transfers check.");
+                // Don't log once shutdown has started: by this point the host may have
+                // already disposed the logging providers (e.g. the default Windows
+                // EventLog provider), and logging through a disposed provider throws
+                // ObjectDisposedException, which escapes ExecuteAsync and permanently
+                // kills this background service instead of just ending the loop.
+                if (!stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogError(ex, "Error occurred executing Overdue Transfers check.");
+                }
             }
 
-            // Wait for next check interval
-            await Task.Delay(_checkInterval, stoppingToken);
+            // Wait for next check interval. A cancelled delay here just means the host
+            // is shutting down while we're asleep — that's the normal, expected way this
+            // loop ends, not a failure, so it's swallowed instead of left to escape
+            // ExecuteAsync (which the host logs as "BackgroundService failed").
+            try
+            {
+                await Task.Delay(_checkInterval, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+            }
         }
     }
 
@@ -45,9 +62,9 @@ public class TransferOverdueCheckerService : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
         var overdueTransfers = await context.Transfers
-            .Where(t => t.Status == TransferStatus.Active 
-                     && t.ReturnDate.HasValue 
-                     && t.ReturnDate.Value.Date < DateTime.UtcNow.Date)
+            .Where(t => t.Status == TransferStatus.Active
+                     && t.ExpectedReturnDate.HasValue
+                     && t.ExpectedReturnDate.Value.Date < DateTime.UtcNow.Date)
             .ToListAsync(cancellationToken);
 
         if (!overdueTransfers.Any())

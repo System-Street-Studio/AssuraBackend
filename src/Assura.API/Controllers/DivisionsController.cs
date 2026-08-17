@@ -1,11 +1,14 @@
 using Assura.Application.DTOs;
 using Assura.Application.Features.Divisions.Commands;
 using Assura.Application.Features.Divisions.Queries;
+using Assura.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 
 namespace Assura.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class DivisionsController : ControllerBase
@@ -32,6 +35,7 @@ public class DivisionsController : ControllerBase
         return Ok(summary);
     }
 
+    [Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin}")]
     [HttpPost]
     public async Task<ActionResult<DivisionDto>> CreateDivision([FromBody] CreateDivisionCommand command)
     {
@@ -39,6 +43,7 @@ public class DivisionsController : ControllerBase
         return CreatedAtAction(nameof(GetDivisions), new { id = result.Id }, result);
     }
 
+    [Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin}")]
     [HttpPut("{id}")]
     public async Task<ActionResult<DivisionDto>> UpdateDivision(int id, [FromBody] UpdateDivisionCommand command)
     {
@@ -47,6 +52,7 @@ public class DivisionsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin}")]
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteDivision(int id)
     {

@@ -14,7 +14,7 @@ public class AuthorizationTests
         var authorizeAttrs = controllerType.GetCustomAttributes<AuthorizeAttribute>(inherit: true);
 
         Assert.NotEmpty(authorizeAttrs);
-        Assert.Contains(authorizeAttrs, a => a.Roles == Roles.Admin);
+        Assert.Contains(authorizeAttrs, a => a.Roles != null && a.Roles.Contains(Roles.Admin));
     }
 
     [Fact]

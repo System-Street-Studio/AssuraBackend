@@ -26,6 +26,7 @@ public class TransfersController : ControllerBase
     //Creates a new transfer record linking a specific asset to an approved transfer request
    
    [HttpPost]
+    [Authorize(Roles = "DivisionHead,Admin")]
     public async Task<IActionResult> CreateTransfer([FromBody] CreateTransferDto dto)
     {
         try
@@ -93,15 +94,19 @@ public class TransfersController : ControllerBase
     }
 
    
-    // Retrieves counts of transfers for the logged-in user's division head dashboard
-    
+    // Retrieves counts of transfers for the logged-in user's dashboard (Division Head
+    // or Employee, depending on role — see GetTransferCountsQueryHandler). The caller
+    // is always taken from the JWT, never trusted from the query string, so nobody can
+    // view another user's (including another Division Head's) dashboard counts by
+    // passing a different id.
     [HttpGet("counts")]
-    public async Task<ActionResult<TransferCountsDto>> GetTransferCounts([FromQuery] int userId)
+    public async Task<ActionResult<TransferCountsDto>> GetTransferCounts()
     {
-        if (userId <= 0) return BadRequest("Invalid User ID");
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdClaim, out var userId)) return Unauthorized();
 
         var query = new GetTransferCountsQuery(userId);
-        var result = await _mediator.Send(query); 
+        var result = await _mediator.Send(query);
         return Ok(result);
     }
 
@@ -159,19 +164,25 @@ public class TransfersController : ControllerBase
     }
 
 
-    // Accept transfer endpoint
+    // Accept transfer endpoint — only the asset's current holder may accept
     [HttpPost("{id}/accept")]
     public async Task<IActionResult> AcceptTransfer(int id)
     {
         try
         {
-            
-            var result = await _mediator.Send(new AcceptTransferCommand(id));
-            
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int userId = int.Parse(userIdClaim ?? "0");
+
+            var result = await _mediator.Send(new AcceptTransferCommand(id, userId));
+
             if (result)
-                return Ok(new { message = "Transfer status updated to Waiting for Final Confirmation" });
-            
+                return Ok(new { message = "Transfer accepted and is now pending your division head's approval." });
+
             return BadRequest("Failed to update transfer status");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -179,19 +190,25 @@ public class TransfersController : ControllerBase
         }
     }
 
-    // Reject transfer endpoint
+    // Reject transfer endpoint — only the asset's current holder may reject
     [HttpPost("{id}/reject")]
     public async Task<IActionResult> RejectTransfer(int id)
     {
         try
         {
-            
-            var result = await _mediator.Send(new RejectTransferCommand(id));
-            
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int userId = int.Parse(userIdClaim ?? "0");
+
+            var result = await _mediator.Send(new RejectTransferCommand(id, userId));
+
             if (result)
                 return Ok(new { message = "Transfer rejected successfully" });
-            
+
             return BadRequest("Failed to update transfer status");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -228,6 +245,10 @@ public class TransfersController : ControllerBase
                 return Ok(new { message = "Transfer approved by division head" });
             return BadRequest("Failed to approve transfer");
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             return BadRequest(ex.Message);
@@ -248,6 +269,10 @@ public class TransfersController : ControllerBase
             if (result)
                 return Ok(new { message = "Transfer cancelled by division head" });
             return BadRequest("Failed to cancel transfer");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -270,6 +295,10 @@ public class TransfersController : ControllerBase
                 return Ok(new { message = "Transfer confirmed by division head" });
             return BadRequest("Failed to confirm transfer");
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             return BadRequest(ex.Message);
@@ -282,12 +311,20 @@ public class TransfersController : ControllerBase
     {
         try
         {
-            var headIdClaim = User.FindFirst("UserId")?.Value ?? "0";
-            int headId = int.Parse(headIdClaim);
+            // Was reading a non-existent "UserId" claim (the JWT only issues the
+            // standard NameIdentifier claim — see JwtTokenGenerator), so headId was
+            // always 0 here regardless of who called this endpoint. Matches the
+            // claim lookup used by the other three by-head actions above.
+            var headIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int headId = int.Parse(headIdClaim ?? "0");
 
             var command = new RejectTransferByHeadCommand(id, headId, dto.Reason);
             var result = await _mediator.Send(command);
             return Ok(new { success = result, message = "Rejected by head successfully" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { success = false, message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -300,13 +337,23 @@ public class TransfersController : ControllerBase
     {
         try
         {
-            var result = await _mediator.Send(new ReturnActiveTransferCommand(id));
-            
+            var callerIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(callerIdClaim, out var callerId)) return Unauthorized();
+
+            var isAdmin = User.IsInRole("Admin");
+            var isDivisionHead = User.IsInRole("DivisionHead");
+
+            var result = await _mediator.Send(new ReturnActiveTransferCommand(id, callerId, isAdmin, isDivisionHead));
+
             if (!result)
             {
                 return NotFound(new { success = false, message = $"Transfer record with ID {id} not found, already completed, or not active." });
             }
             return Ok(new { success = true, message = "Asset returned successfully. Transfer marked as Completed and Asset status updated to In Use." });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { success = false, message = ex.Message });
         }
         catch (Exception ex)
         {

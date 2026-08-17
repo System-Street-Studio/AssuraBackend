@@ -3,16 +3,19 @@ using Assura.Application.Common.Interfaces;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Assura.Application.Features.AssetRequests.Events;
 
 public class AssetRequestApprovedEventHandler : INotificationHandler<AssetRequestApprovedEvent>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ILogger<AssetRequestApprovedEventHandler> _logger;
 
-    public AssetRequestApprovedEventHandler(IApplicationDbContext context)
+    public AssetRequestApprovedEventHandler(IApplicationDbContext context, ILogger<AssetRequestApprovedEventHandler> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task Handle(AssetRequestApprovedEvent notification, CancellationToken cancellationToken)
@@ -48,7 +51,10 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                     Date = DateTime.UtcNow,
                     Status = DiscardNoteStatus.Pending,
                     AssetType = notification.AssetCategory,
-                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A"
+                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A",
+                    RequestedByUserId = int.TryParse(notification.RequesterId, out var requesterIdVal) ? requesterIdVal : null,
+                    RequestedByName = notification.RequesterName,
+                    AssetId = request.AssetId
                 };
 
                 _context.DiscardedNotes.Add(discardedNote);
@@ -62,13 +68,19 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                     Status = QueueItemStatus.Pending,
                     Time = DateTime.UtcNow.TimeOfDay,
                     AssetType = notification.AssetCategory,
-                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A"
+                    SpecialNote = notification.Reason ?? notification.Description ?? "N/A",
+                    RequestedById = notification.RequesterId,
+                    RequestedByName = notification.RequesterName
                 };
 
                 _context.QueueItems.Add(queueItem);
-                
-                // Save to database first to generate the discardedNote.Id
+
+                // Save to database first to generate the discardedNote.Id and queueItem.Id
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // Link the note back to its matching QueueItem so completing it later
+                // can carry the link through to the AccPendingItem it spawns.
+                discardedNote.QueueItemId = queueItem.Id;
 
                 var superintendents = await _context.Users
                     .Where(u => u.Role == UserRole.Superintendent || u.Role == UserRole.Admin)
@@ -96,49 +108,112 @@ public class AssetRequestApprovedEventHandler : INotificationHandler<AssetReques
                 return;
             }
 
-            // Create AssetInforming record (adds to inventory/new arrivals)
-            var assetInforming = new AssetInforming
+            // Only a genuine new-asset purchase request should create an
+            // AssetInforming "new arrival" record — that record means "stock
+            // physically arrived and needs registering", which is meaningless for
+            // Maintenance/Transfer/other non-purchase request types. Those still
+            // need Storekeepers to know the request was approved, just without
+            // fabricating a nonexistent arrival (confirmed live via the
+            // test-workflow simulation: approving a Maintenance request was
+            // creating a bogus "new arrival" entry with no purchase price/model,
+            // polluting Procurement's Informed Arrivals queue).
+            var isNewAssetPurchase = string.Equals(notification.RequestType, "New Asset", StringComparison.OrdinalIgnoreCase);
+
+            if (isNewAssetPurchase)
             {
-                ItemName = notification.AssetName,
-                Model = notification.AssetCategory,
-                Warranty = "N/A",
-                Quantity = notification.Quantity,
-                PurchasedDate = notification.SubmittedDate,
-                PurchasedPrice = 0, // Can be updated later
-                DivisionId = request.DivisionId.Value,
-                Status = "Pending"
-            };
-
-            _context.AssetInformings.Add(assetInforming);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // Notify Storekeepers about the new approved request
-            var storekeepers = await _context.Users
-                .Where(u => u.Role == UserRole.Storekeeper)
-                .ToListAsync(cancellationToken);
-
-            foreach (var storekeeper in storekeepers)
-            {
-                _context.Notifications.Add(new Notification
+                // Create AssetInforming record (adds to inventory/new arrivals)
+                var assetInforming = new AssetInforming
                 {
-                    Title = "Asset Request Approved",
-                    Message = $"Request for '{notification.AssetName}' (Qty: {notification.Quantity}) has been approved and is awaiting procurement.",
-                    UserId = storekeeper.Id,
-                    Type = "Info",
-                    ReferenceId = assetInforming.Id.ToString()
-                });
-            }
+                    ItemName = notification.AssetName,
+                    Model = notification.AssetCategory,
+                    Warranty = "N/A",
+                    Quantity = notification.Quantity,
+                    PurchasedDate = notification.SubmittedDate,
+                    PurchasedPrice = 0, // Can be updated later
+                    DivisionId = request.DivisionId.Value,
+                    Status = "Pending"
+                };
 
-            await _context.SaveChangesAsync(cancellationToken);
+                _context.AssetInformings.Add(assetInforming);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // Notify Storekeepers about the new approved request
+                var storekeepers = await _context.Users
+                    .Where(u => u.Role == UserRole.Storekeeper)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var storekeeper in storekeepers)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        Title = "Asset Request Approved",
+                        Message = $"Request for '{notification.AssetName}' (Qty: {notification.Quantity}) has been approved and is awaiting procurement.",
+                        UserId = storekeeper.Id,
+                        Type = "Info",
+                        ReferenceId = assetInforming.Id.ToString()
+                    });
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                // Maintenance/Transfer/other non-purchase request types: notify
+                // Storekeepers the request is approved and ready to process,
+                // without creating a fake inventory arrival.
+                var storekeepers = await _context.Users
+                    .Where(u => u.Role == UserRole.Storekeeper)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var storekeeper in storekeepers)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        Title = "Asset Request Approved",
+                        Message = $"Request '{notification.RequestType}' for '{notification.AssetName}' has been approved and is ready for processing.",
+                        UserId = storekeeper.Id,
+                        Type = "Info",
+                        ReferenceId = request.Id.ToString()
+                    });
+                }
+
+                // A Maintenance-type AssetRequest needs its own Maintenance record the
+                // moment it's approved — Storekeepers only work maintenance items from
+                // the dedicated Maintenance queue (GetMaintenancesQuery), and escalating
+                // to Procurement (EscalateToProcurementCommand) requires an existing
+                // Maintenance row. Without this, a Division-Head-approved Maintenance
+                // AssetRequest never appeared anywhere a Storekeeper could act on it.
+                // Mirrors the equivalent handling already done for the sibling `Request`
+                // entity in ReviewRequestByDivisionHeadCommand.
+                if (string.Equals(notification.RequestType, "Maintenance", StringComparison.OrdinalIgnoreCase)
+                    && request.AssetId.HasValue)
+                {
+                    var maintenance = new Maintenance
+                    {
+                        MaintenanceNumber = "MNT-" + DateTime.Now.ToString("yyyyMMdd") + "-AR" + request.Id,
+                        Type = MaintenanceType.Corrective,
+                        MaintenanceDate = DateTime.UtcNow,
+                        Description = request.Description,
+                        Cost = 0,
+                        Status = "Approved",
+                        Priority = request.Priority,
+                        RequestedByUserId = request.UserId,
+                        ApprovedByUserId = notification.ApprovedByUserId,
+                        OriginalRequestId = request.Id,
+                        ApprovedAt = DateTime.UtcNow,
+                        AssetId = request.AssetId.Value
+                    };
+                    _context.Maintenances.Add(maintenance);
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+            }
         }
 
         catch (Exception ex)
-
         {
             // Log the error but don't throw - we don't want to fail the approval
-
-            Console.WriteLine($"[ERROR] Failed to create AssetInforming for approved request {notification.Id}: {ex.Message}");
-
+            _logger.LogError(ex, "Failed to process approved asset request {AssetRequestId} (type: {RequestType})", notification.Id, notification.RequestType);
         }
     }
 }

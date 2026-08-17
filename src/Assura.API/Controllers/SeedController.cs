@@ -2,11 +2,18 @@ using Assura.Application.Common.Interfaces;
 using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assura.API.Controllers;
 
+// These are dev/test data-seeding utilities, not application features — every action mutates
+// or resets data (including resetting the admin/sysadmin passwords to hardcoded defaults and
+// running raw SQL updates), so the whole controller is restricted to Admin/SystemAdmin.
+// A fresh deployment can still reach this: DbInitializer.SeedAsync bootstraps a default Admin
+// account (with a randomly generated, logged-once password) if none exists yet.
+[Authorize(Roles = $"{Roles.Admin},{Roles.SystemAdmin}")]
 [ApiController]
 [Route("api/[controller]")]
 public class SeedController : ControllerBase
@@ -86,6 +93,10 @@ public class SeedController : ControllerBase
         if (auditor != null) { auditor.PasswordHash = passwordHash; auditor.Role = UserRole.Auditor; auditor.IsActive = true; _context.Users.Update(auditor); }
         else { auditor = new User { Username = "auditor", PasswordHash = passwordHash, Email = "auditor@assura.com", FirstName = "System", LastName = "Auditor", Role = UserRole.Auditor, IsActive = true, CreatedAt = DateTime.UtcNow }; _context.Users.Add(auditor); }
 
+        var accountant = await _context.Users.FirstOrDefaultAsync(u => u.Username == "accountant" || u.Email == "accountant@assura.com");
+        if (accountant != null) { accountant.Username = "accountant"; accountant.PasswordHash = passwordHash; accountant.Role = UserRole.Accountant; accountant.IsActive = true; _context.Users.Update(accountant); }
+        else { accountant = new User { Username = "accountant", PasswordHash = passwordHash, Email = "accountant@assura.com", FirstName = "System", LastName = "Accountant", Role = UserRole.Accountant, IsActive = true, CreatedAt = DateTime.UtcNow }; _context.Users.Add(accountant); }
+
         var sysadminPasswordHash = BCrypt.Net.BCrypt.HashPassword("SysAdmin@123");
         var sysadmin = await _context.Users.FirstOrDefaultAsync(u => u.Username == "sysadmin");
         if (sysadmin != null) { sysadmin.PasswordHash = sysadminPasswordHash; sysadmin.Role = UserRole.SystemAdmin; sysadmin.IsActive = true; _context.Users.Update(sysadmin); }
@@ -157,7 +168,7 @@ public class SeedController : ControllerBase
     public async Task<IActionResult> SeedReceipts()
     {
         if (await _context.Receipts.AnyAsync()) { _context.Receipts.RemoveRange(_context.Receipts); await _context.SaveChangesAsync(default); }
-        var receipts = new List<Receipt> { new Receipt { AssetName = "MacBook Pro 16", Division = "Engineering", Date = DateTime.UtcNow.AddDays(-20), Amount = "2500.00", Status = ReceiptStatus.Uploaded }, new Receipt { AssetName = "Dell XPS 15", Division = "Engineering", Date = DateTime.UtcNow.AddDays(-18), Amount = "2200.00", Status = ReceiptStatus.Uploaded }, new Receipt { AssetName = "Epson Projector", Division = "Sales", Date = DateTime.UtcNow.AddDays(-15), Amount = "1500.00", Status = ReceiptStatus.Uploaded } };
+        var receipts = new List<Receipt> { new Receipt { AssetName = "MacBook Pro 16", Division = "Engineering", Date = DateTime.UtcNow.AddDays(-20), Amount = 2500.00m, Status = ReceiptStatus.Uploaded }, new Receipt { AssetName = "Dell XPS 15", Division = "Engineering", Date = DateTime.UtcNow.AddDays(-18), Amount = 2200.00m, Status = ReceiptStatus.Uploaded }, new Receipt { AssetName = "Epson Projector", Division = "Sales", Date = DateTime.UtcNow.AddDays(-15), Amount = 1500.00m, Status = ReceiptStatus.Uploaded } };
         _context.Receipts.AddRange(receipts); await _context.SaveChangesAsync(default); return Ok($"Seeded {receipts.Count} Receipts.");
     }
 

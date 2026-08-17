@@ -38,6 +38,12 @@ public class HrController : BaseApiController
         return result is null ? NotFound() : Ok(result);
     }
 
+    [HttpGet("rejected-users")]
+    public async Task<ActionResult<List<RejectedHrUserDto>>> GetRejectedUsers([FromQuery] string? search = null)
+    {
+        return await Mediator.Send(new GetRejectedHrUsersQuery(search));
+    }
+
     [HttpGet("activity-logs")]
     public async Task<ActionResult<List<HrActivityLogDto>>> GetActivityLogs([FromQuery] string? search = null)
     {
@@ -63,9 +69,14 @@ public class HrController : BaseApiController
         };
 
         var result = await Mediator.Send(command);
-        return result
-            ? Ok(new { message = "Role assigned successfully." })
-            : BadRequest(new { message = "Unable to assign role." });
+        if (!result.Success)
+        {
+            return BadRequest(new { message = "Unable to assign role.", skippedAssignments = result.SkippedAssignments });
+        }
+
+        return Ok(result.SkippedAssignments.Count > 0
+            ? new { message = "Role assigned, but some assignments were skipped because their role or division was invalid.", skippedAssignments = result.SkippedAssignments }
+            : new { message = "Role assigned successfully.", skippedAssignments = result.SkippedAssignments });
     }
 
     [HttpPut("users/{userId:int}")]
@@ -90,9 +101,14 @@ public class HrController : BaseApiController
         };
 
         var result = await Mediator.Send(command);
-        return result
-            ? Ok(new { message = "User updated successfully." })
-            : BadRequest(new { message = "Unable to update user." });
+        if (!result.Success)
+        {
+            return BadRequest(new { message = "Unable to update user.", skippedAssignments = result.SkippedAssignments });
+        }
+
+        return Ok(result.SkippedAssignments.Count > 0
+            ? new { message = "User updated, but some assignments were skipped because their role or division was invalid.", skippedAssignments = result.SkippedAssignments }
+            : new { message = "User updated successfully.", skippedAssignments = result.SkippedAssignments });
     }
 
     [HttpPost("users/{userId:int}/reject")]
@@ -111,6 +127,24 @@ public class HrController : BaseApiController
         return result
             ? Ok(new { message = "User rejected successfully." })
             : BadRequest(new { message = "Unable to reject user." });
+    }
+
+    [HttpPost("users/{userId:int}/reconsider")]
+    public async Task<IActionResult> ReconsiderUser(int userId, [FromBody] ReconsiderHrUserRequest request)
+    {
+        var command = new ReconsiderHrUserCommand
+        {
+            UserId = userId,
+            Notes = request.Notes,
+            ActorName = ResolveActorName(),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Device = Request.Headers.UserAgent.ToString()
+        };
+
+        var result = await Mediator.Send(command);
+        return result
+            ? Ok(new { message = "User moved back to pending assignment." })
+            : BadRequest(new { message = "Unable to reconsider user. They may not be currently rejected." });
     }
 
     private string ResolveActorName()
@@ -148,6 +182,11 @@ public class UpdateHrUserRequest
 }
 
 public class RejectHrUserRequest
+{
+    public string? Notes { get; set; }
+}
+
+public class ReconsiderHrUserRequest
 {
     public string? Notes { get; set; }
 }

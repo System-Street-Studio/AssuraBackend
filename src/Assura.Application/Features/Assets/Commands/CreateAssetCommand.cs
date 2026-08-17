@@ -29,9 +29,13 @@ public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, Ass
 
     public async Task<AssetDto> Handle(CreateAssetCommand request, CancellationToken cancellationToken)
     {
+        var code = string.IsNullOrWhiteSpace(request.Asset.AssetCode)
+            ? $"AST-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}"
+            : request.Asset.AssetCode.Trim();
+
         var entity = new Asset
         {
-            AssetCode = request.Asset.AssetCode,
+            AssetCode = code,
             AssetTag = request.Asset.AssetTag,
             AssetDate = request.Asset.AssetDate,
             Status = request.Asset.Status,

@@ -32,6 +32,8 @@ public class InformStakeholdersCommandHandler : IRequestHandler<InformStakeholde
             throw new Exception("Asset Informing record not found");
 
         informing.Status = "Informed";
+        informing.TargetEmployeeId = dto.EmployeeId;
+        informing.Remarks = dto.Remarks;
 
         var employee = await _context.Users.FindAsync(new object[] { dto.EmployeeId }, cancellationToken);
         if (employee != null)

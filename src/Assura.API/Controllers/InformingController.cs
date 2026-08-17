@@ -39,4 +39,42 @@ public class InformingController : BaseApiController
         var result = await _mediator.Send(new InformStakeholdersCommand(dto));
         return Ok(result);
     }
+
+    [HttpGet("my-arrivals")]
+    public async Task<ActionResult<List<AssetInformingDto>>> GetMyArrivals([FromQuery] int? divisionId)
+    {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(userIdStr, out int userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _mediator.Send(new GetEmployeeArrivalsQuery(userId, divisionId));
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/confirm")]
+    public async Task<ActionResult<bool>> ConfirmArrival(int id, [FromBody] ConfirmArrivalRequest? request)
+    {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(userIdStr, out int userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _mediator.Send(new ConfirmAssetArrivalCommand(id, userId, request?.Remarks));
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/complete")]
+    public async Task<ActionResult<bool>> CompleteArrival(int id, [FromBody] ConfirmArrivalRequest? request)
+    {
+        var result = await _mediator.Send(new CompleteAssetArrivalCommand(id, request?.Remarks));
+        return Ok(result);
+    }
+}
+
+public class ConfirmArrivalRequest
+{
+    public string? Remarks { get; set; }
 }

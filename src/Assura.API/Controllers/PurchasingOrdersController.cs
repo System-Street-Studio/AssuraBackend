@@ -7,6 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Assura.API.Controllers;
 
+// Read actions are open to any authenticated user — Storekeeper needs GetPurchasingOrders
+// (the bare list) to populate the PO picker when recording a GRN. Actions that create or
+// mutate a purchasing order are Procurement/Admin only; that's the actual boundary the
+// test-workflow simulation found missing (an Employee could create a PO with no
+// restriction at all).
 [Authorize]
 public class PurchasingOrdersController : BaseApiController
 {
@@ -20,10 +25,28 @@ public class PurchasingOrdersController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<PurchasingOrderSummaryDto>>> GetPurchasingOrders()
+    public async Task<ActionResult<List<PurchasingOrderSummaryDto>>> GetPurchasingOrders([FromQuery] bool unregisteredOnly = false)
     {
-        _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPurchasingOrders called");
-        return await _mediator.Send(new GetPurchasingOrdersQuery());
+        _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPurchasingOrders called (unregisteredOnly={UnregisteredOnly})", unregisteredOnly);
+        return await _mediator.Send(new GetPurchasingOrdersQuery(unregisteredOnly));
+    }
+
+    [HttpPut("{id}/status")]
+    [Authorize(Roles = $"{Roles.Procurement},{Roles.Admin}")]
+    public async Task<ActionResult<bool>> UpdateStatus(int id, [FromBody] string? status)
+    {
+        var result = await _mediator.Send(new UpdatePurchasingOrderStatusCommand(id, string.IsNullOrWhiteSpace(status) ? "Registered" : status));
+        if (!result) return NotFound();
+        return Ok(true);
+    }
+
+    [HttpPut("{id}/complete")]
+    [Authorize(Roles = $"{Roles.Procurement},{Roles.Admin}")]
+    public async Task<ActionResult<bool>> CompleteOrder(int id)
+    {
+        var result = await _mediator.Send(new UpdatePurchasingOrderStatusCommand(id, "Registered"));
+        if (!result) return NotFound();
+        return Ok(true);
     }
 
     [HttpGet("{id}")]
@@ -31,7 +54,7 @@ public class PurchasingOrdersController : BaseApiController
     {
         _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPurchasingOrder called for ID {Id}", id);
         var result = await _mediator.Send(new GetPurchasingOrderByIdQuery(id));
-        if (result == null) 
+        if (result == null)
         {
             _logger.LogWarning("[DEBUG] PurchasingOrdersController: PO with ID {Id} not found", id);
             return NotFound();
@@ -41,6 +64,7 @@ public class PurchasingOrdersController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Roles = $"{Roles.Procurement},{Roles.Admin}")]
     public async Task<ActionResult<int>> CreatePurchasingOrder(CreatePurchasingOrderCommand command)
     {
         _logger.LogInformation("[DEBUG] PurchasingOrdersController: Received request for supplier {SupplierName} with {Count} items", command.SupplierName, command.Items?.Count);
@@ -55,6 +79,7 @@ public class PurchasingOrdersController : BaseApiController
     }
 
     [HttpGet("pending-requests")]
+    [Authorize(Roles = $"{Roles.Procurement},{Roles.Admin}")]
     public async Task<ActionResult<List<Assura.Application.PurchasingOrders.Queries.AssetRequestDto>>> GetPendingRequests()
     {
         _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetPendingRequests called");
@@ -62,6 +87,7 @@ public class PurchasingOrdersController : BaseApiController
     }
 
     [HttpGet("stats")]
+    [Authorize(Roles = $"{Roles.Procurement},{Roles.Admin}")]
     public async Task<ActionResult<ProcurementStatsDto>> GetProcurementStats()
     {
         _logger.LogInformation("[DEBUG] PurchasingOrdersController: GetProcurementStats called");

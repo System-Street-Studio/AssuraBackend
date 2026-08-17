@@ -56,6 +56,7 @@ public class UpdateAssetCommandHandler : IRequestHandler<UpdateAssetCommand, Ass
             .Include(a => a.Division)
             .Include(a => a.Supplier)
             .Include(a => a.AssignedUser)
+            .Include(a => a.LastVerifiedByUser)
             .Where(a => a.Id == entity.Id)
             .Select(a => new AssetDto
             {
@@ -68,6 +69,9 @@ public class UpdateAssetCommandHandler : IRequestHandler<UpdateAssetCommand, Ass
                 PurchaseValue = a.PurchaseValue,
                 Warranty = a.Warranty,
                 Notes = a.Notes,
+                QrCode = a.QrCode,
+                LastVerifiedAt = a.LastVerifiedAt,
+                LastVerifiedByName = a.LastVerifiedByUser != null ? $"{a.LastVerifiedByUser.FirstName} {a.LastVerifiedByUser.LastName}" : null,
                 CategoryId = a.CategoryId ?? 0,
                 CategoryName = a.Category != null ? a.Category.Name : "N/A",
                 DivisionId = a.DivisionId ?? 0,

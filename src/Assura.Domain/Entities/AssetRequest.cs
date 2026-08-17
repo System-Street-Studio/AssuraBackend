@@ -44,5 +44,17 @@ public class AssetRequest : BaseEntity
     public int? AssetId { get; set; }
     public Asset? Asset { get; set; }
 
-    public ICollection<AssetAttachment> Attachments { get; set; } = new List<AssetAttachment>();    
+    // Set when a Storekeeper processes this request (stock check / remarks), so the
+    // requesting Employee can see who handled it and why.
+    public int? ProcessedByUserId { get; set; }
+    public string? ProcessedByName { get; set; }
+    public string? ProcessorRemarks { get; set; }
+    public DateTime? ProcessedAt { get; set; }
+
+    // Set when a Division Head rejects this request, so the requesting Employee can
+    // see why. Distinct from Reason above, which is the requester's own justification
+    // for the original request.
+    public string? RejectionReason { get; set; }
+
+    public ICollection<AssetAttachment> Attachments { get; set; } = new List<AssetAttachment>();
 }

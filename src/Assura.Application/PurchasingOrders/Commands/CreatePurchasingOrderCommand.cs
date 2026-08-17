@@ -11,7 +11,8 @@ public record CreatePurchasingOrderCommand : IRequest<int>
     public string SupplierName { get; init; } = string.Empty; // In a real app, you'd use SupplierId
     public List<CreatePurchasingOrderItemDto> Items { get; init; } = new();
     public int? RequestId { get; init; }
- }
+    public int? DivisionId { get; init; }
+}
 
 public record CreatePurchasingOrderItemDto
 {
@@ -60,12 +61,38 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
             Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Supplier found with ID {supplier.Id}");
         }
 
+        int? divisionId = request.DivisionId;
+
+        if (request.RequestId.HasValue)
+        {
+            var req = await _context.Requests.Include(r => r.Requester).FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Constants.RequestWorkflowStatus.PendingProcurement, cancellationToken);
+            if (req != null)
+            {
+                req.Status = Assura.Domain.Constants.RequestWorkflowStatus.Approved;
+                if (!divisionId.HasValue && req.Requester != null)
+                {
+                    divisionId = req.Requester.DivisionId;
+                }
+            }
+
+            var assetReq = await _context.AssetRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Enums.RequestStatus.PendingProcurement, cancellationToken);
+            if (assetReq != null)
+            {
+                assetReq.Status = Assura.Domain.Enums.RequestStatus.Approved;
+                if (!divisionId.HasValue)
+                {
+                    divisionId = assetReq.DivisionId ?? assetReq.User?.DivisionId;
+                }
+            }
+        }
+
         // 2. Create the Purchasing Order
         var po = new PurchasingOrder
         {
             OrderNumber = $"PO-{DateTime.UtcNow:yyyyMMddHHmmss}",
             OrderDate = DateTime.UtcNow,
             SupplierId = supplier.Id,
+            DivisionId = divisionId,
             Status = "Pending"
         };
         // Explicitly ensuring list is initialized if not already (check Domain entity)
@@ -108,21 +135,6 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
 
         _context.PurchasingOrders.Add(po);
         Console.WriteLine("[DEBUG] CreatePurchasingOrderCommandHandler: Saving changes to database...");
-        
-        if (request.RequestId.HasValue)
-        {
-            var req = await _context.Requests.FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Constants.RequestWorkflowStatus.PendingProcurement, cancellationToken);
-            if (req != null)
-            {
-                req.Status = Assura.Domain.Constants.RequestWorkflowStatus.Approved;
-            }
-
-            var assetReq = await _context.AssetRequests.FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Enums.RequestStatus.PendingProcurement, cancellationToken);
-            if (assetReq != null)
-            {
-                assetReq.Status = Assura.Domain.Enums.RequestStatus.Approved;
-            }
-        }
 
         await _context.SaveChangesAsync(cancellationToken);
         Console.WriteLine($"[DEBUG] CreatePurchasingOrderCommandHandler: Success! PO saved with Total: {totalAmount}");

@@ -14,4 +14,9 @@ public class AssetInforming : BaseEntity
 
     public int DivisionId { get; set; }
     public Division Division { get; set; } = null!;
+
+    public int? TargetEmployeeId { get; set; }
+    public User? TargetEmployee { get; set; }
+
+    public string? Remarks { get; set; }
 }

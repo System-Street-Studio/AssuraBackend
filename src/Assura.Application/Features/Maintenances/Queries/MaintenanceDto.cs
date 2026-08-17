@@ -64,6 +64,7 @@ public class MaintenanceStatsDto
     public int EscalatedToProcurement { get; set; }
     public int Completed { get; set; }
     public int Rejected { get; set; }
+    public int Submitted { get; set; }
 }
 
 public class SimilarAssetDto

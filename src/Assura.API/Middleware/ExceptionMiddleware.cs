@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -46,6 +47,11 @@ public class ExceptionMiddleware
         {
             statusCode = HttpStatusCode.Conflict;
             message = "The record you attempted to edit was modified by another user. The edit operation was canceled. Please reload the data and try again.";
+        }
+        else if (exception is FluentValidation.ValidationException validationException)
+        {
+            statusCode = HttpStatusCode.BadRequest;
+            message = string.Join(" ", validationException.Errors.Select(e => e.ErrorMessage));
         }
 
         context.Response.StatusCode = (int)statusCode;

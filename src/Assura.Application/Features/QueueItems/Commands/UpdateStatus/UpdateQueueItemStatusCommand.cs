@@ -1,6 +1,7 @@
 using MediatR;
 using Assura.Application.Common.Interfaces;
 using Assura.Domain.Enums;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.QueueItems.Commands.UpdateStatus;
@@ -12,13 +13,25 @@ public class UpdateQueueItemStatusCommand : IRequest<bool>
     public string? ReviewNote { get; set; }
 }
 
+public class UpdateQueueItemStatusCommandValidator : AbstractValidator<UpdateQueueItemStatusCommand>
+{
+    public UpdateQueueItemStatusCommandValidator()
+    {
+        RuleFor(x => x.Status)
+            .Must(status => Enum.TryParse<QueueItemStatus>(status, true, out _))
+            .WithMessage(x => $"'{x.Status}' is not a valid queue item status.");
+    }
+}
+
 public class UpdateQueueItemStatusCommandHandler : IRequestHandler<UpdateQueueItemStatusCommand, bool>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpdateQueueItemStatusCommandHandler(IApplicationDbContext context)
+    public UpdateQueueItemStatusCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<bool> Handle(UpdateQueueItemStatusCommand request, CancellationToken cancellationToken)
@@ -43,8 +56,44 @@ public class UpdateQueueItemStatusCommandHandler : IRequestHandler<UpdateQueueIt
             entity.ReviewNote = request.ReviewNote;
         }
 
+        var matchingNote = await _context.DiscardedNotes
+            .FirstOrDefaultAsync(d => d.QueueItemId == entity.Id || (d.Name == entity.Name && d.Division == entity.Division && d.Status == DiscardNoteStatus.Pending), cancellationToken);
+
+        if (matchingNote != null)
+        {
+            if (isApproving)
+            {
+                matchingNote.Status = DiscardNoteStatus.Completed;
+            }
+            else if (string.Equals(request.Status, "Rejected", StringComparison.OrdinalIgnoreCase))
+            {
+                matchingNote.Status = DiscardNoteStatus.Rejected;
+            }
+
+            if (!string.IsNullOrEmpty(request.ReviewNote))
+            {
+                matchingNote.SpecialNote = request.ReviewNote;
+            }
+        }
+
         if (isApproving)
         {
+            var actingUserName = await ResolveActingUserNameAsync(cancellationToken);
+
+            int? assetId = matchingNote?.AssetId;
+            decimal purchasePrice = 0;
+            decimal currentValue = 0;
+
+            if (assetId.HasValue)
+            {
+                var asset = await _context.Assets.FindAsync(new object[] { assetId.Value }, cancellationToken);
+                if (asset != null)
+                {
+                    purchasePrice = asset.PurchaseValue;
+                    currentValue = asset.PurchaseValue;
+                }
+            }
+
             var pendingItem = new Domain.Entities.AccPendingItem
             {
                 Name = entity.Name,
@@ -53,10 +102,14 @@ public class UpdateQueueItemStatusCommandHandler : IRequestHandler<UpdateQueueIt
                 Status = "Pending",
                 Category = Domain.Enums.AccPendingCategory.Pending,
                 AssetType = entity.AssetType,
-                CurrentUser = "Superintendent",
+                CurrentUser = actingUserName,
                 SpecialNote = entity.SpecialNote ?? string.Empty,
-                ValueAtPurchasing = 0,
-                CurrentValue = 0
+                ValueAtPurchasing = purchasePrice,
+                CurrentValue = currentValue,
+                AssetId = assetId,
+                QueueItemId = entity.Id,
+                RequestedById = entity.RequestedById,
+                RequestedByName = entity.RequestedByName
             };
 
             _context.AccPendingItems.Add(pendingItem);
@@ -70,7 +123,7 @@ public class UpdateQueueItemStatusCommandHandler : IRequestHandler<UpdateQueueIt
                 _context.Notifications.Add(new Domain.Entities.Notification
                 {
                     Title = "New Discard Confirmation Needed",
-                    Message = $"Asset '{entity.Name}' from {entity.Division} was marked as approved/discarded by Superintendent.",
+                    Message = $"Asset '{entity.Name}' from {entity.Division} was marked as approved/discarded by {actingUserName}.",
                     UserId = acc.Id,
                     Type = "Info",
                     ReferenceId = pendingItem.Id.ToString()
@@ -80,5 +133,23 @@ public class UpdateQueueItemStatusCommandHandler : IRequestHandler<UpdateQueueIt
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    private async Task<string> ResolveActingUserNameAsync(CancellationToken cancellationToken)
+    {
+        if (int.TryParse(_currentUserService.UserId, out var actingUserId))
+        {
+            var actingUser = await _context.Users.FindAsync(new object[] { actingUserId }, cancellationToken);
+            if (actingUser != null)
+            {
+                var fullName = $"{actingUser.FirstName} {actingUser.LastName}".Trim();
+                if (!string.IsNullOrEmpty(fullName))
+                {
+                    return fullName;
+                }
+            }
+        }
+
+        return "Unknown";
     }
 }

@@ -12,5 +12,8 @@ public class AssetInformingDto
     public string Status { get; set; } = "Pending";
     public int DivisionId { get; set; }
     public string DivisionName { get; set; } = string.Empty;
+    public int? TargetEmployeeId { get; set; }
+    public string? TargetEmployeeName { get; set; }
+    public string? Remarks { get; set; }
     public DateTime CreatedAt { get; set; }
 }

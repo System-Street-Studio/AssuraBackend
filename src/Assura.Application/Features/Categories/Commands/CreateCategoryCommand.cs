@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Assura.Application.Features.Categories.Commands;
 
-public record CreateCategoryCommand(string Name, string? Description) : IRequest<CategoryDto>;
+public record CreateCategoryCommand(string Name, string? Description, decimal? DepreciationRate = 10.0m) : IRequest<CategoryDto>;
 
 public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryCommand, CategoryDto>
 {
@@ -21,7 +21,8 @@ public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryComman
         var entity = new Category
         {
             Name = request.Name,
-            Description = request.Description
+            Description = request.Description,
+            DepreciationRate = request.DepreciationRate.HasValue && request.DepreciationRate.Value > 0 ? request.DepreciationRate.Value : 10.0m
         };
 
         _context.Categories.Add(entity);
@@ -31,7 +32,8 @@ public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryComman
         {
             Id = entity.Id,
             Name = entity.Name,
-            Description = entity.Description
+            Description = entity.Description,
+            DepreciationRate = entity.DepreciationRate
         };
     }
 }

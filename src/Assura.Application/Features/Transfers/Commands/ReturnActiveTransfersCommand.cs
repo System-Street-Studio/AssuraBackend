@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Assura.Application.Features.Transfers.Commands;
 
-public record ReturnActiveTransferCommand(int Id) : IRequest<bool>;
+public record ReturnActiveTransferCommand(int Id, int CallerId, bool IsAdmin, bool IsDivisionHead) : IRequest<bool>;
 
 public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTransferCommand, bool>
 {
@@ -22,7 +22,7 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
 
     public async Task<bool> Handle(ReturnActiveTransferCommand request, CancellationToken cancellationToken)
     {
-    
+
         var transfer = await _context.Transfers
             .Where(t => t.Id == request.Id)
             .FirstOrDefaultAsync(cancellationToken);
@@ -33,7 +33,28 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
         if (transfer.Status != TransferStatus.Active)
             throw new Exception($"Transfer cannot be returned from status {transfer.Status}.");
 
-    
+        // Only the asset's new holder (TargetUser) may return it themselves, or the
+        // Division Head of either side of the transfer (matches the "active" tab
+        // scoping in GetDivisionHeadTransferQueryHandler, which shows a transfer to
+        // both the From- and To-Division heads). Admin bypasses.
+        if (!request.IsAdmin)
+        {
+            if (request.IsDivisionHead)
+            {
+                var caller = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.CallerId, cancellationToken);
+                if (caller?.DivisionId == null ||
+                    (caller.DivisionId != transfer.FromDivisionId && caller.DivisionId != transfer.ToDivisionId))
+                {
+                    throw new UnauthorizedAccessException("You may only return transfers involving your own division.");
+                }
+            }
+            else if (transfer.TargetUserId != request.CallerId)
+            {
+                throw new UnauthorizedAccessException("Only the asset's new holder or a Division Head involved in this transfer may return it.");
+            }
+        }
+
+
         var asset = await _context.Assets
             .Where(a => a.Id == transfer.AssetId)
             .Select(a => new Asset

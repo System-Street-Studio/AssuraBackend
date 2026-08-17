@@ -59,7 +59,8 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Period = r.Period,
                 Generated = r.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy"),
                 Status = r.Status,
-                Size = r.Size
+                Size = r.Size,
+                IsSystemGenerated = false
             })
             .ToListAsync(cancellationToken);
 
@@ -76,7 +77,8 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Period = monthStart.ToString("MMM yyyy"),
                 Generated = now.ToLocalTime().ToString("MMM dd, yyyy"),
                 Status = completedLogs > 0 ? "Completed" : "Pending",
-                Size = $"{Math.Max(1, assets.Count / 25)}.0 MB"
+                Size = $"{Math.Max(1, assets.Count / 25)}.0 MB",
+                IsSystemGenerated = true
             },
             new()
             {
@@ -87,7 +89,8 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Period = $"Q{((now.Month - 1) / 3) + 1} {now.Year}",
                 Generated = now.ToLocalTime().ToString("MMM dd, yyyy"),
                 Status = flaggedLogs > 0 ? "Pending" : "Completed",
-                Size = $"{Math.Max(1, flaggedLogs)} KB"
+                Size = $"{Math.Max(1, flaggedLogs)} KB",
+                IsSystemGenerated = true
             },
             new()
             {
@@ -98,7 +101,8 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Period = now.Year.ToString(),
                 Generated = now.ToLocalTime().ToString("MMM dd, yyyy"),
                 Status = discardedAssets > 0 ? "Completed" : "Pending",
-                Size = $"{Math.Max(1, discardedAssets)} KB"
+                Size = $"{Math.Max(1, discardedAssets)} KB",
+                IsSystemGenerated = true
             },
             new()
             {
@@ -109,7 +113,8 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Period = quarterStart.ToString("MMM yyyy"),
                 Generated = now.ToLocalTime().ToString("MMM dd, yyyy"),
                 Status = totalValue > 0 ? "Completed" : "Pending",
-                Size = $"{Math.Max(1, assets.Select(a => a.DivisionId).Distinct().Count())}.2 MB"
+                Size = $"{Math.Max(1, assets.Select(a => a.DivisionId).Distinct().Count())}.2 MB",
+                IsSystemGenerated = true
             }
         });
 

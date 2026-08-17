@@ -33,9 +33,13 @@ public class Maintenance : BaseEntity
     public int? ReplacementAssetId { get; set; }
     public Asset? ReplacementAsset { get; set; }
 
-    // Link to original Request entity
+    // Link to the originating request. Polymorphic: may reference either
+    // Requests.Id or AssetRequests.Id depending on which workflow raised this
+    // maintenance record — callers that need to resolve it (see
+    // InformMaintenanceStakeholdersCommand, EscalateToProcurementCommand) look it
+    // up in both tables. No navigation property/FK constraint on purpose, since a
+    // single FK can't target two different tables.
     public int? OriginalRequestId { get; set; }
-    public Request? OriginalRequest { get; set; }
 
     // Audit timestamps
     public DateTime? ApprovedAt { get; set; }

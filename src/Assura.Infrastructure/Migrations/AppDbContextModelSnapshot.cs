@@ -129,6 +129,12 @@ namespace Assura.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int?>("ReceiptId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequestedByName")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("SpecialNote")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -161,6 +167,9 @@ namespace Assura.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssetId")
+                        .HasColumnType("int");
 
                     b.Property<string>("AssetType")
                         .IsRequired()
@@ -197,6 +206,15 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("QueueItemId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequestedById")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RequestedByName")
                         .HasColumnType("longtext");
 
                     b.Property<string>("SpecialNote")
@@ -411,9 +429,15 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<string>("Remarks")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<int?>("TargetEmployeeId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
@@ -431,6 +455,8 @@ namespace Assura.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DivisionId");
+
+                    b.HasIndex("TargetEmployeeId");
 
                     b.ToTable("AssetInformings");
                 });
@@ -473,10 +499,25 @@ namespace Assura.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ProcessedByName")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("ProcessedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProcessorRemarks")
+                        .HasColumnType("longtext");
+
                     b.Property<int?>("Quantity")
                         .HasColumnType("int");
 
                     b.Property<string>("Reason")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RejectionReason")
                         .HasColumnType("longtext");
 
                     b.Property<string>("RequestType")
@@ -643,6 +684,9 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
+                    b.Property<decimal>("DepreciationRate")
+                        .HasColumnType("decimal(65,30)");
+
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
@@ -745,6 +789,9 @@ namespace Assura.Infrastructure.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AssetId")
+                        .HasColumnType("int");
+
                     b.Property<string>("AssetType")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -768,6 +815,15 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<int?>("QueueItemId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequestedByName")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("RequestedByUserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("SpecialNote")
                         .IsRequired()
@@ -1151,8 +1207,6 @@ namespace Assura.Infrastructure.Migrations
 
                     b.HasIndex("AssetId");
 
-                    b.HasIndex("OriginalRequestId");
-
                     b.HasIndex("RepairingFirmId");
 
                     b.HasIndex("ReplacementAssetId");
@@ -1280,6 +1334,9 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
+                    b.Property<int?>("DivisionId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
@@ -1310,6 +1367,8 @@ namespace Assura.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DivisionId");
 
                     b.HasIndex("SupplierId");
 
@@ -1475,6 +1534,12 @@ namespace Assura.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("RequestedById")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RequestedByName")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("ReviewNote")
                         .HasColumnType("longtext");
 
@@ -1511,9 +1576,9 @@ namespace Assura.Infrastructure.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Amount")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("AssetName")
                         .IsRequired()
@@ -1813,6 +1878,9 @@ namespace Assura.Infrastructure.Migrations
 
                     b.Property<int>("CurrentHolderId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExpectedReturnDate")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("FromDivisionId")
                         .HasColumnType("int");
@@ -2126,171 +2194,6 @@ namespace Assura.Infrastructure.Migrations
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.OwnsOne("Assura.Domain.Entities.AssetSpecifications", "Specifications", b1 =>
-                        {
-                            b1.Property<int>("AssetId")
-                                .HasColumnType("int");
-
-                            b1.HasKey("AssetId");
-
-                            b1.ToTable("Specifications");
-
-                            b1.WithOwner()
-                                .HasForeignKey("AssetId");
-
-                            b1.OwnsOne("Assura.Domain.Entities.ComputerSpecs", "Computer", b2 =>
-                                {
-                                    b2.Property<int>("AssetSpecificationsAssetId")
-                                        .HasColumnType("int");
-
-                                    b2.Property<string>("Display")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("GPU")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("OS")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("RAM")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("Storage")
-                                        .HasColumnType("longtext");
-
-                                    b2.HasKey("AssetSpecificationsAssetId");
-
-                                    b2.ToTable("Specifications");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("AssetSpecificationsAssetId");
-                                });
-
-                            b1.OwnsOne("Assura.Domain.Entities.FurnitureSpecs", "Furniture", b2 =>
-                                {
-                                    b2.Property<int>("AssetSpecificationsAssetId")
-                                        .HasColumnType("int");
-
-                                    b2.Property<string>("Adjustability")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("Color")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("Height")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("Length")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("Material")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("Width")
-                                        .HasColumnType("longtext");
-
-                                    b2.HasKey("AssetSpecificationsAssetId");
-
-                                    b2.ToTable("Specifications");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("AssetSpecificationsAssetId");
-                                });
-
-                            b1.OwnsOne("Assura.Domain.Entities.NetworkingSpecs", "Networking", b2 =>
-                                {
-                                    b2.Property<int>("AssetSpecificationsAssetId")
-                                        .HasColumnType("int");
-
-                                    b2.Property<string>("DataRate")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("FormFactor")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("MACAddress")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("PortCount")
-                                        .HasColumnType("longtext");
-
-                                    b2.HasKey("AssetSpecificationsAssetId");
-
-                                    b2.ToTable("Specifications");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("AssetSpecificationsAssetId");
-                                });
-
-                            b1.OwnsOne("Assura.Domain.Entities.PrintingSpecs", "Printing", b2 =>
-                                {
-                                    b2.Property<int>("AssetSpecificationsAssetId")
-                                        .HasColumnType("int");
-
-                                    b2.Property<string>("Connectivity")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("PrintResolution")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("PrintingTechnology")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("Type")
-                                        .HasColumnType("longtext");
-
-                                    b2.HasKey("AssetSpecificationsAssetId");
-
-                                    b2.ToTable("Specifications");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("AssetSpecificationsAssetId");
-                                });
-
-                            b1.OwnsOne("Assura.Domain.Entities.ServerSpecs", "Server", b2 =>
-                                {
-                                    b2.Property<int>("AssetSpecificationsAssetId")
-                                        .HasColumnType("int");
-
-                                    b2.Property<string>("CPU")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("IPAddress")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("OS")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("RAM")
-                                        .HasColumnType("longtext");
-
-                                    b2.Property<string>("Storage")
-                                        .HasColumnType("longtext");
-
-                                    b2.HasKey("AssetSpecificationsAssetId");
-
-                                    b2.ToTable("Specifications");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("AssetSpecificationsAssetId");
-                                });
-
-                            b1.Navigation("Computer")
-                                .IsRequired();
-
-                            b1.Navigation("Furniture")
-                                .IsRequired();
-
-                            b1.Navigation("Networking")
-                                .IsRequired();
-
-                            b1.Navigation("Printing")
-                                .IsRequired();
-
-                            b1.Navigation("Server")
-                                .IsRequired();
-                        });
-
                     b.Navigation("AssignedUser");
 
                     b.Navigation("Category");
@@ -2300,9 +2203,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("LastVerifiedByUser");
 
                     b.Navigation("Product");
-
-                    b.Navigation("Specifications")
-                        .IsRequired();
 
                     b.Navigation("Supplier");
                 });
@@ -2324,7 +2224,13 @@ namespace Assura.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Assura.Domain.Entities.User", "TargetEmployee")
+                        .WithMany()
+                        .HasForeignKey("TargetEmployeeId");
+
                     b.Navigation("Division");
+
+                    b.Navigation("TargetEmployee");
                 });
 
             modelBuilder.Entity("Assura.Domain.Entities.AssetRequest", b =>
@@ -2409,10 +2315,6 @@ namespace Assura.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Assura.Domain.Entities.Request", "OriginalRequest")
-                        .WithMany()
-                        .HasForeignKey("OriginalRequestId");
-
                     b.HasOne("Assura.Domain.Entities.RepairingFirm", "RepairingFirm")
                         .WithMany("MaintenanceRecords")
                         .HasForeignKey("RepairingFirmId");
@@ -2432,8 +2334,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("Asset");
-
-                    b.Navigation("OriginalRequest");
 
                     b.Navigation("RepairingFirm");
 
@@ -2455,11 +2355,17 @@ namespace Assura.Infrastructure.Migrations
 
             modelBuilder.Entity("Assura.Domain.Entities.PurchasingOrder", b =>
                 {
+                    b.HasOne("Assura.Domain.Entities.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId");
+
                     b.HasOne("Assura.Domain.Entities.Supplier", "Supplier")
                         .WithMany("PurchasingOrders")
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Division");
 
                     b.Navigation("Supplier");
                 });

@@ -46,7 +46,15 @@ public class RequestsController : BaseApiController
     {
         if (id == 0) return BadRequest();
 
-        var request = await _mediator.Send(new GetRequestByIdQuery(id));
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value;
+        int? userId = int.TryParse(userIdStr, out var uid) ? uid : null;
+
+        var roleStr = User.FindFirst(ClaimTypes.Role)?.Value
+                      ?? User.FindFirst("role")?.Value;
+        UserRole? role = Enum.TryParse<UserRole>(roleStr, true, out var r) ? r : null;
+
+        var request = await _mediator.Send(new GetRequestByIdQuery(id, userId, role));
         if (request == null) return NotFound();
 
         return request;
@@ -89,17 +97,25 @@ public class RequestsController : BaseApiController
 
     [HttpPost("{id}/division-head-review")]
     [Authorize(Roles = "DivisionHead,Admin")]
-    public async Task<ActionResult> ReviewByDivisionHead(int id, [FromBody] ReviewRequestByDivisionHeadCommand command)
+    public async Task<IActionResult> ReviewByDivisionHead(int id, [FromBody] ReviewRequestByDivisionHeadCommand command)
     {
         if (id != command.Id) return BadRequest();
 
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        var role = User.FindFirstValue(ClaimTypes.Role);
         var finalCommand = int.TryParse(userIdStr, out var userId)
-            ? command with { ReviewedByUserId = userId }
-            : command;
+            ? command with { ReviewedByUserId = userId, IsAdmin = role == "Admin" }
+            : command with { IsAdmin = role == "Admin" };
 
-        await _mediator.Send(finalCommand);
-        return NoContent();
+        var result = await _mediator.Send(finalCommand);
+        return result switch
+        {
+            ReviewRequestByDivisionHeadResult.Success => NoContent(),
+            ReviewRequestByDivisionHeadResult.NotFound => NotFound(),
+            ReviewRequestByDivisionHeadResult.Forbidden => Forbid(),
+            ReviewRequestByDivisionHeadResult.InvalidStatus => Conflict(new { message = "Only requests pending division head approval can be reviewed." }),
+            _ => StatusCode(500)
+        };
     }
 
     [HttpPost("{id}/confirm-temporary-assignment")]
@@ -118,6 +134,7 @@ public class RequestsController : BaseApiController
     }
 
     [HttpPut("{id}/status")]
+    [Authorize(Roles = $"{Roles.Storekeeper},{Roles.Admin},{Roles.Procurement}")]
     public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdateRequestStatusCommand command)
     {
         if (id != command.Id) return BadRequest();

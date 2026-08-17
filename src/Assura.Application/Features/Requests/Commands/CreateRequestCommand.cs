@@ -2,6 +2,7 @@ using Assura.Application.Common.Interfaces;
 using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,19 @@ public record CreateRequestCommand : IRequest<int>
     public string? SpecialNote { get; init; }
     public int RequesterId { get; init; }
     public int? AssetId { get; init; }
+}
+
+public class CreateRequestCommandValidator : AbstractValidator<CreateRequestCommand>
+{
+    public CreateRequestCommandValidator()
+    {
+        RuleFor(x => x.Type).IsInEnum();
+        RuleFor(x => x.Priority).IsInEnum();
+        RuleFor(x => x.Description).MaximumLength(2000);
+        RuleFor(x => x.Specifications).MaximumLength(2000);
+        RuleFor(x => x.SpecialNote).MaximumLength(1000);
+        RuleFor(x => x.AssetId).GreaterThan(0).When(x => x.AssetId.HasValue);
+    }
 }
 
 public class CreateRequestCommandHandler : IRequestHandler<CreateRequestCommand, int>

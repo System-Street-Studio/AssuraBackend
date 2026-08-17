@@ -1,3 +1,4 @@
+using FluentValidation;
 using MediatR;
 using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.Receipts.DTOs;
@@ -11,7 +12,29 @@ public class CreateReceiptCommand : IRequest<ReceiptDto>
     public string AssetName { get; set; } = string.Empty;
     public string Division { get; set; } = string.Empty;
     public string Date { get; set; } = string.Empty;
-    public string Amount { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
+
+public class CreateReceiptCommandValidator : AbstractValidator<CreateReceiptCommand>
+{
+    public CreateReceiptCommandValidator()
+    {
+        RuleFor(x => x.AssetName)
+            .NotEmpty()
+            .MaximumLength(200);
+
+        RuleFor(x => x.Division)
+            .NotEmpty()
+            .MaximumLength(100);
+
+        RuleFor(x => x.Date)
+            .NotEmpty()
+            .Must(d => DateTime.TryParse(d, out _))
+            .WithMessage("Date must be a valid date.");
+
+        RuleFor(x => x.Amount)
+            .GreaterThanOrEqualTo(0);
+    }
 }
 
 public class CreateReceiptCommandHandler : IRequestHandler<CreateReceiptCommand, ReceiptDto>

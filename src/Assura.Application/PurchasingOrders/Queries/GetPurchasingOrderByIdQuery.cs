@@ -19,6 +19,7 @@ public class GetPurchasingOrderByIdQueryHandler : IRequestHandler<GetPurchasingO
     {
         return await _context.PurchasingOrders
             .Include(x => x.Supplier)
+            .Include(x => x.Division)
             .Include(x => x.Items)
             .Where(x => x.Id == request.Id)
             .Select(x => new PurchasingOrderDto
@@ -29,6 +30,8 @@ public class GetPurchasingOrderByIdQueryHandler : IRequestHandler<GetPurchasingO
                 TotalAmount = x.TotalAmount,
                 Status = x.Status,
                 SupplierName = x.Supplier.Name,
+                DivisionId = x.DivisionId,
+                DivisionName = x.Division != null ? x.Division.Name : null,
                 Items = x.Items.Select(i => new PurchasingOrderItemDto
                 {
                     Id = i.Id,

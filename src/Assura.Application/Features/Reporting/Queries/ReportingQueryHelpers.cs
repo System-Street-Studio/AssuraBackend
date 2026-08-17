@@ -52,7 +52,7 @@ internal static class ReportingQueryHelpers
             return "Flagged";
         }
 
-        if (text.Contains("create") || text.Contains("update") || text.Contains("issue") || text.Contains("generate") || text.Contains("export"))
+        if (text.Contains("create") || text.Contains("update") || text.Contains("issue") || text.Contains("generate") || text.Contains("export") || text.Contains("verify") || text.Contains("complete"))
         {
             return "Completed";
         }

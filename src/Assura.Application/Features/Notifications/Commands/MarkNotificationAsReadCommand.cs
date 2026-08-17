@@ -12,7 +12,7 @@ namespace Assura.Application.Features.Notifications.Commands;
 
 
 
-public record MarkNotificationAsReadCommand(int Id) : IRequest;
+public record MarkNotificationAsReadCommand(int Id, int UserId) : IRequest;
 
 
 
@@ -42,7 +42,7 @@ public class MarkNotificationAsReadCommandHandler : IRequestHandler<MarkNotifica
 
 
 
-        if (entity != null)
+        if (entity != null && entity.UserId == request.UserId)
 
         {
 

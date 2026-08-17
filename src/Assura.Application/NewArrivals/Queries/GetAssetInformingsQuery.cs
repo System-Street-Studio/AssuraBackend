@@ -20,6 +20,7 @@ public class GetAssetInformingsQueryHandler : IRequestHandler<GetAssetInformings
     {
         return await _context.AssetInformings
             .Include(x => x.Division)
+            .Include(x => x.TargetEmployee)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new AssetInformingDto
             {
@@ -32,7 +33,10 @@ public class GetAssetInformingsQueryHandler : IRequestHandler<GetAssetInformings
                 PurchasedPrice = x.PurchasedPrice,
                 Status = x.Status,
                 DivisionId = x.DivisionId,
-                DivisionName = x.Division.Name,
+                DivisionName = x.Division != null ? x.Division.Name : string.Empty,
+                TargetEmployeeId = x.TargetEmployeeId,
+                TargetEmployeeName = x.TargetEmployee != null ? (x.TargetEmployee.FirstName + " " + x.TargetEmployee.LastName).Trim() : null,
+                Remarks = x.Remarks,
                 CreatedAt = x.CreatedAt
             })
             .ToListAsync(cancellationToken);

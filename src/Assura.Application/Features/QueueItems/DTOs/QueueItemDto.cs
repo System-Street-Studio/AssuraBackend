@@ -10,4 +10,6 @@ public class QueueItemDto
     public string Time { get; set; } = string.Empty;
     public string AssetType { get; set; } = string.Empty;
     public string SpecialNote { get; set; } = string.Empty;
+    public string? ReviewNote { get; set; }
+    public string? RequestedByName { get; set; }
 }
