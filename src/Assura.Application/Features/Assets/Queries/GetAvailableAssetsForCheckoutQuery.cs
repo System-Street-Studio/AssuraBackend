@@ -51,8 +51,8 @@ public class GetAvailableAssetsForCheckoutQueryHandler : IRequestHandler<GetAvai
             {
                 Id = a.Id,
                 AssetCode = a.AssetCode,
-                ProductName = a.Product.Name,
-                CategoryName = a.Category.Name,
+                ProductName = a.Product != null ? a.Product.Name : "Asset",
+                CategoryName = a.Category != null ? a.Category.Name : "General",
                 SerialNumber = a.SerialNumber,
             })
             .ToListAsync(cancellationToken);

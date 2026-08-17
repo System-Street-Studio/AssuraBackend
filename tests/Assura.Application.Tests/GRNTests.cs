@@ -94,10 +94,10 @@ public class GRNTests
         Assert.Equal(Assura.Domain.Enums.AssetStatus.InStore, createdAsset.Status);
         Assert.Equal(500, createdAsset.PurchaseValue);
 
-        // Verify Informing record status transitioned to Completed
+        // Verify Informing record status transitioned to GRN Recorded
         var updatedInforming = db.AssetInformings.Find(informing.Id);
         Assert.NotNull(updatedInforming);
-        Assert.Equal("Completed", updatedInforming.Status);
+        Assert.Equal("GRN Recorded", updatedInforming.Status);
     }
 
     [Fact]

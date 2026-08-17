@@ -88,13 +88,37 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
         {
             // Auto-register new Asset in the Asset Register
             var poItem = purchasingOrder.Items.FirstOrDefault();
-            string itemName = !string.IsNullOrWhiteSpace(request.ItemName)
-                ? request.ItemName.Trim()
-                : (!string.IsNullOrWhiteSpace(informing?.ItemName) ? informing!.ItemName.Trim() : (poItem?.ItemName ?? "Purchased Asset"));
+
+            // Intelligent name resolution: avoid using raw "PO-..." as product name
+            string itemName = string.Empty;
+            if (!string.IsNullOrWhiteSpace(request.ItemName) && !request.ItemName.Trim().StartsWith("PO-", StringComparison.OrdinalIgnoreCase))
+            {
+                itemName = request.ItemName.Trim();
+            }
+            else if (poItem != null && !string.IsNullOrWhiteSpace(poItem.ItemName))
+            {
+                itemName = poItem.ItemName.Trim();
+            }
+            else if (informing != null && !string.IsNullOrWhiteSpace(informing.Model) && !informing.Model.Trim().StartsWith("PO-", StringComparison.OrdinalIgnoreCase))
+            {
+                itemName = informing.Model.Trim();
+            }
+            else if (informing != null && !string.IsNullOrWhiteSpace(informing.ItemName) && !informing.ItemName.Trim().StartsWith("PO-", StringComparison.OrdinalIgnoreCase))
+            {
+                itemName = informing.ItemName.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(request.Model))
+            {
+                itemName = request.Model.Trim();
+            }
+            else
+            {
+                itemName = "Purchased Asset";
+            }
 
             string? model = !string.IsNullOrWhiteSpace(request.Model)
                 ? request.Model.Trim()
-                : (informing?.Model ?? poItem?.Model);
+                : (poItem?.Model ?? informing?.Model);
 
             string? warranty = poItem?.Warranty ?? informing?.Warranty;
             decimal purchaseValue = poItem != null && poItem.TotalPrice > 0
@@ -103,11 +127,11 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
 
             int? divisionId = purchasingOrder.DivisionId ?? informing?.DivisionId;
 
-            // If informing wasn't found by ID, try matching by itemName & division
+            // If informing wasn't found by ID, try matching by itemName or PO
             if (informing == null)
             {
                 informing = await _context.AssetInformings
-                    .FirstOrDefaultAsync(ai => !ai.IsDeleted && ai.ItemName.ToLower() == itemName.ToLower() && ai.Status != "Completed", cancellationToken);
+                    .FirstOrDefaultAsync(ai => !ai.IsDeleted && (ai.ItemName.ToLower() == itemName.ToLower() || ai.ItemName == purchasingOrder.OrderNumber) && ai.Status != "Completed", cancellationToken);
             }
 
             // 1. Resolve or create Product
@@ -217,13 +241,13 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
             purchasingOrder.Status = "Registered";
         }
 
-        // 7. Close out AssetInforming record if found
+        // 7. Transition AssetInforming to "GRN Recorded" so it is ready for Checkout
         if (informing != null)
         {
-            informing.Status = "Completed";
+            informing.Status = "GRN Recorded";
             informing.Remarks = string.IsNullOrWhiteSpace(informing.Remarks)
                 ? $"GRN {grnNumber} recorded. Asset {asset.AssetCode} registered."
-                : $"{informing.Remarks} | GRN {grnNumber} recorded.";
+                : $"{informing.Remarks} | GRN {grnNumber} recorded (Asset: {asset.AssetCode}).";
         }
 
         await _context.SaveChangesAsync(cancellationToken);
