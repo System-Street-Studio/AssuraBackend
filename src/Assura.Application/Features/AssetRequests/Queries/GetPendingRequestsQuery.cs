@@ -24,7 +24,7 @@ public class GetPendingRequestsQueryHandler : IRequestHandler<GetPendingRequests
             .Include(x => x.User)
             .Include(x => x.Division)
             .Include(x => x.Attachments)
-            .Where(x => x.Status == RequestStatus.Pending) // Only fetch pending requests
+            .Where(x => x.Status == RequestStatus.Pending || x.Status == RequestStatus.PendingProcurement) // Only fetch pending requests
             .AsQueryable();
 
         // Filter by employee or division head
