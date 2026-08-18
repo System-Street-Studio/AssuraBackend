@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
-[Authorize(Roles = $"{Roles.Procurement},{Roles.Admin},{Roles.Maintenance},{Roles.Storekeeper},{Roles.DivisionHead}")]
+[Authorize(Roles = $"{Roles.Procurement},{Roles.Admin},{Roles.Maintenance},{Roles.Storekeeper},{Roles.DivisionHead},{Roles.Employee}")]
 public class MaintenancesController : BaseApiController
 {
     private readonly IMediator _mediator;

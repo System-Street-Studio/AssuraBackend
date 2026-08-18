@@ -88,30 +88,72 @@ public class InformMaintenanceStakeholdersCommandHandler : IRequestHandler<Infor
         maintenance.Status = "Submitted";
         maintenance.StorekeeperUserId = request.StorekeeperUserId;
 
-        if (maintenance.OriginalRequestId.HasValue)
+        // 1. Re-activate the primary asset and restore its assignment to the requesting employee
+        if (maintenance.Asset != null)
         {
-            bool isAssetRequest = maintenance.MaintenanceNumber != null && maintenance.MaintenanceNumber.Contains("-AR");
-
-            if (isAssetRequest)
+            maintenance.Asset.Status = AssetStatus.InUse;
+            if (maintenance.RequestedByUserId.HasValue)
             {
-                var originalAssetRequest = await _context.AssetRequests.FindAsync(new object[] { maintenance.OriginalRequestId.Value }, cancellationToken);
-                if (originalAssetRequest != null)
-                {
-                    originalAssetRequest.Status = Assura.Domain.Enums.RequestStatus.Completed;
-                }
+                maintenance.Asset.AssignedUserId = maintenance.RequestedByUserId.Value;
             }
-            else
+        }
+        else if (maintenance.AssetId > 0)
+        {
+            var asset = await _context.Assets.FirstOrDefaultAsync(a => a.Id == maintenance.AssetId, cancellationToken);
+            if (asset != null)
             {
-                var originalRequest = await _context.Requests.FindAsync(new object[] { maintenance.OriginalRequestId.Value }, cancellationToken);
-                if (originalRequest != null)
+                asset.Status = AssetStatus.InUse;
+                if (maintenance.RequestedByUserId.HasValue)
                 {
-                    originalRequest.Status = "Completed";
+                    asset.AssignedUserId = maintenance.RequestedByUserId.Value;
                 }
             }
         }
 
+        // 2. Return any temporary replacement asset back to store inventory
+        if (maintenance.ReplacementAssetId.HasValue)
+        {
+            var replacementAsset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.Id == maintenance.ReplacementAssetId.Value, cancellationToken);
+            if (replacementAsset != null)
+            {
+                replacementAsset.Status = AssetStatus.InStore;
+                replacementAsset.AssignedUserId = null;
+            }
+        }
+
+        // 3. Mark originating requests as Completed
+        if (maintenance.OriginalRequestId.HasValue)
+        {
+            var originalAssetRequest = await _context.AssetRequests
+                .FirstOrDefaultAsync(ar => ar.Id == maintenance.OriginalRequestId.Value, cancellationToken);
+            if (originalAssetRequest != null)
+            {
+                originalAssetRequest.Status = RequestStatus.Completed;
+            }
+
+            var originalRequest = await _context.Requests
+                .FirstOrDefaultAsync(r => r.Id == maintenance.OriginalRequestId.Value, cancellationToken);
+            if (originalRequest != null)
+            {
+                originalRequest.Status = "Completed";
+            }
+        }
+
+        // 4. Also mark any pending/approved AssetRequest for this asset as Completed
+        if (maintenance.AssetId > 0)
+        {
+            var relatedAssetRequests = await _context.AssetRequests
+                .Where(ar => ar.AssetId == maintenance.AssetId && ar.RequestType == "Maintenance" && ar.Status != RequestStatus.Completed && ar.Status != RequestStatus.Rejected)
+                .ToListAsync(cancellationToken);
+            foreach (var ar in relatedAssetRequests)
+            {
+                ar.Status = RequestStatus.Completed;
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("[Maintenance] {Id} stakeholders informed and submitted by storekeeper {UserId}",
+        _logger.LogInformation("[Maintenance] {Id} stakeholders informed, asset reactivated and submitted by storekeeper {UserId}",
             request.MaintenanceId, request.StorekeeperUserId);
 
         return InformMaintenanceStakeholdersResult.Success;
