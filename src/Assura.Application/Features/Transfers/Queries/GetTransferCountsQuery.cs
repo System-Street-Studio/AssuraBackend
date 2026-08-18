@@ -79,7 +79,7 @@ public class GetTransferCountsQueryHandler : IRequestHandler<GetTransferCountsQu
     private async Task<TransferCountsDto> GetEmployeeCountsAsync(int userId, CancellationToken cancellationToken)
     {
         var incomingCount = await _context.Transfers
-            .CountAsync(t => t.Status == TransferStatus.PendingOwnerApproval 
+            .CountAsync(t => (t.Status == TransferStatus.PendingOwnerApproval || t.Status == TransferStatus.Rejected)
                           && t.CurrentHolderId == userId, cancellationToken);
 
         var pendingCount = await _context.Transfers
