@@ -1,0 +1,48 @@
+name: AssuraBackend CI/CD
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  test_and_build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8 SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore AssuraBackend.sln
+
+    - name: Build Solution
+      run: dotnet build AssuraBackend.sln --configuration Release --no-restore
+
+    - name: Run Tests
+      run: dotnet test AssuraBackend.sln --configuration Release --no-build --verbosity normal
+
+  deploy_railway:
+    name: Deploy to Railway
+    needs: test_and_build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install Railway CLI
+      run: npm install -g @railway/cli
+
+    - name: Deploy to Railway
+      run: railway up --detach
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
