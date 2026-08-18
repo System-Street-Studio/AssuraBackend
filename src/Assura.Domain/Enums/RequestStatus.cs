@@ -15,5 +15,8 @@ public enum RequestStatus
     PendingProcurement = 6,
     PendingStorekeeperReview = 7,
     Cancelled = 8,
-    Completed = 9
+    Completed = 9,
+    ApprovedProcument =10,
+    DiscardedBySupirinton=11,
+    AssetAssigned=12
 }
