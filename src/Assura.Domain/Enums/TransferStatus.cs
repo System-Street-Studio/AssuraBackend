@@ -16,5 +16,8 @@ public enum TransferStatus
 
     Cancelled = 7,
 
-    Overdue = 8
+    Overdue = 8,
+     RejectedByDivisionHead=13,
+    RejectedConfirmation=14,
+    
 }

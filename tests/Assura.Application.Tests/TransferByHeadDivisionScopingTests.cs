@@ -159,7 +159,7 @@ public class TransferByHeadDivisionScopingTests
         var result = await handler.Handle(new RejectTransferByHeadCommand(8, DivisionHeadId: 107, Reason: "no"), CancellationToken.None);
 
         Assert.True(result);
-        Assert.Equal(TransferStatus.Rejected, (await db.Transfers.FindAsync(8))!.Status);
+        Assert.Equal(TransferStatus.RejectedByDivisionHead, (await db.Transfers.FindAsync(8))!.Status);
     }
 
     [Fact]

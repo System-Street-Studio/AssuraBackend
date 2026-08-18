@@ -20,6 +20,9 @@ public class GetEmployeeTransferQueryHandler : IRequestHandler<GetEmployeeTransf
 
     public async Task<List<TransferDto>> Handle(GetEmployeeTransferQuery request, CancellationToken cancellationToken)
     {
+        var tab = (request.Tab ?? string.Empty).Trim().ToLowerInvariant();
+        if (tab == "incloming") tab = "incoming";
+
         var query = _context.Transfers
             .Include(t => t.Asset)
                 .ThenInclude(a => a.Product)
@@ -29,14 +32,14 @@ public class GetEmployeeTransferQueryHandler : IRequestHandler<GetEmployeeTransf
             .Include(t => t.ToDivision)
             .AsNoTracking();
 
-        query = request.Tab.ToLower() switch
+        query = tab switch
         {
             // 1. Incoming: Status = PendingOwnerApproval AND I am the Current Holder
-            "incoming" => query.Where(t => t.Status == TransferStatus.PendingOwnerApproval 
+            "incoming" => query.Where(t => (t.Status == TransferStatus.PendingOwnerApproval || t.Status == TransferStatus.Rejected)
                                         && t.CurrentHolderId == request.LoginUserId),
 
             // 2. Pending: Status = PendingOwnerDivisionHeadApproval AND I am the Current Holder
-            "pending" => query.Where(t => (t.Status == TransferStatus.PendingOwnerDivisionHeadApproval || t.Status == TransferStatus.WaitingForFinalConfirmation)
+            "pending" => query.Where(t => (t.Status == TransferStatus.PendingOwnerDivisionHeadApproval || t.Status == TransferStatus.WaitingForFinalConfirmation || t.Status == TransferStatus.RejectedByDivisionHead || t.Status == TransferStatus.RejectedConfirmation)
                                        && t.CurrentHolderId == request.LoginUserId),
 
             // 3. Active: Status = Active AND (I am Holder OR Target)

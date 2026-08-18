@@ -46,7 +46,7 @@ public class RejectTransferByHeadCommandHandler : IRequestHandler<Commands.Rejec
 
         var oldStatus = transfer.Status;
         // Update status to Rejected
-        transfer.Status = TransferStatus.Rejected;
+        transfer.Status = TransferStatus.RejectedByDivisionHead;
         
         // Append rejection reason
         transfer.Reason = string.IsNullOrEmpty(transfer.Reason) 
@@ -60,7 +60,7 @@ public class RejectTransferByHeadCommandHandler : IRequestHandler<Commands.Rejec
             TransferId = transfer.Id,
             ApprovedByUserId = request.DivisionHeadId,
             FromStatus = oldStatus,
-            ToStatus = TransferStatus.Rejected,
+            ToStatus = TransferStatus.RejectedByDivisionHead,
             Comments = $"Rejected by Division Head: {request.Reason}",
             ApprovedAt = DateTime.UtcNow
         };
