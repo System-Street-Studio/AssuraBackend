@@ -22,6 +22,10 @@ static string? GetFirstEnvValue(params string[] keys)
 
 builder.Services.AddApplication();
 
+// Backs the short-lived dashboard/lookup caches; the database is remote, so avoiding
+// repeat round-trips matters more than absolute freshness on read-only overviews.
+builder.Services.AddMemoryCache();
+
 var dbConnectionStringFromEnv = GetFirstEnvValue("DB_CONNECTION_STRING", "MYSQL_CONNECTION_STRING");
 var dbServer = GetFirstEnvValue("DB_SERVER", "DB_HOST");
 var dbPort = GetFirstEnvValue("DB_PORT") ?? "3306";

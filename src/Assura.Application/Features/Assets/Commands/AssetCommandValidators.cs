@@ -21,8 +21,12 @@ public class CreateAssetCommandValidator : AbstractValidator<CreateAssetCommand>
             .MustAsync((cmd, ct) => BeUniqueAssetCode(context, cmd.Asset.AssetCode, null, ct))
             .WithMessage(cmd => $"Asset code '{(cmd.Asset.AssetCode ?? string.Empty).Trim()}' already exists. Please use a different code.");
 
+        RuleFor(x => x)
+            .MustAsync((cmd, ct) => BeUniqueSerialNumber(context, cmd.Asset.SerialNumber, null, ct))
+            .WithMessage(cmd => $"Serial number '{(cmd.Asset.SerialNumber ?? string.Empty).Trim()}' already exists. Please use a different serial number.");
+
         RuleFor(x => x.Asset.PurchaseValue)
-            .GreaterThanOrEqualTo(0).WithMessage("Purchase value cannot be negative.");
+            .GreaterThan(0).WithMessage("Purchase value must be greater than zero.");
     }
 
     internal static async Task<bool> BeUniqueAssetCode(
@@ -43,6 +47,24 @@ public class CreateAssetCommandValidator : AbstractValidator<CreateAssetCommand>
         return !await context.Assets
             .IgnoreQueryFilters()
             .AnyAsync(a => (ignoreId == null || a.Id != ignoreId.Value) && a.AssetCode == code, cancellationToken);
+    }
+
+    /// <summary>
+    /// Serial number is optional, so an empty value is always allowed. When present it must be
+    /// unique across all assets (soft-deleted included, same reasoning as <see cref="BeUniqueAssetCode"/>).
+    /// </summary>
+    internal static async Task<bool> BeUniqueSerialNumber(
+        IApplicationDbContext context,
+        string? serialNumber,
+        int? ignoreId,
+        CancellationToken cancellationToken)
+    {
+        var serial = (serialNumber ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(serial)) return true;
+
+        return !await context.Assets
+            .IgnoreQueryFilters()
+            .AnyAsync(a => (ignoreId == null || a.Id != ignoreId.Value) && a.SerialNumber == serial, cancellationToken);
     }
 }
 
@@ -65,7 +87,11 @@ public class UpdateAssetCommandValidator : AbstractValidator<UpdateAssetCommand>
             .MustAsync((cmd, ct) => CreateAssetCommandValidator.BeUniqueAssetCode(context, cmd.Asset.AssetCode, cmd.Asset.Id, ct))
             .WithMessage(cmd => $"Asset code '{(cmd.Asset.AssetCode ?? string.Empty).Trim()}' already exists. Please use a different code.");
 
+        RuleFor(x => x)
+            .MustAsync((cmd, ct) => CreateAssetCommandValidator.BeUniqueSerialNumber(context, cmd.Asset.SerialNumber, cmd.Asset.Id, ct))
+            .WithMessage(cmd => $"Serial number '{(cmd.Asset.SerialNumber ?? string.Empty).Trim()}' already exists. Please use a different serial number.");
+
         RuleFor(x => x.Asset.PurchaseValue)
-            .GreaterThanOrEqualTo(0).WithMessage("Purchase value cannot be negative.");
+            .GreaterThan(0).WithMessage("Purchase value must be greater than zero.");
     }
 }

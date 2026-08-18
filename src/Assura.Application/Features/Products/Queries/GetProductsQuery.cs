@@ -18,8 +18,11 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, List<Pr
 
     public async Task<List<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
     {
+        // Newest first. Id is the auto-increment primary key, so the highest value is always
+        // the most recently created row — unlike relying on unspecified physical storage order.
         return await _context.Products
             .AsNoTracking()
+            .OrderByDescending(p => p.Id)
             .Select(p => new ProductDto
             {
                 Id = p.Id,

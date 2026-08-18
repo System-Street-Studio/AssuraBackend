@@ -29,14 +29,12 @@ public class GetAssetsQueryHandler : IRequestHandler<GetAssetsQuery, List<AssetD
 
     public async Task<List<AssetDto>> Handle(GetAssetsQuery request, CancellationToken cancellationToken)
     {
+        // No Include() calls here on purpose: the Select() below is a projection, so EF Core
+        // works out the joins it needs from the properties actually read. Includes on a
+        // projected query are discarded anyway, and leaving them in invites someone to drop
+        // the projection later and silently start materialising six entity graphs per row.
         var query = _context.Assets
             .AsNoTracking()
-            .Include(a => a.Product)
-            .Include(a => a.Category)
-            .Include(a => a.Division)
-            .Include(a => a.Supplier)
-            .Include(a => a.AssignedUser)
-            .Include(a => a.LastVerifiedByUser)
             .AsQueryable();
 
         // Division Head check: filter by their division
