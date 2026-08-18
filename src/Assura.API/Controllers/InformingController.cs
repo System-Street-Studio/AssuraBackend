@@ -5,6 +5,7 @@ using Assura.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
@@ -16,6 +17,16 @@ public class InformingController : BaseApiController
     public InformingController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    private int? GetCurrentUserId()
+    {
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst("nameid")?.Value
+            ?? User.FindFirst("id")?.Value;
+
+        return int.TryParse(claim, out var id) ? id : null;
     }
 
     [HttpGet("history")]
@@ -43,26 +54,26 @@ public class InformingController : BaseApiController
     [HttpGet("my-arrivals")]
     public async Task<ActionResult<List<AssetInformingDto>>> GetMyArrivals([FromQuery] int? divisionId)
     {
-        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(userIdStr, out int userId))
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
         {
             return Unauthorized();
         }
 
-        var result = await _mediator.Send(new GetEmployeeArrivalsQuery(userId, divisionId));
+        var result = await _mediator.Send(new GetEmployeeArrivalsQuery(userId.Value, divisionId));
         return Ok(result);
     }
 
     [HttpPost("{id}/confirm")]
     public async Task<ActionResult<bool>> ConfirmArrival(int id, [FromBody] ConfirmArrivalRequest? request)
     {
-        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(userIdStr, out int userId))
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
         {
             return Unauthorized();
         }
 
-        var result = await _mediator.Send(new ConfirmAssetArrivalCommand(id, userId, request?.Remarks));
+        var result = await _mediator.Send(new ConfirmAssetArrivalCommand(id, userId.Value, request?.Remarks));
         return Ok(result);
     }
 

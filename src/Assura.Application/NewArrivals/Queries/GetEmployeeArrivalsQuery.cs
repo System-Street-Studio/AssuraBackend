@@ -21,13 +21,17 @@ public class GetEmployeeArrivalsQueryHandler : IRequestHandler<GetEmployeeArriva
 
     public async Task<List<AssetInformingDto>> Handle(GetEmployeeArrivalsQuery request, CancellationToken cancellationToken)
     {
+        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+        var effectiveDivisionId = request.DivisionId ?? user?.DivisionId;
+
         var query = _context.AssetInformings
             .AsNoTracking()
             .Include(x => x.Division)
             .Include(x => x.TargetEmployee)
             .Where(x => !x.IsDeleted && (
                 x.TargetEmployeeId == request.UserId ||
-                (x.TargetEmployeeId == null && request.DivisionId.HasValue && x.DivisionId == request.DivisionId.Value)
+                (x.TargetEmployeeId == null && effectiveDivisionId.HasValue && x.DivisionId == effectiveDivisionId.Value) ||
+                (user != null && user.Role == Assura.Domain.Enums.UserRole.DivisionHead && effectiveDivisionId.HasValue && x.DivisionId == effectiveDivisionId.Value)
             ));
 
         return await query
