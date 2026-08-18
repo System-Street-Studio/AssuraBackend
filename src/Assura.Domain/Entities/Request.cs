@@ -11,6 +11,18 @@ public class Request : BaseEntity
     public string? Description { get; set; }
     public string Status { get; set; } = "Pending";
     public string? Remarks { get; set; }
+    public string? Specifications { get; set; }
+    public string? SpecialNote { get; set; }
+    public bool RequiresDivisionHeadApproval { get; set; } = true;
+
+    public int? DivisionHeadReviewerId { get; set; }
+    public DateTime? DivisionHeadReviewedAt { get; set; }
+
+    public int? StorekeeperProcessorId { get; set; }
+    public DateTime? StorekeeperProcessedAt { get; set; }
+
+    public DateTime? TemporarilyAssignedAt { get; set; }
+    public DateTime? PickupConfirmedAt { get; set; }
 
     public int RequesterId { get; set; }
     public User Requester { get; set; } = null!;

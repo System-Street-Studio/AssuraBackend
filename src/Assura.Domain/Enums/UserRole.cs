@@ -12,5 +12,6 @@ public enum UserRole
     DivisionHead = 8,
     Accountant = 9,
     Auditor = 10,
+    SystemAdmin = 11
 }
 

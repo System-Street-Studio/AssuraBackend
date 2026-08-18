@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Assura.Infrastructure.Persistence;
+using Assura.Infrastructure.Identity;
 using Assura.Infrastructure.Services;
 
 namespace Assura.Infrastructure;
@@ -18,14 +18,37 @@ public static class DependencyInjection
     {
         services.AddDbContext<AppDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)),
-                b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+            var baseConn = configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+
+            // Add keep-alive and connection lifetime params to handle remote-hosted DB restrictions
+            var connectionString = baseConn.TrimEnd(';')
+                + ";Connection Timeout=60;Default Command Timeout=60;Keepalive=60;"
+                + "Connection Lifetime=300;Pooling=true;Min Pool Size=1;Max Pool Size=10;";
+
+            // Use configured server version if present, otherwise fall back to default
+            var serverVersionStr = configuration["Database:ServerVersion"] ?? "10.11.15-mariadb";
+            options.UseMySql(connectionString, ServerVersion.Parse(serverVersionStr), b =>
+            {
+                b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                // Automatically retry transient failures (dropped connections, timeouts)
+                b.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null);
+            });
         });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddSingleton<IAppUrlsService, AppUrlsService>();
         services.AddHttpContextAccessor();
+
+        // Custom Auth Services from feature/auth
+        services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
+        services.AddScoped<IIdentifyServices, IdentityService>();
+        services.AddTransient<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddHostedService<TransferOverdueCheckerService>();
 
         var jwtSettings = configuration.GetSection("Jwt");
         var secretKey = jwtSettings.GetValue<string>("Key") ?? "YourDevelopmentSecretKeyChangeInProduction";
@@ -46,6 +69,36 @@ public static class DependencyInjection
                 ValidIssuer = jwtSettings.GetValue<string>("Issuer"),
                 ValidAudience = jwtSettings.GetValue<string>("Audience"),
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnTokenValidated = async context =>
+                {
+                    var dbContext = context.HttpContext.RequestServices.GetRequiredService<IApplicationDbContext>();
+                    var userIdClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                                      ?? context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+                    var sessionClaim = context.Principal?.FindFirst("SessionId")?.Value
+                                       ?? context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+
+                    if (int.TryParse(userIdClaim, out var userId))
+                    {
+                        var user = await dbContext.Users
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(u => u.Id == userId);
+
+                        if (user == null || !user.IsActive || user.IsLocked)
+                        {
+                            context.Fail("User account is inactive or locked.");
+                            return;
+                        }
+
+                        if (!string.IsNullOrEmpty(user.CurrentSessionId) && !string.IsNullOrEmpty(sessionClaim) && user.CurrentSessionId != sessionClaim)
+                        {
+                            context.Fail("Session expired: Account logged in from another device.");
+                        }
+                    }
+                }
             };
         });
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -38,13 +39,31 @@ public class ExceptionMiddleware
     private static Task HandleExceptionAsync(HttpContext context, Exception exception, IWebHostEnvironment env)
     {
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        
+        var statusCode = HttpStatusCode.InternalServerError;
+        var message = "Internal Server Error from the custom middleware.";
+
+        if (exception is Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+        {
+            statusCode = HttpStatusCode.Conflict;
+            message = "The record you attempted to edit was modified by another user. The edit operation was canceled. Please reload the data and try again.";
+        }
+        else if (exception is FluentValidation.ValidationException validationException)
+        {
+            statusCode = HttpStatusCode.BadRequest;
+            message = string.Join(" ", validationException.Errors.Select(e => e.ErrorMessage));
+        }
+
+        context.Response.StatusCode = (int)statusCode;
 
         var result = JsonSerializer.Serialize(new
         {
             StatusCode = context.Response.StatusCode,
-            Message = "Internal Server Error from the custom middleware.",
-            Detail = env.IsDevelopment() ? exception.Message : "An unexpected error occurred."
+            Message = message,
+            Detail = env.IsDevelopment() ? 
+                $"{exception.Message} {(exception.InnerException != null ? " | Inner: " + exception.InnerException.Message : "")}" 
+                : "An unexpected error occurred.",
+            StackTrace = env.IsDevelopment() ? exception.StackTrace : null
         });
 
         return context.Response.WriteAsync(result);

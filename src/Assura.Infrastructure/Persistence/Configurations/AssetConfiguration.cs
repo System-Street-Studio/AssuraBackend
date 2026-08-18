@@ -43,15 +43,6 @@ public class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .HasForeignKey(a => a.AssignedUserId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.OwnsOne(a => a.Specifications, specBuilder =>
-        {
-            specBuilder.OwnsOne(s => s.Computer);
-            specBuilder.OwnsOne(s => s.Server);
-            specBuilder.OwnsOne(s => s.Networking);
-            specBuilder.OwnsOne(s => s.Printing);
-            specBuilder.OwnsOne(s => s.Furniture);
-        });
-
-        builder.Navigation(a => a.Specifications).IsRequired();
+        // Specifications is [NotMapped] to avoid remote db column mismatch issues.
     }
 }

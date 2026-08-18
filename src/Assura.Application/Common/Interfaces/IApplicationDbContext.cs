@@ -15,15 +15,30 @@ public interface IApplicationDbContext
     DbSet<User> Users { get; }
     DbSet<PurchasingOrder> PurchasingOrders { get; }
     DbSet<GRN> GRNs { get; }
+    DbSet<GIN> GINs { get; }
     DbSet<QRN> QRNs { get; }
     DbSet<TIN> TINs { get; }
     DbSet<Transfer> Transfers { get; }
     DbSet<Request> Requests { get; }
-    DbSet<Maintenance> MaintenanceRecords { get; }
+    DbSet<AssetRequest> AssetRequests { get; }
+    DbSet<Maintenance> Maintenances { get; }
     DbSet<RepairingFirm> RepairingFirms { get; }
     DbSet<DiscountInfo> DiscountInfos { get; }
     DbSet<AuditLog> AuditLogs { get; }
+    DbSet<PurchasingOrderItem> PurchasingOrderItems { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<AssetInforming> AssetInformings { get; }
+    DbSet<DiscardedNote> DiscardedNotes { get; }
+    DbSet<QueueItem> QueueItems { get; }
+    DbSet<Buyer> Buyers { get; }
+    DbSet<AccPendingItem> AccPendingItems { get; }
+    DbSet<AccDiscardedItem> AccDiscardedItems { get; }
+    DbSet<Receipt> Receipts { get; }
+    DbSet<AccDiscardNote> AccDiscardNotes { get; }
+    DbSet<LostItem> LostItems { get; }
+    DbSet<UserDivisionRole> UserDivisionRoles { get; }
+    DbSet<TransferApproval> TransferApprovals { get; }
+    DbSet<CustomReport> CustomReports { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

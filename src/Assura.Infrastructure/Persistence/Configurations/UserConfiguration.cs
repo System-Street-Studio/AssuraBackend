@@ -18,15 +18,31 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(u => u.PhoneNumber)
+            .HasMaxLength(30);
+
+        builder.Property(u => u.RequestedRole)
+            .HasMaxLength(50);
+
+        builder.Property(u => u.EmploymentStatus)
+            .IsRequired()
+            .HasMaxLength(40);
+
+        builder.Property(u => u.JobTitle)
+            .HasMaxLength(100);
+
         builder.HasIndex(u => u.Username)
             .IsUnique();
 
         builder.HasIndex(u => u.Email)
             .IsUnique();
 
+        builder.Property(u => u.DivisionId)
+            .IsRequired(false);
+
         builder.HasOne(u => u.Division)
             .WithMany(d => d.Users)
             .HasForeignKey(u => u.DivisionId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
