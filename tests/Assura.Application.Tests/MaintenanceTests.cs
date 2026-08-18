@@ -159,10 +159,14 @@ public class MaintenanceTests
         var employee = new User { Id = 10, FirstName = "IT", LastName = "Employee", Role = UserRole.Employee, DivisionId = division.Id };
         var head = new User { Id = 11, FirstName = "Division", LastName = "Head", Role = UserRole.DivisionHead, DivisionId = division.Id };
         var storekeeper = new User { Id = 12, FirstName = "Store", LastName = "Keeper", Role = UserRole.Storekeeper };
-        var asset = new Asset { Id = 20, AssetCode = "AST-20", DivisionId = division.Id };
+        var asset = new Asset { Id = 20, AssetCode = "AST-20", DivisionId = division.Id, Status = AssetStatus.UnderMaintenance, AssignedUserId = null };
+        var tempAsset = new Asset { Id = 21, AssetCode = "AST-TEMP", DivisionId = division.Id, Status = AssetStatus.InUse, AssignedUserId = employee.Id };
+        var assetRequest = new AssetRequest { Id = 50, RequesterId = "10", AssetName = "AST-20", RequestType = "Maintenance", Status = RequestStatus.Pending, AssetId = asset.Id };
+
         db.Divisions.Add(division);
         db.Users.AddRange(employee, head, storekeeper);
-        db.Assets.Add(asset);
+        db.Assets.AddRange(asset, tempAsset);
+        db.AssetRequests.Add(assetRequest);
         db.Maintenances.Add(new Maintenance
         {
             Id = 30,
@@ -171,7 +175,9 @@ public class MaintenanceTests
             MaintenanceDate = DateTime.UtcNow,
             Status = "Completed",
             AssetId = asset.Id,
-            RequestedByUserId = employee.Id
+            RequestedByUserId = employee.Id,
+            ReplacementAssetId = tempAsset.Id,
+            OriginalRequestId = assetRequest.Id
         });
         await db.SaveChangesAsync();
 
@@ -183,6 +189,20 @@ public class MaintenanceTests
         var maintenance = await db.Maintenances.FirstAsync(m => m.Id == 30);
         Assert.Equal("Submitted", maintenance.Status);
         Assert.Equal(storekeeper.Id, maintenance.StorekeeperUserId);
+
+        // Verify primary asset is reactivated and assigned back to employee
+        var updatedAsset = await db.Assets.FirstAsync(a => a.Id == 20);
+        Assert.Equal(AssetStatus.InUse, updatedAsset.Status);
+        Assert.Equal(employee.Id, updatedAsset.AssignedUserId);
+
+        // Verify temporary asset is returned to store
+        var updatedTempAsset = await db.Assets.FirstAsync(a => a.Id == 21);
+        Assert.Equal(AssetStatus.InStore, updatedTempAsset.Status);
+        Assert.Null(updatedTempAsset.AssignedUserId);
+
+        // Verify asset request is marked completed
+        var updatedAssetRequest = await db.AssetRequests.FirstAsync(ar => ar.Id == 50);
+        Assert.Equal(RequestStatus.Completed, updatedAssetRequest.Status);
 
         Assert.NotNull(await db.Notifications.FirstOrDefaultAsync(n => n.UserId == employee.Id));
         Assert.NotNull(await db.Notifications.FirstOrDefaultAsync(n => n.UserId == head.Id));
