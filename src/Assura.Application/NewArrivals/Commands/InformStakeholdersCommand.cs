@@ -34,6 +34,7 @@ public class InformStakeholdersCommandHandler : IRequestHandler<InformStakeholde
         informing.Status = "Informed";
         informing.TargetEmployeeId = dto.EmployeeId;
         informing.Remarks = dto.Remarks;
+        informing.UpdatedAt = DateTime.UtcNow;
 
         var employee = await _context.Users.FindAsync(new object[] { dto.EmployeeId }, cancellationToken);
         if (employee != null)
