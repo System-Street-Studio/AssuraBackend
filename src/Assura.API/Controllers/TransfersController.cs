@@ -255,6 +255,7 @@ public class TransfersController : ControllerBase
         }
     }
 
+ 
     // Cancel transfer by division head endpoint
     [HttpPost("{id}/cancel-head")]
     [Authorize(Roles = "DivisionHead")]
@@ -267,16 +268,17 @@ public class TransfersController : ControllerBase
 
             var result = await _mediator.Send(new CancelTransferByHeadCommand(id, headId));
             if (result)
-                return Ok(new { message = "Transfer cancelled by division head" });
-            return BadRequest("Failed to cancel transfer");
+                return Ok(new { success = true, message = "Transfer cancelled by division head" });
+                
+            return BadRequest(new { success = false, message = "Failed to cancel transfer. The transfer status may not allow cancellation at this stage." });
         }
         catch (UnauthorizedAccessException ex)
         {
-            return StatusCode(403, new { message = ex.Message });
+            return StatusCode(403, new { success = false, message = ex.Message });
         }
         catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { success = false, message = ex.Message });
         }
     }
 

@@ -27,9 +27,12 @@ public class CancelTransferByHeadCommandHandler : IRequestHandler<CancelTransfer
             throw new Exception($"Transfer with ID {request.TransferId} not found");
 
         // Verify transfer is in the correct status
+        
+        // Verify transfer is in the correct status (PendingOwnerApproval පමණක් විය යුතුය)
         if (transfer.Status != TransferStatus.PendingOwnerApproval)
-            throw new Exception($"Transfer cannot be cancelled from status {transfer.Status}. Expected status: {TransferStatus.PendingOwnerApproval}");
-
+        {
+            throw new Exception($"Transfer cannot be cancelled from status {transfer.Status}. It is already {transfer.Status}.");
+        }
         // At this stage the transfer is awaiting the *destination* (ToDivision) head's
         // approval — see GetDivisionHeadTransferQueryHandler's "outgoing" tab, which
         // scopes the same status by ToDivisionId.
