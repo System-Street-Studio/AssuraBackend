@@ -30,12 +30,14 @@ public class GetEmployeeArrivalsQueryHandler : IRequestHandler<GetEmployeeArriva
             .Include(x => x.TargetEmployee)
             .Where(x => !x.IsDeleted && (
                 x.TargetEmployeeId == request.UserId ||
-                (x.TargetEmployeeId == null && effectiveDivisionId.HasValue && x.DivisionId == effectiveDivisionId.Value) ||
-                (user != null && user.Role == Assura.Domain.Enums.UserRole.DivisionHead && effectiveDivisionId.HasValue && x.DivisionId == effectiveDivisionId.Value)
+                (effectiveDivisionId.HasValue && x.DivisionId == effectiveDivisionId.Value)
             ));
 
-        return await query
-            .OrderByDescending(x => x.CreatedAt)
+        var list = await query.ToListAsync(cancellationToken);
+
+        return list
+            .OrderBy(x => (x.Status == "Informed" || x.Status == "Pending" || x.Status == "GRN Recorded") ? 0 : 1)
+            .ThenByDescending(x => x.UpdatedAt ?? x.CreatedAt)
             .Select(x => new AssetInformingDto
             {
                 Id = x.Id,
@@ -53,6 +55,6 @@ public class GetEmployeeArrivalsQueryHandler : IRequestHandler<GetEmployeeArriva
                 Remarks = x.Remarks,
                 CreatedAt = x.CreatedAt
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
     }
 }
