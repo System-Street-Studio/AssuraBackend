@@ -21,6 +21,8 @@ public class GetAssetInformingsQueryHandler : IRequestHandler<GetAssetInformings
         return await _context.AssetInformings
             .Include(x => x.Division)
             .Include(x => x.TargetEmployee)
+            .Include(x => x.Asset)
+            .ThenInclude(a => a!.Product)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new AssetInformingDto
             {
@@ -37,7 +39,9 @@ public class GetAssetInformingsQueryHandler : IRequestHandler<GetAssetInformings
                 TargetEmployeeId = x.TargetEmployeeId,
                 TargetEmployeeName = x.TargetEmployee != null ? (x.TargetEmployee.FirstName + " " + x.TargetEmployee.LastName).Trim() : null,
                 Remarks = x.Remarks,
-                CreatedAt = x.CreatedAt
+                CreatedAt = x.CreatedAt,
+                AssetId = x.AssetId,
+                AssetCode = x.Asset != null ? x.Asset.AssetCode : null
             })
             .ToListAsync(cancellationToken);
     }

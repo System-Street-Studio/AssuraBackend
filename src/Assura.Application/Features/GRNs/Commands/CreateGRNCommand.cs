@@ -245,6 +245,7 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
         if (informing != null)
         {
             informing.Status = "GRN Recorded";
+            informing.AssetId = asset.Id;
             informing.Remarks = string.IsNullOrWhiteSpace(informing.Remarks)
                 ? $"GRN {grnNumber} recorded. Asset {asset.AssetCode} registered."
                 : $"{informing.Remarks} | GRN {grnNumber} recorded (Asset: {asset.AssetCode}).";

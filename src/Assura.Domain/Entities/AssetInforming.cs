@@ -19,4 +19,8 @@ public class AssetInforming : BaseEntity
     public User? TargetEmployee { get; set; }
 
     public string? Remarks { get; set; }
+
+    /// <summary>The Asset registered via GRN for this informing record.</summary>
+    public int? AssetId { get; set; }
+    public Asset? Asset { get; set; }
 }
