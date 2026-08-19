@@ -16,4 +16,6 @@ public class AssetInformingDto
     public string? TargetEmployeeName { get; set; }
     public string? Remarks { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int? AssetId { get; set; }
+    public string? AssetCode { get; set; }
 }
