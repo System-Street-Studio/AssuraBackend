@@ -47,7 +47,8 @@ public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, Ass
             DivisionId = request.Asset.DivisionId,
             ProductId = request.Asset.ProductId,
             SupplierId = request.Asset.SupplierId,
-            AssignedUserId = request.Asset.AssignedUserId
+            AssignedUserId = request.Asset.AssignedUserId,
+            PurchasingOrderId = request.Asset.PurchasingOrderId
         };
 
         // Generate QR Code
@@ -61,6 +62,39 @@ public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, Ass
 
         _context.Assets.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Auto-link AssetInforming record if this asset was registered from an arrival
+        if (request.Asset.InformingId.HasValue && request.Asset.InformingId.Value > 0)
+        {
+            var informing = await _context.AssetInformings
+                .FirstOrDefaultAsync(ai => ai.Id == request.Asset.InformingId.Value, cancellationToken);
+            if (informing != null)
+            {
+                informing.Status = "GRN Recorded";
+                informing.AssetId = entity.Id;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+        else
+        {
+            // Fallback match by product name or item name for confirmed arrivals without direct link
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == request.Asset.ProductId, cancellationToken);
+            var prodName = product?.Name?.Trim().ToLower() ?? "";
+            if (!string.IsNullOrEmpty(prodName))
+            {
+                var informing = await _context.AssetInformings
+                    .FirstOrDefaultAsync(ai => ai.Status == "Confirmed" && ai.AssetId == null &&
+                        (ai.ItemName.Trim().ToLower() == prodName ||
+                         prodName.Contains(ai.ItemName.Trim().ToLower()) ||
+                         ai.ItemName.Trim().ToLower().Contains(prodName)), cancellationToken);
+                if (informing != null)
+                {
+                    informing.Status = "GRN Recorded";
+                    informing.AssetId = entity.Id;
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+            }
+        }
 
         // Fetch back with navigation properties
         var asset = await _context.Assets

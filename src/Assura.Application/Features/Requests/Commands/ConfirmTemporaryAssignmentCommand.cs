@@ -12,10 +12,19 @@ public record ConfirmTemporaryAssignmentCommand : IRequest
     public int Id { get; init; }
     public int? ConfirmedByUserId { get; init; }
     public string? Remarks { get; init; }
+
+    // Set by the controller from the caller's JWT role claim — defense-in-depth, matching
+    // ProcessRequestCommand.CallerRole; see that command's comment for why.
+    public string? CallerRole { get; init; }
 }
 
 public class ConfirmTemporaryAssignmentCommandHandler : IRequestHandler<ConfirmTemporaryAssignmentCommand>
 {
+    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        Roles.Storekeeper, Roles.Admin
+    };
+
     private readonly IApplicationDbContext _context;
 
     public ConfirmTemporaryAssignmentCommandHandler(IApplicationDbContext context)
@@ -25,6 +34,11 @@ public class ConfirmTemporaryAssignmentCommandHandler : IRequestHandler<ConfirmT
 
     public async Task Handle(ConfirmTemporaryAssignmentCommand request, CancellationToken cancellationToken)
     {
+        if (request.CallerRole == null || !AllowedRoles.Contains(request.CallerRole))
+        {
+            throw new UnauthorizedAccessException("Only Storekeeper or Admin may confirm a temporary assignment.");
+        }
+
         // Negative ID means this is an AssetRequest record (from unified list)
         if (request.Id < 0)
         {
@@ -153,7 +167,7 @@ public class ConfirmTemporaryAssignmentCommandHandler : IRequestHandler<ConfirmT
         entity.Remarks = JsonSerializer.Serialize(meta);
 
         // Mark as Checked Out — this makes it appear on the Checkout Page
-        entity.Status = "Checked Out";
+        entity.Status = RequestWorkflowStatus.CheckedOut;
         entity.PickupConfirmedAt = DateTime.UtcNow;
 
         entity.Asset.ReservedForUserId = null;

@@ -1,5 +1,6 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.Assets.Queries;
+using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using FluentValidation;
@@ -94,7 +95,7 @@ public class CheckoutAssetCommandHandler : IRequestHandler<CheckoutAssetCommand,
             Description = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
             RequesterId = assignee.Id,
             AssetId = asset.Id,
-            Status = "Checked Out",
+            Status = RequestWorkflowStatus.CheckedOut,
             Remarks = JsonSerializer.Serialize(checkoutMeta)
         };
 
@@ -116,7 +117,7 @@ public class CheckoutAssetCommandHandler : IRequestHandler<CheckoutAssetCommand,
             Email = assignee.Email,
             CheckoutDate = DateOnly.FromDateTime(checkoutRequest.CreatedAt).ToString("yyyy-MM-dd"),
             DueDate = request.DueDate.ToString("yyyy-MM-dd"),
-            Status = "Checked Out",
+            Status = RequestWorkflowStatus.CheckedOut,
             CheckoutNotes = checkoutRequest.Description,
             CheckedOutBy = checkoutMeta.CheckedOutBy ?? "Storekeeper"
         };

@@ -56,5 +56,12 @@ public class AssetRequest : BaseEntity
     // for the original request.
     public string? RejectionReason { get; set; }
 
+    // Set when Procurement raises a Purchasing Order against this request (see
+    // CreatePurchasingOrderCommand) — mirrors Request.PurchasingOrderId, so asset
+    // registration against that PO can find its way back to whichever request(s) were
+    // actually waiting on it.
+    public int? PurchasingOrderId { get; set; }
+    public PurchasingOrder? PurchasingOrder { get; set; }
+
     public ICollection<AssetAttachment> Attachments { get; set; } = new List<AssetAttachment>();
 }

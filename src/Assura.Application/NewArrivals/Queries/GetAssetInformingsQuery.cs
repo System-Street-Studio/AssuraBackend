@@ -41,7 +41,8 @@ public class GetAssetInformingsQueryHandler : IRequestHandler<GetAssetInformings
                 Remarks = x.Remarks,
                 CreatedAt = x.CreatedAt,
                 AssetId = x.AssetId,
-                AssetCode = x.Asset != null ? x.Asset.AssetCode : null
+                AssetCode = x.Asset != null ? x.Asset.AssetCode : null,
+                PurchasingOrderId = x.PurchasingOrderId
             })
             .ToListAsync(cancellationToken);
     }

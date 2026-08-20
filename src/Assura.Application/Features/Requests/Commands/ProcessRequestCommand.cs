@@ -14,10 +14,21 @@ public record ProcessRequestCommand : IRequest
     public bool IsInStock { get; init; }
     public string? Remarks { get; init; }
     public int? ProcessedByUserId { get; init; }
+
+    // Set by the controller from the caller's JWT role claim — defense-in-depth so this
+    // handler doesn't rely solely on RequestsController's [Authorize(Roles=...)] to keep out
+    // a caller a future direct MediatR invocation (another handler, a background job) might
+    // not go through the controller at all.
+    public string? CallerRole { get; init; }
 }
 
 public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestCommand>
 {
+    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        Roles.Storekeeper, Roles.Admin, Roles.Procurement
+    };
+
     private readonly IApplicationDbContext _context;
 
     public ProcessRequestCommandHandler(IApplicationDbContext context)
@@ -27,6 +38,11 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
 
     public async Task Handle(ProcessRequestCommand request, CancellationToken cancellationToken)
     {
+        if (request.CallerRole == null || !AllowedRoles.Contains(request.CallerRole))
+        {
+            throw new UnauthorizedAccessException("Only Storekeeper, Procurement, or Admin may process a request.");
+        }
+
         // Negative ID means this is an AssetRequest record (from unified list)
         if (request.Id < 0)
         {
@@ -36,6 +52,7 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
                 .FirstOrDefaultAsync(r => r.Id == actualId, cancellationToken);
 
             if (assetRequest == null) return;
+            if (assetRequest.Status != RequestStatus.PendingStorekeeperReview) return;
 
             await ProcessAssetRequest(assetRequest, request, cancellationToken);
             return;
@@ -52,10 +69,15 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
                 .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
             if (assetRequest == null) return;
+            if (assetRequest.Status != RequestStatus.PendingStorekeeperReview) return;
 
             await ProcessAssetRequest(assetRequest, request, cancellationToken);
             return;
         }
+
+        // Reprocessing an already-processed request (e.g. a duplicate/retried call) must be a
+        // no-op, not a second reservation of a possibly different asset against the same request.
+        if (entity.Status != RequestWorkflowStatus.PendingStorekeeperReview) return;
 
         entity.Remarks = request.Remarks;
         entity.StorekeeperProcessorId = request.ProcessedByUserId;

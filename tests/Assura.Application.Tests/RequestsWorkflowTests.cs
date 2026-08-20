@@ -113,7 +113,8 @@ public class RequestsWorkflowTests
             IsInStock = true,
             AssetId = asset.Id,
             ProcessedByUserId = storekeeper.Id,
-            Remarks = "Reserved"
+            Remarks = "Reserved",
+            CallerRole = Roles.Storekeeper
         }, CancellationToken.None);
 
         var afterReserve = await db.Requests.FirstAsync(r => r.Id == requestId);
@@ -128,7 +129,8 @@ public class RequestsWorkflowTests
         {
             Id = requestId,
             ConfirmedByUserId = storekeeper.Id,
-            Remarks = "Physical handover done"
+            Remarks = "Physical handover done",
+            CallerRole = Roles.Storekeeper
         }, CancellationToken.None);
 
         var finalized = await db.Requests.FirstAsync(r => r.Id == requestId);
@@ -333,7 +335,8 @@ public class RequestsWorkflowTests
             IsInStock = true,
             AssetId = candidateAsset.Id,
             Remarks = "Reserved by storekeeper",
-            ProcessedByUserId = 999
+            ProcessedByUserId = 999,
+            CallerRole = Roles.Storekeeper
         }, CancellationToken.None);
 
         var savedRequest = await db.Requests.FirstAsync(r => r.Id == request.Id);

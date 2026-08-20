@@ -39,6 +39,14 @@ public class Asset : BaseEntity
     public DateTime? ReservedUntilUtc { get; set; }
     public int? ReservedByRequestId { get; set; }
 
+    // Set when this asset is registered against a Purchasing Order (see AssetCreateDto /
+    // AssetFormComponent's PO auto-fill). Lets UpdatePurchasingOrderStatusCommand find the
+    // asset that was just bought for a PO and hand it to whichever request was waiting on
+    // that PO, instead of PendingProcurement -> Approved being the end of the line. A bare
+    // id like ReservedByRequestId above, not a full FK relationship — kept simple since
+    // nothing needs to navigate from Asset to PurchasingOrder in code today.
+    public int? PurchasingOrderId { get; set; }
+
     public DateTime? LastVerifiedAt { get; set; }
     public int? LastVerifiedByUserId { get; set; }
     public User? LastVerifiedByUser { get; set; }

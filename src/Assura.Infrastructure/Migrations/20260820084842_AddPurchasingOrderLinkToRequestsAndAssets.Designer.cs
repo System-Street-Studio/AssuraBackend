@@ -4,6 +4,7 @@ using Assura.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Assura.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820084842_AddPurchasingOrderLinkToRequestsAndAssets")]
+    partial class AddPurchasingOrderLinkToRequestsAndAssets
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -429,9 +432,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Property<decimal>("PurchasedPrice")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<int?>("PurchasingOrderId")
-                        .HasColumnType("int");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -463,8 +463,6 @@ namespace Assura.Infrastructure.Migrations
                     b.HasIndex("AssetId");
 
                     b.HasIndex("DivisionId");
-
-                    b.HasIndex("PurchasingOrderId");
 
                     b.HasIndex("TargetEmployeeId");
 
@@ -2251,10 +2249,6 @@ namespace Assura.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Assura.Domain.Entities.PurchasingOrder", "PurchasingOrder")
-                        .WithMany()
-                        .HasForeignKey("PurchasingOrderId");
-
                     b.HasOne("Assura.Domain.Entities.User", "TargetEmployee")
                         .WithMany()
                         .HasForeignKey("TargetEmployeeId");
@@ -2262,8 +2256,6 @@ namespace Assura.Infrastructure.Migrations
                     b.Navigation("Asset");
 
                     b.Navigation("Division");
-
-                    b.Navigation("PurchasingOrder");
 
                     b.Navigation("TargetEmployee");
                 });

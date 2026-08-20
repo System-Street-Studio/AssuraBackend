@@ -62,6 +62,8 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
         }
 
         int? divisionId = request.DivisionId;
+        AssetRequest? linkedAssetRequest = null;
+        Request? linkedRequest = null;
 
         // The pending-requests queue (GetPendingAssetRequestsQuery) merges two tables with
         // unqualified ids: `Requests` rows keep their real positive id, `AssetRequests` rows
@@ -80,6 +82,7 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
                     {
                         divisionId = assetReq.DivisionId ?? assetReq.User?.DivisionId;
                     }
+                    linkedAssetRequest = assetReq;
                 }
             }
             else
@@ -92,6 +95,7 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
                     {
                         divisionId = req.Requester.DivisionId;
                     }
+                    linkedRequest = req;
                 }
             }
         }
@@ -105,6 +109,13 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
             DivisionId = divisionId,
             Status = "Pending"
         };
+
+        // Record which request (if any) this PO is meant to satisfy, so that once an asset is
+        // registered against it and the order is marked complete, UpdatePurchasingOrderStatusCommand
+        // can find its way back and finish the handover instead of the request being stuck at
+        // "Approved" forever with no asset ever assigned to the original requester.
+        if (linkedAssetRequest != null) linkedAssetRequest.PurchasingOrder = po;
+        if (linkedRequest != null) linkedRequest.PurchasingOrder = po;
         // Explicitly ensuring list is initialized if not already (check Domain entity)
         po.Items ??= new List<PurchasingOrderItem>();
 

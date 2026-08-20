@@ -49,6 +49,12 @@ public class AssetCreateDto
     public int ProductId { get; set; }
     public int SupplierId { get; set; }
     public int? AssignedUserId { get; set; }
+
+    // Set when this asset is being registered from a selected Purchasing Order (see
+    // AssetFormComponent.selectedPoId) so the backend can later resolve which request(s)
+    // were waiting on that PO once it's marked complete.
+    public int? PurchasingOrderId { get; set; }
+    public int? InformingId { get; set; }
 }
 
 public class AssetUpdateDto : AssetCreateDto
