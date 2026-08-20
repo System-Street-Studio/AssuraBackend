@@ -47,7 +47,8 @@ public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, Ass
             DivisionId = request.Asset.DivisionId,
             ProductId = request.Asset.ProductId,
             SupplierId = request.Asset.SupplierId,
-            AssignedUserId = request.Asset.AssignedUserId
+            AssignedUserId = request.Asset.AssignedUserId,
+            PurchasingOrderId = request.Asset.PurchasingOrderId
         };
 
         // Generate QR Code

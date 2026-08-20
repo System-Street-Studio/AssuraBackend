@@ -29,4 +29,11 @@ public class Request : BaseEntity
 
     public int? AssetId { get; set; }
     public Asset? Asset { get; set; }
+
+    // Set when Procurement raises a Purchasing Order against this request (see
+    // CreatePurchasingOrderCommand). Lets asset registration for that PO (CreateAssetCommand)
+    // find its way back to whichever request(s) were actually waiting on it, instead of the
+    // request going PendingProcurement -> Approved and then never being resolved further.
+    public int? PurchasingOrderId { get; set; }
+    public PurchasingOrder? PurchasingOrder { get; set; }
 }

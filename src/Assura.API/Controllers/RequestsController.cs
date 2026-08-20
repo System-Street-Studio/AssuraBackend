@@ -87,12 +87,20 @@ public class RequestsController : BaseApiController
     {
         if (id != command.Id) return BadRequest();
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        var callerRole = User.FindFirstValue(ClaimTypes.Role);
         var finalCommand = int.TryParse(userIdStr, out var userId)
-            ? command with { ProcessedByUserId = userId }
-            : command;
+            ? command with { ProcessedByUserId = userId, CallerRole = callerRole }
+            : command with { CallerRole = callerRole };
 
-        await _mediator.Send(finalCommand);
-        return NoContent();
+        try
+        {
+            await _mediator.Send(finalCommand);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPost("{id}/division-head-review")]
@@ -125,12 +133,20 @@ public class RequestsController : BaseApiController
         if (id != command.Id) return BadRequest();
 
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var callerRole = User.FindFirstValue(ClaimTypes.Role);
         var finalCommand = int.TryParse(userIdStr, out var userId)
-            ? command with { ConfirmedByUserId = userId }
-            : command;
+            ? command with { ConfirmedByUserId = userId, CallerRole = callerRole }
+            : command with { CallerRole = callerRole };
 
-        await _mediator.Send(finalCommand);
-        return NoContent();
+        try
+        {
+            await _mediator.Send(finalCommand);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPut("{id}/status")]
@@ -138,7 +154,16 @@ public class RequestsController : BaseApiController
     public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdateRequestStatusCommand command)
     {
         if (id != command.Id) return BadRequest();
-        await _mediator.Send(command);
-        return NoContent();
+        var callerRole = User.FindFirstValue(ClaimTypes.Role);
+
+        try
+        {
+            await _mediator.Send(command with { CallerRole = callerRole });
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 }

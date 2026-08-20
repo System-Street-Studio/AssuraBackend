@@ -70,22 +70,42 @@ public class TransferOverdueCheckerService : BackgroundService
         if (!overdueTransfers.Any())
             return;
 
+        // TransferApprovals.ApprovedByUserId is a required FK to Users, and there's no dedicated
+        // "system" account — hardcoding an id (this used to hardcode 1) breaks the instant that id
+        // doesn't exist in a given database, and since every transfer in this run shares one
+        // SaveChangesAsync call, one bad id fails the *entire* batch: no transfer gets marked
+        // Overdue at all, not just the audit row. Resolve a real user (the earliest-created Admin)
+        // instead, and if none exists, still update every transfer's status — the automated audit
+        // trail is a nice-to-have, not something that should block the actual status change.
+        var systemUserId = await context.Users
+            .Where(u => u.Role == UserRole.Admin)
+            .OrderBy(u => u.Id)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
         foreach (var transfer in overdueTransfers)
         {
             _logger.LogInformation($"Marking Transfer {transfer.Id} as Overdue.");
             transfer.Status = TransferStatus.Overdue;
             transfer.UpdatedAt = DateTime.UtcNow;
-            
-            // Optional: You could also log an automated TransferApproval here to track the status change
-            context.TransferApprovals.Add(new Domain.Entities.TransferApproval
+
+            if (systemUserId.HasValue)
             {
-                TransferId = transfer.Id,
-                ApprovedByUserId = 1, // System User ID or 0 depending on your DB
-                FromStatus = TransferStatus.Active,
-                ToStatus = TransferStatus.Overdue,
-                Comments = "Automatically marked as overdue by system.",
-                ApprovedAt = DateTime.UtcNow
-            });
+                context.TransferApprovals.Add(new Domain.Entities.TransferApproval
+                {
+                    TransferId = transfer.Id,
+                    ApprovedByUserId = systemUserId.Value,
+                    FromStatus = TransferStatus.Active,
+                    ToStatus = TransferStatus.Overdue,
+                    Comments = "Automatically marked as overdue by system.",
+                    ApprovedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        if (!systemUserId.HasValue)
+        {
+            _logger.LogWarning("No Admin user found — marking transfers Overdue without an automated TransferApproval audit row.");
         }
 
         await context.SaveChangesAsync(cancellationToken);
