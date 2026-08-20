@@ -94,6 +94,7 @@ public class AuthController : ControllerBase
         var result = await _mediator.Send(new CompleteOnboardingCommand
         {
             UserId = userId,
+            NewUsername = request.NewUsername,
             NewPassword = request.NewPassword,
             FirstName = request.FirstName,
             LastName = request.LastName,
@@ -107,6 +108,7 @@ public class AuthController : ControllerBase
 }
 
 public record CompleteOnboardingRequest(
+    string NewUsername,
     string NewPassword,
     string FirstName,
     string LastName,

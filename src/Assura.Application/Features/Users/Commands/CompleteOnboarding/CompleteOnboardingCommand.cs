@@ -8,11 +8,13 @@ namespace Assura.Application.Features.Users.Commands.CompleteOnboarding;
 /// <summary>
 /// Lets a user with <see cref="Assura.Domain.Entities.User.RequiresOnboarding"/> set (e.g. an HR
 /// account created with a system-generated username/password) claim their account on first login:
-/// choose their own password and fill in the name/email/phone that weren't collected at creation.
+/// choose their own username, password, and fill in the name/email/phone that weren't collected
+/// at creation.
 /// </summary>
 public record CompleteOnboardingCommand : IRequest<CompleteOnboardingResult>
 {
     public int UserId { get; init; }
+    public string NewUsername { get; init; } = string.Empty;
     public string NewPassword { get; init; } = string.Empty;
     public string FirstName { get; init; } = string.Empty;
     public string LastName { get; init; } = string.Empty;
@@ -27,6 +29,7 @@ public class CompleteOnboardingCommandValidator : AbstractValidator<CompleteOnbo
     public CompleteOnboardingCommandValidator()
     {
         RuleFor(x => x.UserId).GreaterThan(0);
+        RuleFor(x => x.NewUsername).NotEmpty().MaximumLength(50);
         RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(6);
         RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
@@ -58,6 +61,13 @@ public class CompleteOnboardingCommandHandler : IRequestHandler<CompleteOnboardi
             return new CompleteOnboardingResult(false, "This account does not require onboarding.", null);
         }
 
+        var usernameTaken = await _context.Users.AnyAsync(
+            u => u.Id != user.Id && u.Username == request.NewUsername, cancellationToken);
+        if (usernameTaken)
+        {
+            return new CompleteOnboardingResult(false, "That username is already taken.", null);
+        }
+
         var emailTaken = await _context.Users.AnyAsync(
             u => u.Id != user.Id && u.Email == request.Email, cancellationToken);
         if (emailTaken)
@@ -65,6 +75,7 @@ public class CompleteOnboardingCommandHandler : IRequestHandler<CompleteOnboardi
             return new CompleteOnboardingResult(false, "That email is already in use.", null);
         }
 
+        user.Username = request.NewUsername;
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
@@ -77,7 +88,7 @@ public class CompleteOnboardingCommandHandler : IRequestHandler<CompleteOnboardi
             EntityName = "Users",
             EntityId = user.Id.ToString(),
             Action = "Completed Onboarding",
-            CreatedBy = user.Username
+            CreatedBy = request.NewUsername
         });
 
         await _context.SaveChangesAsync(cancellationToken);

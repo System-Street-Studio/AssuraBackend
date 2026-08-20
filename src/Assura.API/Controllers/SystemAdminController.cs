@@ -74,6 +74,10 @@ public class SystemAdminController : BaseApiController
         return Ok(new { temporaryPassword = result.TemporaryPassword });
     }
 
+    // Creating privileged accounts (System Admin registration, HR credential generation) is a
+    // SystemAdmin-only process — Admin is deliberately excluded here, narrowing the controller's
+    // broader Admin-or-SystemAdmin policy just for these two actions.
+    [Authorize(Roles = Roles.SystemAdmin)]
     [HttpPost("users/create-hr")]
     public async Task<IActionResult> CreateHrAccount()
     {
@@ -87,6 +91,7 @@ public class SystemAdminController : BaseApiController
         return Ok(new { username = result.Username, temporaryPassword = result.TemporaryPassword });
     }
 
+    [Authorize(Roles = Roles.SystemAdmin)]
     [HttpPost("users/create-system-admin")]
     public async Task<IActionResult> CreateSystemAdminUser(CreatePrivilegedUserRequest request)
     {
