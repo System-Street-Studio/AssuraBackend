@@ -1,6 +1,7 @@
 using Assura.Application.Features.AssetRequests.Queries;
 using Assura.Application.Features.Requests.Commands;
 using Assura.Application.Tests.Common;
+using Assura.Domain.Constants;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 
@@ -41,7 +42,7 @@ public class AssetRequestStorekeeperVisibilityTests
             RequesterId = "1",
             RequesterName = "Employee One",
             RequestType = "NewAsset",
-            Status = RequestStatus.Pending
+            Status = RequestStatus.PendingStorekeeperReview
         };
 
         db.Users.Add(storekeeper);
@@ -56,7 +57,8 @@ public class AssetRequestStorekeeperVisibilityTests
             Id = -assetRequest.Id,
             IsInStock = false,
             Remarks = "Out of stock, escalating to procurement",
-            ProcessedByUserId = storekeeper.Id
+            ProcessedByUserId = storekeeper.Id,
+            CallerRole = Roles.Storekeeper
         }, CancellationToken.None);
 
         var saved = await db.AssetRequests.FindAsync(assetRequest.Id);
