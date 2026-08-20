@@ -3,6 +3,7 @@ using Assura.Application.Features.Users.Commands.Login;
 using Assura.Application.Features.Users.Commands.ForgotPassword;
 using Assura.Application.Features.Users.Commands.ResetPassword;
 using Assura.Application.Features.Users.Commands.CompleteOnboarding;
+using Assura.Application.Features.SystemAdmin.Commands;
 using Assura.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -31,6 +32,25 @@ public class AuthController : ControllerBase
         return result 
             ? Ok(new { Message = "User registration successful. Pending HR assignment." }) 
             : BadRequest(new { Message = "User already exists or registration failed." });
+    }
+
+    [HttpPost("register-system-admin")]
+    public async Task<IActionResult> RegisterSystemAdmin([FromBody] RegisterSystemAdminRequest request)
+    {
+        var result = await _mediator.Send(new CreatePrivilegedUserCommand
+        {
+            Username = request.Username,
+            Password = request.Password,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            PhoneNumber = request.PhoneNumber,
+            ActorName = "Self-registered",
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        if (!result.Success) return BadRequest(new { Message = result.Error });
+        return Ok(new { Message = "System Administrator account created successfully." });
     }
 
     [HttpPost("login")]
@@ -113,4 +133,12 @@ public record CompleteOnboardingRequest(
     string FirstName,
     string LastName,
     string Email,
+    string? PhoneNumber);
+
+public record RegisterSystemAdminRequest(
+    string Username,
+    string Password,
+    string Email,
+    string FirstName,
+    string LastName,
     string? PhoneNumber);
