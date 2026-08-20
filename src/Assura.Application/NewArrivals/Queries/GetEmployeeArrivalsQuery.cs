@@ -28,6 +28,8 @@ public class GetEmployeeArrivalsQueryHandler : IRequestHandler<GetEmployeeArriva
             .AsNoTracking()
             .Include(x => x.Division)
             .Include(x => x.TargetEmployee)
+            .Include(x => x.Asset)
+            .ThenInclude(a => a!.Product)
             .Where(x => !x.IsDeleted && (
                 x.TargetEmployeeId == request.UserId ||
                 (effectiveDivisionId.HasValue && x.DivisionId == effectiveDivisionId.Value)
@@ -53,7 +55,10 @@ public class GetEmployeeArrivalsQueryHandler : IRequestHandler<GetEmployeeArriva
                 TargetEmployeeId = x.TargetEmployeeId,
                 TargetEmployeeName = x.TargetEmployee != null ? (x.TargetEmployee.FirstName + " " + x.TargetEmployee.LastName).Trim() : null,
                 Remarks = x.Remarks,
-                CreatedAt = x.CreatedAt
+                CreatedAt = x.CreatedAt,
+                AssetId = x.AssetId,
+                AssetCode = x.Asset != null ? x.Asset.AssetCode : null,
+                PurchasingOrderId = x.PurchasingOrderId
             })
             .ToList();
     }

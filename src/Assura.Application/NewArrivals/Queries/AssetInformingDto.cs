@@ -18,4 +18,5 @@ public class AssetInformingDto
     public DateTime CreatedAt { get; set; }
     public int? AssetId { get; set; }
     public string? AssetCode { get; set; }
+    public int? PurchasingOrderId { get; set; }
 }

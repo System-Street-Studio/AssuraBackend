@@ -37,6 +37,14 @@ public class InformingController : BaseApiController
         return Ok(result);
     }
 
+    [HttpGet("{id}")]
+    public async Task<ActionResult<AssetInformingDto>> GetById(int id)
+    {
+        var result = await _mediator.Send(new GetAssetInformingByIdQuery(id));
+        if (result is null) return NotFound();
+        return Ok(result);
+    }
+
     [HttpPost("inform-stores")]
     public async Task<ActionResult<int>> InformStores(InformStoresDto dto)
     {

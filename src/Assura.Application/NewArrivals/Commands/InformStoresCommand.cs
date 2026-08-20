@@ -31,6 +31,7 @@ public class InformStoresCommandHandler : IRequestHandler<InformStoresCommand, i
             PurchasedDate = dto.PurchasedDate,
             PurchasedPrice = dto.PurchasedPrice,
             DivisionId = dto.DivisionId,
+            PurchasingOrderId = dto.PurchasingOrderId,
             Status = "Pending"
         };
 

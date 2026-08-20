@@ -23,4 +23,8 @@ public class AssetInforming : BaseEntity
     /// <summary>The Asset registered via GRN for this informing record.</summary>
     public int? AssetId { get; set; }
     public Asset? Asset { get; set; }
+
+    /// <summary>The Purchasing Order this informing was raised against, if any.</summary>
+    public int? PurchasingOrderId { get; set; }
+    public PurchasingOrder? PurchasingOrder { get; set; }
 }
