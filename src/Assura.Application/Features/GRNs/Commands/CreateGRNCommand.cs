@@ -29,7 +29,9 @@ public class CreateGRNCommandValidator : AbstractValidator<CreateGRNCommand>
 {
     public CreateGRNCommandValidator()
     {
-        RuleFor(x => x.PurchasingOrderId).GreaterThan(0);
+        RuleFor(x => x.PurchasingOrderId)
+            .GreaterThan(0)
+            .When(x => !x.InformingId.HasValue || x.InformingId <= 0);
         RuleFor(x => x.ReceivedDate)
             .Must(d => d <= DateTime.UtcNow.AddDays(1))
             .WithMessage("Received date cannot be in the future.");
@@ -49,20 +51,31 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
 
     public async Task<GRNDto> Handle(CreateGRNCommand request, CancellationToken cancellationToken)
     {
-        var purchasingOrder = await _context.PurchasingOrders
-            .Include(po => po.Supplier)
-            .Include(po => po.Items)
-            .FirstOrDefaultAsync(po => po.Id == request.PurchasingOrderId, cancellationToken);
-        if (purchasingOrder == null)
-        {
-            throw new ValidationException("Purchasing order not found.");
-        }
-
         AssetInforming? informing = null;
         if (request.InformingId.HasValue && request.InformingId.Value > 0)
         {
             informing = await _context.AssetInformings
                 .FirstOrDefaultAsync(ai => ai.Id == request.InformingId.Value, cancellationToken);
+        }
+
+        int poId = request.PurchasingOrderId;
+        if (poId <= 0 && informing != null && informing.PurchasingOrderId.HasValue && informing.PurchasingOrderId.Value > 0)
+        {
+            poId = informing.PurchasingOrderId.Value;
+        }
+
+        PurchasingOrder? purchasingOrder = null;
+        if (poId > 0)
+        {
+            purchasingOrder = await _context.PurchasingOrders
+                .Include(po => po.Supplier)
+                .Include(po => po.Items)
+                .FirstOrDefaultAsync(po => po.Id == poId, cancellationToken);
+        }
+
+        if (purchasingOrder == null && informing == null)
+        {
+            throw new ValidationException("Purchasing order or informed arrival record not found.");
         }
 
         Asset? asset = null;
@@ -123,9 +136,9 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
             string? warranty = poItem?.Warranty ?? informing?.Warranty;
             decimal purchaseValue = poItem != null && poItem.TotalPrice > 0
                 ? poItem.TotalPrice
-                : (informing != null && informing.PurchasedPrice > 0 ? informing.PurchasedPrice : purchasingOrder.TotalAmount);
+                : (informing != null && informing.PurchasedPrice > 0 ? informing.PurchasedPrice : (purchasingOrder?.TotalAmount ?? 0));
 
-            int? divisionId = purchasingOrder.DivisionId ?? informing?.DivisionId;
+            int? divisionId = purchasingOrder?.DivisionId ?? informing?.DivisionId;
 
             // If informing wasn't found by ID, try matching by itemName or PO
             if (informing == null)
@@ -236,7 +249,7 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
         _context.GRNs.Add(grn);
 
         // 6. Update Purchasing Order status to Registered if it was Pending
-        if (purchasingOrder.Status != "Completed" && purchasingOrder.Status != "Registered")
+        if (purchasingOrder != null && purchasingOrder.Status != "Completed" && purchasingOrder.Status != "Registered")
         {
             purchasingOrder.Status = "Registered";
         }

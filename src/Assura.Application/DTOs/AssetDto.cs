@@ -54,6 +54,7 @@ public class AssetCreateDto
     // AssetFormComponent.selectedPoId) so the backend can later resolve which request(s)
     // were waiting on that PO once it's marked complete.
     public int? PurchasingOrderId { get; set; }
+    public int? InformingId { get; set; }
 }
 
 public class AssetUpdateDto : AssetCreateDto
