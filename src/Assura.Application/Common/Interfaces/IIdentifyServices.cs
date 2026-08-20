@@ -21,4 +21,8 @@ public interface IIdentifyServices
     Task<string?> GeneratePasswordResetTokenAsync(string email);
     Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
     Task LogoutAsync(int userId);
+
+    /// <summary>Re-issues a JWT for a user whose claims just changed (e.g. after completing
+    /// onboarding), so the caller doesn't have to log in again to see the updated token.</summary>
+    Task<string?> RegenerateTokenAsync(int userId);
 }

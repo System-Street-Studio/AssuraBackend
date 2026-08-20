@@ -73,4 +73,44 @@ public class SystemAdminController : BaseApiController
         if (!result.Success) return BadRequest("Failed to reset user password. Cannot reset system admin.");
         return Ok(new { temporaryPassword = result.TemporaryPassword });
     }
+
+    [HttpPost("users/create-hr")]
+    public async Task<IActionResult> CreateHrAccount()
+    {
+        var result = await Mediator.Send(new CreateHrAccountCommand
+        {
+            ActorName = User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue(ClaimTypes.NameIdentifier),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        if (!result.Success) return BadRequest(result.Error);
+        return Ok(new { username = result.Username, temporaryPassword = result.TemporaryPassword });
+    }
+
+    [HttpPost("users/create-system-admin")]
+    public async Task<IActionResult> CreateSystemAdminUser(CreatePrivilegedUserRequest request)
+    {
+        var result = await Mediator.Send(new CreatePrivilegedUserCommand
+        {
+            Username = request.Username,
+            Password = request.Password,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            PhoneNumber = request.PhoneNumber,
+            ActorName = User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue(ClaimTypes.NameIdentifier),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        if (!result.Success) return BadRequest(result.Error);
+        return Ok(new { userId = result.UserId });
+    }
 }
+
+public record CreatePrivilegedUserRequest(
+    string Username,
+    string Password,
+    string Email,
+    string FirstName,
+    string LastName,
+    string? PhoneNumber);

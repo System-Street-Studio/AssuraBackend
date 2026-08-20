@@ -2,8 +2,10 @@ using Assura.Application.Features.Users.Commands.RegisterUser;
 using Assura.Application.Features.Users.Commands.Login;
 using Assura.Application.Features.Users.Commands.ForgotPassword;
 using Assura.Application.Features.Users.Commands.ResetPassword;
+using Assura.Application.Features.Users.Commands.CompleteOnboarding;
 using Assura.Application.Common.Interfaces;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -73,8 +75,40 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
     {
         var result = await _mediator.Send(command);
-        return result 
-            ? Ok(new { Message = "Password has been successfully reset." }) 
+        return result
+            ? Ok(new { Message = "Password has been successfully reset." })
             : BadRequest(new { Message = "Invalid token or email, or token expired." });
     }
+
+    [Authorize]
+    [HttpPost("complete-onboarding")]
+    public async Task<IActionResult> CompleteOnboarding([FromBody] CompleteOnboardingRequest request)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        if (!int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _mediator.Send(new CompleteOnboardingCommand
+        {
+            UserId = userId,
+            NewPassword = request.NewPassword,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            PhoneNumber = request.PhoneNumber
+        });
+
+        if (!result.Success) return BadRequest(new { Message = result.Error });
+        return Ok(new { token = result.Token });
+    }
 }
+
+public record CompleteOnboardingRequest(
+    string NewPassword,
+    string FirstName,
+    string LastName,
+    string Email,
+    string? PhoneNumber);

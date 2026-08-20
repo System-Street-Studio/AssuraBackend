@@ -27,6 +27,13 @@ public class User : BaseEntity
     public string EmploymentStatus { get; set; } = "PendingAssignment";
     public string? JobTitle { get; set; }
     public DateTime? AssignedAt { get; set; }
+
+    /// <summary>
+    /// True for an account created with system-generated credentials (e.g. an HR account
+    /// created by an Admin/SystemAdmin) that the owner has not yet claimed — they must change
+    /// their password and fill in their own name/email/phone before using the rest of the app.
+    /// </summary>
+    public bool RequiresOnboarding { get; set; } = false;
     
     public ICollection<UserDivisionRole> DivisionRoles { get; set; } = new List<UserDivisionRole>();
     public ICollection<Asset> AssignedAssets { get; set; } = new List<Asset>();
