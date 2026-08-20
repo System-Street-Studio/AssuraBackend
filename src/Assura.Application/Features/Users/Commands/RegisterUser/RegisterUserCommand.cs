@@ -23,8 +23,11 @@ public record RegisterUserCommand : IRequest<bool>
     public string LastName { get; init; } = string.Empty;
 
     public string? PhoneNumber { get; init; }
+
+    /// <summary>Informational only — the role the registrant would like, shown to HR as a hint.
+    /// Never the actual <see cref="Assura.Domain.Entities.User.Role"/>, which stays unset until
+    /// HR/SystemAdmin assigns it.</summary>
     public string? RequestedRole { get; init; }
-    public int? DivisionId { get; init; }
 }
 
 public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, bool>
@@ -41,7 +44,9 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, b
         {
             return false;
         }
-        // register the user
+        // Register the user with Role/Division left unassigned — a self-registered account can
+        // never set its own division (or role); only HR/SystemAdmin assignment can, later.
+        // DivisionId is deliberately not sourced from the request here, unlike RequestedRole.
          return await _identifyServices.RegisterAsync(
             request.Username,
             request.Password,
@@ -50,6 +55,6 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, b
             request.LastName,
             request.PhoneNumber,
             request.RequestedRole,
-            request.DivisionId);
+            divisionId: null);
     }
 }

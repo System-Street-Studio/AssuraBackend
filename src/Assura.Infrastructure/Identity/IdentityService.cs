@@ -113,6 +113,14 @@ public class IdentityService : IIdentifyServices
         }
     }
 
+    public async Task<string?> RegenerateTokenAsync(int userId)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return null;
+
+        return _jwtTokenGenerator.GenerateToken(user);
+    }
+
     public async Task<string?> GeneratePasswordResetTokenAsync(string email)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);

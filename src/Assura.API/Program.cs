@@ -17,18 +17,18 @@ static string? GetFirstEnvValue(IConfiguration? config, params string[] keys)
     foreach (var key in keys)
     {
         var sysVal = Environment.GetEnvironmentVariable(key)?.Trim();
-        if (!string.IsNullOrWhiteSpace(sysVal)) return sysVal;
+        if (!string.IsNullOrWhiteSpace(sysVal) && !sysVal.Equals("Overridden_by_env_file", StringComparison.OrdinalIgnoreCase)) return sysVal;
 
         if (config != null)
         {
             var cfgVal = config[key]?.Trim();
-            if (!string.IsNullOrWhiteSpace(cfgVal)) return cfgVal;
+            if (!string.IsNullOrWhiteSpace(cfgVal) && !cfgVal.Equals("Overridden_by_env_file", StringComparison.OrdinalIgnoreCase)) return cfgVal;
         }
 
         try
         {
             var envVal = Env.GetString(key)?.Trim();
-            if (!string.IsNullOrWhiteSpace(envVal)) return envVal;
+            if (!string.IsNullOrWhiteSpace(envVal) && !envVal.Equals("Overridden_by_env_file", StringComparison.OrdinalIgnoreCase)) return envVal;
         }
         catch { }
     }

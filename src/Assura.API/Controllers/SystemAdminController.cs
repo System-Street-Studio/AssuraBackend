@@ -73,4 +73,22 @@ public class SystemAdminController : BaseApiController
         if (!result.Success) return BadRequest("Failed to reset user password. Cannot reset system admin.");
         return Ok(new { temporaryPassword = result.TemporaryPassword });
     }
+
+    // Creating privileged accounts (System Admin registration, HR credential generation) is a
+    // SystemAdmin-only process — Admin is deliberately excluded here, narrowing the controller's
+    // broader Admin-or-SystemAdmin policy just for these two actions.
+    [Authorize(Roles = Roles.SystemAdmin)]
+    [HttpPost("users/create-hr")]
+    public async Task<IActionResult> CreateHrAccount()
+    {
+        var result = await Mediator.Send(new CreateHrAccountCommand
+        {
+            ActorName = User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue(ClaimTypes.NameIdentifier),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        if (!result.Success) return BadRequest(result.Error);
+        return Ok(new { username = result.Username, temporaryPassword = result.TemporaryPassword });
+    }
+
 }

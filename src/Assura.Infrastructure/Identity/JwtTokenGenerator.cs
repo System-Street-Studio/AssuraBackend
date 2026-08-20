@@ -56,6 +56,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(ClaimTypes.Role, user.Role?.ToString() ?? string.Empty),
             new("DivisionId", user.DivisionId?.ToString() ?? ""),
+            new("RequiresOnboarding", user.RequiresOnboarding ? "true" : "false"),
             new("SessionId", sessionId),
             new(JwtRegisteredClaimNames.Jti, sessionId)
         };

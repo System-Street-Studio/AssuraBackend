@@ -2,8 +2,11 @@ using Assura.Application.Features.Users.Commands.RegisterUser;
 using Assura.Application.Features.Users.Commands.Login;
 using Assura.Application.Features.Users.Commands.ForgotPassword;
 using Assura.Application.Features.Users.Commands.ResetPassword;
+using Assura.Application.Features.Users.Commands.CompleteOnboarding;
+using Assura.Application.Features.SystemAdmin.Commands;
 using Assura.Application.Common.Interfaces;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -29,6 +32,25 @@ public class AuthController : ControllerBase
         return result 
             ? Ok(new { Message = "User registration successful. Pending HR assignment." }) 
             : BadRequest(new { Message = "User already exists or registration failed." });
+    }
+
+    [HttpPost("register-system-admin")]
+    public async Task<IActionResult> RegisterSystemAdmin([FromBody] RegisterSystemAdminRequest request)
+    {
+        var result = await _mediator.Send(new CreatePrivilegedUserCommand
+        {
+            Username = request.Username,
+            Password = request.Password,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            PhoneNumber = request.PhoneNumber,
+            ActorName = "Self-registered",
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        if (!result.Success) return BadRequest(new { Message = result.Error });
+        return Ok(new { Message = "System Administrator account created successfully." });
     }
 
     [HttpPost("login")]
@@ -73,8 +95,50 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
     {
         var result = await _mediator.Send(command);
-        return result 
-            ? Ok(new { Message = "Password has been successfully reset." }) 
+        return result
+            ? Ok(new { Message = "Password has been successfully reset." })
             : BadRequest(new { Message = "Invalid token or email, or token expired." });
     }
+
+    [Authorize]
+    [HttpPost("complete-onboarding")]
+    public async Task<IActionResult> CompleteOnboarding([FromBody] CompleteOnboardingRequest request)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        if (!int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _mediator.Send(new CompleteOnboardingCommand
+        {
+            UserId = userId,
+            NewUsername = request.NewUsername,
+            NewPassword = request.NewPassword,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            PhoneNumber = request.PhoneNumber
+        });
+
+        if (!result.Success) return BadRequest(new { Message = result.Error });
+        return Ok(new { token = result.Token });
+    }
 }
+
+public record CompleteOnboardingRequest(
+    string NewUsername,
+    string NewPassword,
+    string FirstName,
+    string LastName,
+    string Email,
+    string? PhoneNumber);
+
+public record RegisterSystemAdminRequest(
+    string Username,
+    string Password,
+    string Email,
+    string FirstName,
+    string LastName,
+    string? PhoneNumber);
