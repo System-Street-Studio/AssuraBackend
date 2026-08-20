@@ -273,10 +273,10 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
             ReceivedDate = grn.ReceivedDate,
             ReceivedBy = grn.ReceivedBy,
             Notes = grn.Notes,
-            PurchasingOrderId = purchasingOrder.Id,
-            PurchasingOrderNumber = purchasingOrder.OrderNumber,
-            SupplierName = purchasingOrder.Supplier?.Name 
-                ?? (await _context.Suppliers.FirstOrDefaultAsync(s => s.Id == purchasingOrder.SupplierId, cancellationToken))?.Name 
+            PurchasingOrderId = purchasingOrder?.Id ?? 0,
+            PurchasingOrderNumber = purchasingOrder?.OrderNumber ?? "-",
+            SupplierName = purchasingOrder?.Supplier?.Name 
+                ?? (asset.Supplier?.Name)
                 ?? "-",
             AssetId = asset.Id,
             AssetCode = asset.AssetCode,
