@@ -60,6 +60,22 @@ public class ReturnActiveTransferAuthorizationTests
     }
 
     [Fact]
+    public async Task Return_ByCurrentHolder_Succeeds()
+    {
+        using var db = TestContextFactory.CreateContext();
+        db.Transfers.Add(MakeActiveTransfer(6, targetUserId: 50, fromDivisionId: 5, toDivisionId: 9));
+        db.Assets.Add(new Asset { Id = 1, AssetCode = "A1", Status = AssetStatus.Transferred });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var handler = new ReturnActiveTransferCommandHandler(db);
+        var result = await handler.Handle(new ReturnActiveTransferCommand(6, CallerId: 999, IsAdmin: false, IsDivisionHead: false), CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Equal(TransferStatus.Completed, (await db.Transfers.FindAsync(6))!.Status);
+    }
+
+    [Fact]
     public async Task Return_ByUnrelatedUser_ThrowsUnauthorized()
     {
         using var db = TestContextFactory.CreateContext();
@@ -70,7 +86,7 @@ public class ReturnActiveTransferAuthorizationTests
         var handler = new ReturnActiveTransferCommandHandler(db);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => handler.Handle(new ReturnActiveTransferCommand(3, CallerId: 999, IsAdmin: false, IsDivisionHead: false), CancellationToken.None));
+            () => handler.Handle(new ReturnActiveTransferCommand(3, CallerId: 777, IsAdmin: false, IsDivisionHead: false), CancellationToken.None));
 
         Assert.Equal(TransferStatus.Active, (await db.Transfers.FindAsync(3))!.Status);
     }
