@@ -127,8 +127,19 @@ public class TransfersController : ControllerBase
 
 
   
+    // Retrieves the full transfer history for a specific asset — every Transfer row
+    // it has ever been part of, oldest last. Open to any authenticated user, matching
+    // AssetsController.GetAssetById's own lack of role restriction: anyone who can
+    // already view an asset's details can see how it moved between employees.
+    [HttpGet("asset/{assetId}")]
+    public async Task<IActionResult> GetTransferHistoryForAsset(int assetId)
+    {
+        var result = await _mediator.Send(new GetAllTransfersQuery { AssetId = assetId });
+        return Ok(result);
+    }
+
     // Retrieves a specific transfer by ID
-   
+
     [HttpGet("{id}")]
     [Authorize]
     public async Task<IActionResult> GetTransfer(int id)

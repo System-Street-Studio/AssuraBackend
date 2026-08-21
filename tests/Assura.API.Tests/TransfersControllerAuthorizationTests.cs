@@ -101,6 +101,30 @@ public class TransfersControllerAuthorizationTests
         Assert.Equal(403, statusResult.StatusCode);
     }
 
+    // Covers the newly-added GET /api/transfers/asset/{assetId} endpoint — lets an
+    // asset's original owner (and anyone else) see its full transfer history, closing
+    // the gap where a transferred-away asset just silently disappeared with no trace.
+    [Fact]
+    public async Task GetTransferHistoryForAsset_SendsCorrectAssetIdFilter()
+    {
+        var mediatorMock = new Mock<IMediator>();
+        GetAllTransfersQuery? captured = null;
+        mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetAllTransfersQuery>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<List<TransferDto>>, CancellationToken>((q, _) => captured = (GetAllTransfersQuery)q)
+            .ReturnsAsync(new List<TransferDto> { new() { Id = 1, AssetId = 7 } });
+
+        var controller = BuildController(mediatorMock, userId: 42, role: "Employee");
+
+        var result = await controller.GetTransferHistoryForAsset(7);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var history = Assert.IsType<List<TransferDto>>(okResult.Value);
+        Assert.Single(history);
+        Assert.NotNull(captured);
+        Assert.Equal(7, captured!.AssetId);
+    }
+
     private static TransfersController BuildController(Mock<IMediator> mediatorMock, int userId, string role)
     {
         var controller = new TransfersController(mediatorMock.Object);
