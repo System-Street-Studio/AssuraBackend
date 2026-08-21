@@ -33,10 +33,8 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
         if (transfer.Status != TransferStatus.Active && transfer.Status != TransferStatus.Overdue)
             throw new Exception($"Transfer cannot be returned from status {transfer.Status}.");
 
-        // Only the asset's new holder (TargetUser) may return it themselves, or the
-        // Division Head of either side of the transfer (matches the "active" tab
-        // scoping in GetDivisionHeadTransferQueryHandler, which shows a transfer to
-        // both the From- and To-Division heads). Admin bypasses.
+        // Only the employees involved in the transfer (TargetUser or CurrentHolder) or the
+        // Division Head of either side of the transfer may return it. Admin bypasses.
         if (!request.IsAdmin)
         {
             if (request.IsDivisionHead)
@@ -48,27 +46,17 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
                     throw new UnauthorizedAccessException("You may only return transfers involving your own division.");
                 }
             }
-            else if (transfer.TargetUserId != request.CallerId)
+            else if (transfer.TargetUserId != request.CallerId && transfer.CurrentHolderId != request.CallerId)
             {
-                throw new UnauthorizedAccessException("Only the asset's new holder or a Division Head involved in this transfer may return it.");
+                throw new UnauthorizedAccessException("Only the employees involved in this transfer or a Division Head may return it.");
             }
         }
 
-
         var asset = await _context.Assets
-            .Where(a => a.Id == transfer.AssetId)
-            .Select(a => new Asset
-            {
-                Id = a.Id,
-                Status = a.Status,
-                AssignedUserId = a.AssignedUserId,
-                UpdatedAt = a.UpdatedAt
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == transfer.AssetId, cancellationToken);
 
         if (asset != null)
         {
-            _context.Assets.Attach(asset);
             asset.Status = AssetStatus.InUse;
             // Hand the asset back to its original holder — it was reassigned to
             // TargetUserId when the transfer was confirmed (see
@@ -77,12 +65,10 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
             asset.UpdatedAt = DateTime.UtcNow;
         }
 
-    
         transfer.Status = TransferStatus.Completed;
         transfer.UpdatedAt = DateTime.UtcNow;
         transfer.ReturnDate = DateTime.UtcNow;
 
-    
         return await _context.SaveChangesAsync(cancellationToken) > 0;
     }
 }
