@@ -43,6 +43,17 @@ public class ConfirmTransferByHeadCommandHandler : IRequestHandler<Commands.Conf
         transfer.UpdatedAt = DateTime.UtcNow;
         transfer.ExpectedReturnDate = ParseExpectedReturnDate(transfer.TransferPeriod);
 
+        // Actually move the asset to its new holder — previously only the Transfer
+        // row's status changed, leaving Asset.AssignedUserId/Status pointing at the
+        // original holder for the entire duration of the transfer.
+        var asset = await _context.Assets.FindAsync(new object[] { transfer.AssetId }, cancellationToken);
+        if (asset != null)
+        {
+            asset.AssignedUserId = transfer.TargetUserId;
+            asset.Status = AssetStatus.Transferred;
+            asset.UpdatedAt = DateTime.UtcNow;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         return true;
     }
@@ -52,15 +63,26 @@ public class ConfirmTransferByHeadCommandHandler : IRequestHandler<Commands.Conf
     // the browser's locale-formatted date string. Best-effort parse of the end date; if
     // it can't be parsed, ExpectedReturnDate is left null and the transfer simply won't
     // be flagged overdue, matching today's behavior for periods with no end date.
+    // Accepts " to " as well as a bare "-" separator, and falls back to the last
+    // whitespace-delimited token (the end date) when neither separator is present, so
+    // stray whitespace or a different phrasing doesn't silently drop the return date.
+    private static readonly string[] PeriodSeparators = { " to ", " - ", "-" };
+
     private static DateTime? ParseExpectedReturnDate(string? transferPeriod)
     {
         if (string.IsNullOrWhiteSpace(transferPeriod))
             return null;
 
-        var parts = transferPeriod.Split(" to ", StringSplitOptions.TrimEntries);
-        if (parts.Length != 2)
-            return null;
+        var trimmed = transferPeriod.Trim();
 
-        return DateTime.TryParse(parts[1], out var endDate) ? endDate : null;
+        foreach (var separator in PeriodSeparators)
+        {
+            var parts = trimmed.Split(separator, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 2 && DateTime.TryParse(parts[1], out var endDate))
+                return endDate;
+        }
+
+        // Single date with no separator at all — treat it as the end date itself.
+        return DateTime.TryParse(trimmed, out var singleDate) ? singleDate : null;
     }
 }

@@ -58,7 +58,7 @@ public class GetTransferCountsQueryHandler : IRequestHandler<GetTransferCountsQu
                           && t.Status == TransferStatus.WaitingForFinalConfirmation, cancellationToken);
 
         var activeCount = await _context.Transfers
-            .CountAsync(t => t.Status == TransferStatus.Active 
+            .CountAsync(t => (t.Status == TransferStatus.Active || t.Status == TransferStatus.Overdue)
                           && (t.FromDivisionId == headDivisionId || t.ToDivisionId == headDivisionId), cancellationToken);
 
         var completedCount = await _context.Transfers
@@ -87,7 +87,7 @@ public class GetTransferCountsQueryHandler : IRequestHandler<GetTransferCountsQu
                           && t.CurrentHolderId == userId, cancellationToken);
 
         var activeCount = await _context.Transfers
-            .CountAsync(t => t.Status == TransferStatus.Active 
+            .CountAsync(t => (t.Status == TransferStatus.Active || t.Status == TransferStatus.Overdue)
                           && (t.CurrentHolderId == userId || t.TargetUserId == userId), cancellationToken);
 
         var completedCount = await _context.Transfers

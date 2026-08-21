@@ -53,7 +53,7 @@ public class GetDivisionHeadTransferQueryHandler : IRequestHandler<GetDivisionHe
             "pending" => query.Where(t => t.ToDivisionId == headDivisionId 
                                         && (t.Status == TransferStatus.WaitingForFinalConfirmation || t.Status == TransferStatus.RejectedConfirmation)),
 
-            "active" => query.Where(t => t.Status == TransferStatus.Active 
+            "active" => query.Where(t => (t.Status == TransferStatus.Active || t.Status == TransferStatus.Overdue)
                                         && (t.FromDivisionId == headDivisionId || t.ToDivisionId == headDivisionId)),
 
             "completed" => query.Where(t => t.Status == TransferStatus.Completed 

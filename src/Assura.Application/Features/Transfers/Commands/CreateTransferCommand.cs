@@ -108,11 +108,28 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
         throw new InvalidOperationException($"Target user does not belong to any division.");
 
     // --- 6. Get Transfer Performed By User ---
-  
+
     var transferBy = await _context.Users
         .Where(u => u.Id == request.UserId)
-        .Select(u => new { Id = u.Id })
+        .Select(u => new { Id = u.Id, Role = u.Role, DivisionId = u.DivisionId })
         .FirstOrDefaultAsync(cancellationToken);
+
+    if (transferBy == null)
+        throw new KeyNotFoundException($"Calling user with ID {request.UserId} not found.");
+
+    // The caller here is whichever Division Head approved the underlying (Transfer-type)
+    // AssetRequest and is now fulfilling it from the Asset Pool — i.e. the *target*
+    // user's (requester's) Division Head, not the current asset holder's. This matches
+    // GetApprovedTransfersQueryHandler, which scopes the pool's dropdown to
+    // AssetRequest.DivisionId == caller's own DivisionId, and AssetRequest.DivisionId is
+    // set to the requester's division. The current holder's division is frequently a
+    // *different* division — that's the whole point of a transfer — so scoping against
+    // it here would reject every legitimate cross-division transfer. Admins are exempt
+    // since they legitimately act across divisions.
+    if (transferBy.Role != UserRole.Admin && transferBy.DivisionId != targetUser.DivisionId)
+    {
+        throw new UnauthorizedAccessException("You may only initiate transfers for requests approved within your own division.");
+    }
 
     // --- 7. Create New Transfer Instance (Safe Mapping) ---
     var transfer = new Transfer

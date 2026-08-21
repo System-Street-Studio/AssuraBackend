@@ -71,4 +71,44 @@ public class TransferOverdueDetectionTests
 
         Assert.Null((await db.Transfers.FindAsync(2))!.ExpectedReturnDate);
     }
+
+    // Covers the BUGS.md finding: ExpectedReturnDate silently became null for any
+    // period text that didn't contain the exact literal " to " — a dash separator,
+    // extra whitespace, or a single bare date all used to be indistinguishable from
+    // "no return date intended." ParseExpectedReturnDate now tries " to ", " - ", and
+    // bare "-" in turn, and falls back to parsing the whole string as a single date.
+    [Theory]
+    [InlineData("1/1/2026 - 1/20/2026", 2026, 1, 20)]
+    [InlineData("1/1/2026-1/25/2026", 2026, 1, 25)]
+    [InlineData("  1/1/2026   to   1/30/2026  ", 2026, 1, 30)]
+    [InlineData("2/1/2026", 2026, 2, 1)]
+    public async Task Confirm_ParsesVariousTransferPeriodFormats_IntoExpectedReturnDate(
+        string transferPeriod, int year, int month, int day)
+    {
+        using var db = TestContextFactory.CreateContext();
+        var transferId = Math.Abs(transferPeriod.GetHashCode() % 100000) + 1000; // unique-ish id per case
+        var headId = transferId + 1;
+        db.Transfers.Add(new Transfer
+        {
+            Id = transferId,
+            TransferNumber = $"TRF-{transferId}",
+            TransferDate = DateTime.UtcNow,
+            AssetRequestId = 1,
+            AssetId = 1,
+            FromDivisionId = 5,
+            ToDivisionId = 9,
+            TargetUserId = 1,
+            CurrentHolderId = 1,
+            TransferPeriod = transferPeriod,
+            Status = TransferStatus.WaitingForFinalConfirmation
+        });
+        db.Users.Add(new User { Id = headId, Role = UserRole.DivisionHead, DivisionId = 9 });
+        await db.SaveChangesAsync();
+
+        var handler = new ConfirmHandler(db);
+        await handler.Handle(new ConfirmTransferByHeadCommand(transferId, UserId: headId), CancellationToken.None);
+
+        var transfer = await db.Transfers.FindAsync(transferId);
+        Assert.Equal(new DateTime(year, month, day), transfer!.ExpectedReturnDate!.Value.Date);
+    }
 }
