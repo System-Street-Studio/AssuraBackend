@@ -100,6 +100,28 @@ public class CreateAssetRequestHandler : IRequestHandler<CreateAssetRequestComma
                     new FluentValidation.Results.ValidationFailure(nameof(request.AssetId), "You can only request a discard for an asset assigned to you.")
                 });
             }
+
+            if (asset.Status == AssetStatus.UnderMaintenance)
+            {
+                throw new FluentValidation.ValidationException(new[]
+                {
+                    new FluentValidation.Results.ValidationFailure(nameof(request.AssetId), "Assets under maintenance cannot be discarded.")
+                });
+            }
+        }
+
+        if (string.Equals(request.RequestType, "Transfer", StringComparison.OrdinalIgnoreCase) && request.AssetId.HasValue)
+        {
+            var asset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.Id == request.AssetId.Value, cancellationToken);
+
+            if (asset != null && asset.Status == AssetStatus.UnderMaintenance)
+            {
+                throw new FluentValidation.ValidationException(new[]
+                {
+                    new FluentValidation.Results.ValidationFailure(nameof(request.AssetId), "Assets under maintenance cannot be transferred.")
+                });
+            }
         }
 
         var entity = new AssetRequest

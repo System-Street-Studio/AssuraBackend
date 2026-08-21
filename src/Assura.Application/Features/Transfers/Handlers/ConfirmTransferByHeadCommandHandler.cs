@@ -49,6 +49,10 @@ public class ConfirmTransferByHeadCommandHandler : IRequestHandler<Commands.Conf
         var asset = await _context.Assets.FindAsync(new object[] { transfer.AssetId }, cancellationToken);
         if (asset != null)
         {
+            if (asset.Status == AssetStatus.UnderMaintenance)
+            {
+                throw new InvalidOperationException($"Asset {asset.AssetCode} is currently under maintenance and cannot be transferred.");
+            }
             asset.AssignedUserId = transfer.TargetUserId;
             asset.Status = AssetStatus.Transferred;
             asset.UpdatedAt = DateTime.UtcNow;

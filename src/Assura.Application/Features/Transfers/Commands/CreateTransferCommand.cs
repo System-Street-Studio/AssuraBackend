@@ -45,6 +45,9 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
     if (asset.AssignedUserId == null)
         throw new InvalidOperationException($"AssetId {request.AssetId} is not currently assigned to any employee.");
 
+    if (asset.Status == AssetStatus.UnderMaintenance)
+        throw new InvalidOperationException($"Asset {asset.AssetCode} is under maintenance and cannot be transferred.");
+
     // --- 2. Get and Validate Asset Request ---
     var assetRequest = await _context.AssetRequests
         .Where(a => a.Id == request.AssetRequestId)
