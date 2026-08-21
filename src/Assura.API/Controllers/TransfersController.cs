@@ -32,19 +32,25 @@ public class TransfersController : ControllerBase
         try
         {
             // Validate request
-            if (dto.AssetId <= 0 || dto.AssetRequestId <= 0 || dto.UserId <= 0)
+            if (dto.AssetId <= 0 || dto.AssetRequestId <= 0)
                 return BadRequest(new
                 {
                     success = false,
                     error = "Invalid IDs",
-                    message = "AssetId, AssetRequestId, and UserId must be positive integers"
+                    message = "AssetId and AssetRequestId must be positive integers"
                 });
+
+            // UserId (who authorized the transfer) is taken from the caller's own JWT,
+            // not the request body — the body value was previously trusted as-is, so any
+            // caller could attribute a transfer to an arbitrary user id.
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdClaim, out var callerId)) return Unauthorized();
 
             var command = new CreateTransferCommand
             {
                 AssetId = dto.AssetId,
                 AssetRequestId = dto.AssetRequestId,
-                UserId = dto.UserId
+                UserId = callerId
             };
 
             var transferId = await _mediator.Send(command);
@@ -79,16 +85,25 @@ public class TransfersController : ControllerBase
                 error = ex.Message
             });
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($" Authorization error creating transfer: {ex.Message}");
+            return StatusCode(403, new
+            {
+                success = false,
+                error = ex.Message
+            });
+        }
         catch (Exception ex)
         {
             Console.WriteLine($" Error creating transfer: {ex.Message}");
-           Console.WriteLine($"FULL ERROR: {ex.ToString()}"); 
-    
+           Console.WriteLine($"FULL ERROR: {ex.ToString()}");
+
     return StatusCode(500, new
     {
         success = false,
         error = ex.Message,
-        innerError = ex.InnerException?.Message 
+        innerError = ex.InnerException?.Message
     });
         }
     }
@@ -112,8 +127,19 @@ public class TransfersController : ControllerBase
 
 
   
+    // Retrieves the full transfer history for a specific asset — every Transfer row
+    // it has ever been part of, oldest last. Open to any authenticated user, matching
+    // AssetsController.GetAssetById's own lack of role restriction: anyone who can
+    // already view an asset's details can see how it moved between employees.
+    [HttpGet("asset/{assetId}")]
+    public async Task<IActionResult> GetTransferHistoryForAsset(int assetId)
+    {
+        var result = await _mediator.Send(new GetAllTransfersQuery { AssetId = assetId });
+        return Ok(result);
+    }
+
     // Retrieves a specific transfer by ID
-   
+
     [HttpGet("{id}")]
     [Authorize]
     public async Task<IActionResult> GetTransfer(int id)

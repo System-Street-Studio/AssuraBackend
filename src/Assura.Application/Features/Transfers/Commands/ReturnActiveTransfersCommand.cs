@@ -30,7 +30,7 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
         if (transfer == null)
             throw new Exception($"Transfer with ID {request.Id} not found");
 
-        if (transfer.Status != TransferStatus.Active)
+        if (transfer.Status != TransferStatus.Active && transfer.Status != TransferStatus.Overdue)
             throw new Exception($"Transfer cannot be returned from status {transfer.Status}.");
 
         // Only the asset's new holder (TargetUser) may return it themselves, or the
@@ -61,6 +61,7 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
             {
                 Id = a.Id,
                 Status = a.Status,
+                AssignedUserId = a.AssignedUserId,
                 UpdatedAt = a.UpdatedAt
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -69,6 +70,10 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
         {
             _context.Assets.Attach(asset);
             asset.Status = AssetStatus.InUse;
+            // Hand the asset back to its original holder — it was reassigned to
+            // TargetUserId when the transfer was confirmed (see
+            // ConfirmTransferByHeadCommandHandler), and nothing else restores it.
+            asset.AssignedUserId = transfer.CurrentHolderId;
             asset.UpdatedAt = DateTime.UtcNow;
         }
 
