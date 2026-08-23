@@ -10,6 +10,7 @@ public class LostItemMappingProfile : Profile
     {
         CreateMap<LostItem, LostItemDto>()
             .ForMember(d => d.Id, opt => opt.MapFrom(s => s.Id.ToString()))
+            .ForMember(d => d.AssetId, opt => opt.MapFrom(s => s.AssetId))
             .ForMember(d => d.Status, opt => opt.MapFrom(s => MapStatus(s.Status)))
             .ForMember(d => d.Date, opt => opt.MapFrom(s => s.Date.ToString("dd MMM yyyy")))
             .ForMember(d => d.Time, opt => opt.MapFrom(s => s.Time.ToString(@"hh\:mm")))
