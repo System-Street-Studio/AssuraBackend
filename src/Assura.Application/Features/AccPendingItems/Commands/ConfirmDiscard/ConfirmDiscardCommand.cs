@@ -48,6 +48,11 @@ public class ConfirmDiscardCommandHandler : IRequestHandler<ConfirmDiscardComman
             });
         }
 
+        if (entity.SoldPrice.HasValue && entity.SoldPrice.Value >= 0)
+        {
+            receipt.Amount = entity.SoldPrice.Value;
+        }
+
         // Remove from pending and add to discarded
         _context.AccPendingItems.Remove(entity);
 

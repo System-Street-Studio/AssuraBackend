@@ -72,6 +72,33 @@ public static class DbInitializer
                 logger?.LogWarning(migEx, "MigrateAsync failed or partially completed.");
             }
 
+            // Sync existing receipts amount with AccDiscardedItems SoldPrice if present
+            try
+            {
+                var discardedWithSoldPrice = await context.AccDiscardedItems
+                    .Where(d => d.ReceiptId != null && d.SoldPrice != null && d.SoldPrice >= 0)
+                    .ToListAsync();
+
+                bool updatedAnyReceipt = false;
+                foreach (var dItem in discardedWithSoldPrice)
+                {
+                    if (dItem.ReceiptId.HasValue)
+                    {
+                        var r = await context.Receipts.FindAsync(dItem.ReceiptId.Value);
+                        if (r != null && r.Amount != dItem.SoldPrice.Value)
+                        {
+                            r.Amount = dItem.SoldPrice.Value;
+                            updatedAnyReceipt = true;
+                        }
+                    }
+                }
+                if (updatedAnyReceipt)
+                {
+                    await context.SaveChangesAsync();
+                }
+            }
+            catch { }
+
             // ── Step 1: Seed standard categories ──
             try
             {
