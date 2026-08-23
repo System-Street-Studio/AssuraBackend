@@ -10,7 +10,8 @@ public record CreateBuyerCommand(
     string Contact,
     string Email,
     string Phone,
-    string Category
+    string Category,
+    int? AccDiscardedItemId = null
 ) : IRequest<int>;
 
 public class CreateBuyerCommandHandler : IRequestHandler<CreateBuyerCommand, int>
@@ -31,7 +32,8 @@ public class CreateBuyerCommandHandler : IRequestHandler<CreateBuyerCommand, int
             Email = request.Email,
             Phone = request.Phone,
             Category = request.Category,
-            Status = BuyerStatus.Active
+            AccDiscardedItemId = request.AccDiscardedItemId,
+            Status = request.AccDiscardedItemId.HasValue ? BuyerStatus.Sold : BuyerStatus.Active
         };
 
         _context.Buyers.Add(buyer);

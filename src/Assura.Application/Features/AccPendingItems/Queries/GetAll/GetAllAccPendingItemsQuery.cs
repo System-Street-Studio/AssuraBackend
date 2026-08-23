@@ -34,11 +34,23 @@ public class GetAllAccPendingItemsQueryHandler : IRequestHandler<GetAllAccPendin
                 a => a.AssignedUser != null ? $"{a.AssignedUser.FirstName} {a.AssignedUser.LastName}" : null,
                 cancellationToken);
 
+        var buyerIds = items.Where(i => i.BuyerId.HasValue).Select(i => i.BuyerId!.Value).Distinct().ToList();
+        var buyerNameById = await _context.Buyers
+            .AsNoTracking()
+            .Where(b => buyerIds.Contains(b.Id))
+            .ToDictionaryAsync(b => b.Id, b => b.Name, cancellationToken);
+
         for (var i = 0; i < items.Count; i++)
         {
             if (items[i].AssetId.HasValue && assigneeByAssetId.TryGetValue(items[i].AssetId!.Value, out var assigneeName))
             {
                 dtos[i].AssigneeName = assigneeName;
+            }
+
+            if (items[i].BuyerId.HasValue && buyerNameById.TryGetValue(items[i].BuyerId!.Value, out var buyerName))
+            {
+                dtos[i].BuyerId = items[i].BuyerId;
+                dtos[i].BuyerName = buyerName;
             }
         }
 

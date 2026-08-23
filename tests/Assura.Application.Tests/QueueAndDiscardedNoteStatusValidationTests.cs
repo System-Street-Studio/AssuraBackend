@@ -23,14 +23,47 @@ public class QueueAndDiscardedNoteStatusValidationTests
     }
 
     [Theory]
-    [InlineData("Pending")]
     [InlineData("Approved")]
     [InlineData("Discarded")]
     [InlineData("approved")]
     public void UpdateQueueItemStatusCommandValidator_ShouldAccept_ValidStatus(string status)
     {
         var validator = new UpdateQueueItemStatusCommandValidator();
-        var result = validator.Validate(new UpdateQueueItemStatusCommand { Id = 1, Status = status });
+        // Approving/discarding requires a BuyerId and SoldPrice
+        var result = validator.Validate(new UpdateQueueItemStatusCommand { Id = 1, Status = status, BuyerId = 1, SoldPrice = 100.00m });
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData("Approved")]
+    [InlineData("Discarded")]
+    public void UpdateQueueItemStatusCommandValidator_ShouldReject_ApprovingWithoutBuyerId(string status)
+    {
+        var validator = new UpdateQueueItemStatusCommandValidator();
+        var result = validator.Validate(new UpdateQueueItemStatusCommand { Id = 1, Status = status, BuyerId = null, SoldPrice = 100.00m });
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == nameof(UpdateQueueItemStatusCommand.BuyerId));
+    }
+
+    [Theory]
+    [InlineData("Approved")]
+    [InlineData("Discarded")]
+    public void UpdateQueueItemStatusCommandValidator_ShouldReject_ApprovingWithoutSoldPrice(string status)
+    {
+        var validator = new UpdateQueueItemStatusCommandValidator();
+        var result = validator.Validate(new UpdateQueueItemStatusCommand { Id = 1, Status = status, BuyerId = 1, SoldPrice = null });
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == nameof(UpdateQueueItemStatusCommand.SoldPrice));
+    }
+
+    [Fact]
+    public void UpdateQueueItemStatusCommandValidator_ShouldAccept_RejectingWithoutBuyerIdOrSoldPrice()
+    {
+        var validator = new UpdateQueueItemStatusCommandValidator();
+        var result = validator.Validate(new UpdateQueueItemStatusCommand { Id = 1, Status = "Rejected", BuyerId = null, SoldPrice = null });
 
         Assert.True(result.IsValid);
     }

@@ -22,6 +22,23 @@ public class GetAllAccDiscardedItemsQueryHandler : IRequestHandler<GetAllAccDisc
     public async Task<List<AccDiscardedItemDto>> Handle(GetAllAccDiscardedItemsQuery request, CancellationToken cancellationToken)
     {
         var items = await _context.AccDiscardedItems.AsNoTracking().OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
-        return _mapper.Map<List<AccDiscardedItemDto>>(items);
+        var dtos = _mapper.Map<List<AccDiscardedItemDto>>(items);
+
+        var buyerIds = items.Where(i => i.BuyerId.HasValue).Select(i => i.BuyerId!.Value).Distinct().ToList();
+        var buyerNameById = await _context.Buyers
+            .AsNoTracking()
+            .Where(b => buyerIds.Contains(b.Id))
+            .ToDictionaryAsync(b => b.Id, b => b.Name, cancellationToken);
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (items[i].BuyerId.HasValue && buyerNameById.TryGetValue(items[i].BuyerId!.Value, out var buyerName))
+            {
+                dtos[i].BuyerId = items[i].BuyerId;
+                dtos[i].BuyerName = buyerName;
+            }
+        }
+
+        return dtos;
     }
 }

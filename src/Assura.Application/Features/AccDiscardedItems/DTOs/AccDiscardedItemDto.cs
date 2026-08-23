@@ -13,4 +13,7 @@ public class AccDiscardedItemDto
     public string ValueAtPurchasing { get; set; } = string.Empty;
     public string CurrentValue { get; set; } = string.Empty;
     public string Time { get; set; } = string.Empty;
+    public int? BuyerId { get; set; }
+    public string? BuyerName { get; set; }
+    public decimal? SoldPrice { get; set; }
 }

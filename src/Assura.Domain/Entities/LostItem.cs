@@ -18,4 +18,11 @@ public class LostItem : BaseEntity
     public decimal ValueAtPurchasing { get; set; }
     public decimal CurrentValue { get; set; }
     public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The Asset this report is about, when the reporter selected a real asset record
+    /// rather than describing it in free text. Lets confirming the loss (ConfirmedLost)
+    /// flip the actual Asset record to Lost instead of only updating this report's status.
+    /// </summary>
+    public int? AssetId { get; set; }
 }

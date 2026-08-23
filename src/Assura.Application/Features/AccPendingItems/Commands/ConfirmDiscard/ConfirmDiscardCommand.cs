@@ -63,7 +63,9 @@ public class ConfirmDiscardCommandHandler : IRequestHandler<ConfirmDiscardComman
             ValueAtPurchasing = entity.ValueAtPurchasing,
             CurrentValue = entity.CurrentValue,
             Time = entity.Time,
-            ReceiptId = request.ReceiptId
+            ReceiptId = request.ReceiptId,
+            BuyerId = entity.BuyerId,
+            SoldPrice = entity.SoldPrice
         };
 
         _context.AccDiscardedItems.Add(discardedItem);
@@ -88,7 +90,7 @@ public class ConfirmDiscardCommandHandler : IRequestHandler<ConfirmDiscardComman
         }
 
         var matchingDiscardNote = await _context.DiscardedNotes
-            .FirstOrDefaultAsync(d => (entity.QueueItemId.HasValue && d.QueueItemId == entity.QueueItemId.Value) || 
+            .FirstOrDefaultAsync(d => (entity.QueueItemId.HasValue && d.QueueItemId == entity.QueueItemId.Value) ||
                                       (entity.AssetId.HasValue && d.AssetId == entity.AssetId.Value), cancellationToken);
         if (matchingDiscardNote != null)
         {
@@ -96,6 +98,20 @@ public class ConfirmDiscardCommandHandler : IRequestHandler<ConfirmDiscardComman
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Link the buyer the Superintendent assigned back at approval time to the now-created
+        // AccDiscardedItem — a second save since discardedItem.Id is only known after the first.
+        if (entity.BuyerId.HasValue)
+        {
+            var buyer = await _context.Buyers.FindAsync(new object[] { entity.BuyerId.Value }, cancellationToken);
+            if (buyer != null)
+            {
+                buyer.AccDiscardedItemId = discardedItem.Id;
+                buyer.Status = Domain.Enums.BuyerStatus.Sold;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+
         return true;
     }
 }

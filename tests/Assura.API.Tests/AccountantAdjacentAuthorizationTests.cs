@@ -69,14 +69,38 @@ public class AccountantAdjacentAuthorizationTests
             "LostItemsController should inherit BaseApiController so all actions require authentication.");
     }
 
+    // LostItems triage ownership belongs to Superintendent (mirrors DiscardedNotesController),
+    // but Accountant keeps read access too — the frontend already has a live, working
+    // Accountant "Lose" page (acc-lose) reading this list, so Accountant isn't dropped here.
+    // Reporting a lost asset is open to Employee/Storekeeper too, but read/triage is not.
     [Fact]
-    public void LostItemsController_ShouldAllowOnlyAccountantAndAdmin()
+    public void LostItemsController_GetAll_ShouldAllowSuperintendentAccountantAndAdmin()
     {
-        var controllerType = typeof(LostItemsController);
-        var authorize = controllerType.GetCustomAttributes<AuthorizeAttribute>(inherit: true).ToList();
+        var method = typeof(LostItemsController).GetMethod(nameof(LostItemsController.GetAll))!;
+        var authorize = method.GetCustomAttributes<AuthorizeAttribute>(inherit: true).ToList();
 
         Assert.NotEmpty(authorize);
-        AssertRoles(authorize.First().Roles, Roles.Accountant, Roles.Admin);
+        AssertRoles(authorize.First().Roles, Roles.Superintendent, Roles.Accountant, Roles.Admin);
+    }
+
+    [Fact]
+    public void LostItemsController_Create_ShouldAllowReportingRoles()
+    {
+        var method = typeof(LostItemsController).GetMethod(nameof(LostItemsController.Create))!;
+        var authorize = method.GetCustomAttributes<AuthorizeAttribute>(inherit: true).ToList();
+
+        Assert.NotEmpty(authorize);
+        AssertRoles(authorize.First().Roles, Roles.Employee, Roles.Storekeeper, Roles.Superintendent, Roles.Admin);
+    }
+
+    [Fact]
+    public void LostItemsController_UpdateStatus_ShouldAllowOnlySuperintendentAndAdmin()
+    {
+        var method = typeof(LostItemsController).GetMethod(nameof(LostItemsController.UpdateStatus))!;
+        var authorize = method.GetCustomAttributes<AuthorizeAttribute>(inherit: true).ToList();
+
+        Assert.NotEmpty(authorize);
+        AssertRoles(authorize.First().Roles, Roles.Superintendent, Roles.Admin);
     }
 
     private static void AssertRoles(string? roles, params string[] expectedRoles)

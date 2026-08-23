@@ -42,4 +42,18 @@ public class AccPendingItem : BaseEntity
     /// accountant confirms the physical disposal.
     /// </summary>
     public int? AssetId { get; set; }
+
+    /// <summary>
+    /// The Buyer the Superintendent assigned when approving/discarding the originating
+    /// QueueItem — required at that step so the Accountant can see who is buying the
+    /// asset before financially confirming the discard. Carried through to the Buyer's
+    /// AccDiscardedItemId link once ConfirmDiscardCommand actually creates the discarded item.
+    /// </summary>
+    public int? BuyerId { get; set; }
+
+    /// <summary>
+    /// The sale/sold price specified by the Superintendent when approving the discard.
+    /// Displayed to the Accountant in the confirmation queue and preserved on the discarded record.
+    /// </summary>
+    public decimal? SoldPrice { get; set; }
 }

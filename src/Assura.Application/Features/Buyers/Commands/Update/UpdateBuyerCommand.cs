@@ -15,10 +15,11 @@ public record UpdateBuyerCommand : IRequest<bool>
     public string Phone { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string? Status { get; set; }
+    public int? AccDiscardedItemId { get; set; }
 
     public UpdateBuyerCommand() { }
 
-    public UpdateBuyerCommand(int id, string name, string contact, string email, string phone, string category, string? status)
+    public UpdateBuyerCommand(int id, string name, string contact, string email, string phone, string category, string? status, int? accDiscardedItemId = null)
     {
         Id = id;
         Name = name;
@@ -27,6 +28,7 @@ public record UpdateBuyerCommand : IRequest<bool>
         Phone = phone;
         Category = category;
         Status = status;
+        AccDiscardedItemId = accDiscardedItemId;
     }
 }
 
@@ -60,9 +62,18 @@ public class UpdateBuyerCommandHandler : IRequestHandler<UpdateBuyerCommand, boo
         buyer.Phone = request.Phone;
         buyer.Category = request.Category;
 
+        if (request.AccDiscardedItemId.HasValue)
+        {
+            buyer.AccDiscardedItemId = request.AccDiscardedItemId;
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<BuyerStatus>(request.Status, true, out var status))
         {
             buyer.Status = status;
+        }
+        else if (request.AccDiscardedItemId.HasValue)
+        {
+            buyer.Status = BuyerStatus.Sold;
         }
 
         await _context.SaveChangesAsync(cancellationToken);
