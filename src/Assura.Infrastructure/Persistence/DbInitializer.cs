@@ -56,6 +56,12 @@ public static class DbInitializer
 
         try
         {
+            // Ensure required columns exist on MySQL database tables
+            try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE `Users` ADD COLUMN `CurrentSessionId` LONGTEXT NULL;"); } catch { }
+            try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE `AccPendingItems` ADD COLUMN `SoldPrice` DECIMAL(18,2) NULL;"); } catch { }
+            try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE `AccDiscardedItems` ADD COLUMN `BuyerId` INT NULL;"); } catch { }
+            try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE `AccDiscardedItems` ADD COLUMN `SoldPrice` DECIMAL(18,2) NULL;"); } catch { }
+
             // Ensure the database schema is up to date
             try
             {
@@ -66,22 +72,32 @@ public static class DbInitializer
                 logger?.LogWarning(migEx, "MigrateAsync failed or partially completed.");
             }
 
-            // Ensure CurrentSessionId column exists on Users table
+            // Sync existing receipts amount with AccDiscardedItems SoldPrice if present
             try
             {
-                await context.Database.ExecuteSqlRawAsync("ALTER TABLE `Users` ADD COLUMN IF NOT EXISTS `CurrentSessionId` LONGTEXT NULL;");
-            }
-            catch
-            {
-                try
+                var discardedWithSoldPrice = await context.AccDiscardedItems
+                    .Where(d => d.ReceiptId != null && d.SoldPrice != null && d.SoldPrice >= 0)
+                    .ToListAsync();
+
+                bool updatedAnyReceipt = false;
+                foreach (var dItem in discardedWithSoldPrice)
                 {
-                    await context.Database.ExecuteSqlRawAsync("ALTER TABLE `Users` ADD COLUMN `CurrentSessionId` LONGTEXT NULL;");
+                    if (dItem.ReceiptId.HasValue)
+                    {
+                        var r = await context.Receipts.FindAsync(dItem.ReceiptId.Value);
+                        if (r != null && r.Amount != dItem.SoldPrice.Value)
+                        {
+                            r.Amount = dItem.SoldPrice.Value;
+                            updatedAnyReceipt = true;
+                        }
+                    }
                 }
-                catch (Exception addColEx)
+                if (updatedAnyReceipt)
                 {
-                    logger?.LogDebug(addColEx, "CurrentSessionId column already present or check bypassed.");
+                    await context.SaveChangesAsync();
                 }
             }
+            catch { }
 
             // ── Step 1: Seed standard categories ──
             try

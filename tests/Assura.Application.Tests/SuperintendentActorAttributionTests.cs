@@ -40,10 +40,12 @@ public class SuperintendentActorAttributionTests
         db.Users.Add(new User { Id = 1, FirstName = "Alice", LastName = "Admin", Role = UserRole.Admin });
         var queueItem = new QueueItem { Name = "Old Printer", Division = "IT", AssetType = "Hardware", Status = QueueItemStatus.Pending };
         db.QueueItems.Add(queueItem);
+        var buyer = new Buyer { Name = "Acme Recyclers", Contact = "Jane", Email = "jane@acme.test", Phone = "0123456789", Category = "Scrap" };
+        db.Buyers.Add(buyer);
         await db.SaveChangesAsync();
 
         var handler = new UpdateQueueItemStatusCommandHandler(db, currentUserService);
-        var command = new UpdateQueueItemStatusCommand { Id = queueItem.Id, Status = "Approved" };
+        var command = new UpdateQueueItemStatusCommand { Id = queueItem.Id, Status = "Approved", BuyerId = buyer.Id, SoldPrice = 200.00m };
 
         await handler.Handle(command, CancellationToken.None);
 

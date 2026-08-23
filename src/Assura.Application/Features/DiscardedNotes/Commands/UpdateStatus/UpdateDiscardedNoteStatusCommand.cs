@@ -11,6 +11,8 @@ public class UpdateDiscardedNoteStatusCommand : IRequest<bool>
     public int Id { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Note { get; set; } = string.Empty;
+    public int? BuyerId { get; set; }
+    public decimal? SoldPrice { get; set; }
 }
 
 public class UpdateDiscardedNoteStatusCommandValidator : AbstractValidator<UpdateDiscardedNoteStatusCommand>
@@ -77,55 +79,66 @@ public class UpdateDiscardedNoteStatusCommandHandler : IRequestHandler<UpdateDis
 
         if (isCompleting)
         {
-            var actingUserName = await ResolveActingUserNameAsync(cancellationToken);
+            // Guard against a duplicate AccPendingItem: the same QueueItem/DiscardedNote pair
+            // can also be escalated via UpdateQueueItemStatusCommand, so check first.
+            var alreadyEscalated = entity.QueueItemId.HasValue
+                ? await _context.AccPendingItems.AnyAsync(p => p.QueueItemId == entity.QueueItemId.Value, cancellationToken)
+                : entity.AssetId.HasValue && await _context.AccPendingItems.AnyAsync(p => p.AssetId == entity.AssetId.Value, cancellationToken);
 
-            decimal purchasePrice = 0;
-            decimal currentValue = 0;
-
-            if (entity.AssetId.HasValue)
+            if (!alreadyEscalated)
             {
-                var asset = await _context.Assets.FindAsync(new object[] { entity.AssetId.Value }, cancellationToken);
-                if (asset != null)
+                var actingUserName = await ResolveActingUserNameAsync(cancellationToken);
+
+                decimal purchasePrice = 0;
+                decimal currentValue = 0;
+
+                if (entity.AssetId.HasValue)
                 {
-                    purchasePrice = asset.PurchaseValue;
-                    currentValue = asset.PurchaseValue;
+                    var asset = await _context.Assets.FindAsync(new object[] { entity.AssetId.Value }, cancellationToken);
+                    if (asset != null)
+                    {
+                        purchasePrice = asset.PurchaseValue;
+                        currentValue = asset.PurchaseValue;
+                    }
                 }
-            }
 
-            var pendingItem = new Domain.Entities.AccPendingItem
-            {
-                Name = entity.Name,
-                Division = entity.Division,
-                Date = DateTime.UtcNow,
-                Status = "Pending",
-                Category = Domain.Enums.AccPendingCategory.Pending,
-                AssetType = entity.AssetType,
-                CurrentUser = actingUserName,
-                SpecialNote = entity.SpecialNote ?? string.Empty,
-                ValueAtPurchasing = purchasePrice,
-                CurrentValue = currentValue,
-                AssetId = entity.AssetId,
-                QueueItemId = entity.QueueItemId,
-                RequestedById = entity.RequestedByUserId?.ToString(),
-                RequestedByName = entity.RequestedByName
-            };
-
-            _context.AccPendingItems.Add(pendingItem);
-
-            var accountants = await _context.Users
-                .Where(u => u.Role == Domain.Enums.UserRole.Accountant || u.Role == Domain.Enums.UserRole.Admin)
-                .ToListAsync(cancellationToken);
-
-            foreach (var acc in accountants)
-            {
-                _context.Notifications.Add(new Domain.Entities.Notification
+                var pendingItem = new Domain.Entities.AccPendingItem
                 {
-                    Title = "New Discard Confirmation Needed",
-                    Message = $"Asset '{entity.Name}' from {entity.Division} was marked as discarded by {actingUserName}.",
-                    UserId = acc.Id,
-                    Type = "Info",
-                    ReferenceId = pendingItem.Id.ToString()
-                });
+                    Name = entity.Name,
+                    Division = entity.Division,
+                    Date = DateTime.UtcNow,
+                    Status = "Pending",
+                    Category = Domain.Enums.AccPendingCategory.Pending,
+                    AssetType = entity.AssetType,
+                    CurrentUser = actingUserName,
+                    SpecialNote = entity.SpecialNote ?? string.Empty,
+                    ValueAtPurchasing = purchasePrice,
+                    CurrentValue = currentValue,
+                    AssetId = entity.AssetId,
+                    QueueItemId = entity.QueueItemId,
+                    RequestedById = entity.RequestedByUserId?.ToString(),
+                    RequestedByName = entity.RequestedByName,
+                    BuyerId = request.BuyerId,
+                    SoldPrice = request.SoldPrice
+                };
+
+                _context.AccPendingItems.Add(pendingItem);
+
+                var accountants = await _context.Users
+                    .Where(u => u.Role == Domain.Enums.UserRole.Accountant || u.Role == Domain.Enums.UserRole.Admin)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var acc in accountants)
+                {
+                    _context.Notifications.Add(new Domain.Entities.Notification
+                    {
+                        Title = "New Discard Confirmation Needed",
+                        Message = $"Asset '{entity.Name}' from {entity.Division} was marked as discarded by {actingUserName}.",
+                        UserId = acc.Id,
+                        Type = "Info",
+                        ReferenceId = pendingItem.Id.ToString()
+                    });
+                }
             }
         }
 

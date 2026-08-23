@@ -23,4 +23,14 @@ public class AccDiscardedItem : BaseEntity
     /// discard — required by ConfirmDiscardCommand, so every discarded item has one.
     /// </summary>
     public int? ReceiptId { get; set; }
+
+    /// <summary>
+    /// The Buyer assigned when the discard was approved.
+    /// </summary>
+    public int? BuyerId { get; set; }
+
+    /// <summary>
+    /// The final sold price for the discarded asset.
+    /// </summary>
+    public decimal? SoldPrice { get; set; }
 }

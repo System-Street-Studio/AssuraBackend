@@ -27,15 +27,18 @@ public class QueueItemDiscardedOnAccountantConfirmTests
 
         var queueItem = new QueueItem { Name = "Old Printer", Division = "IT", AssetType = "Hardware", Status = QueueItemStatus.Pending };
         db.QueueItems.Add(queueItem);
+        var buyer = new Buyer { Name = "Acme Recyclers", Contact = "Jane", Email = "jane@acme.test", Phone = "0123456789", Category = "Scrap" };
+        db.Buyers.Add(buyer);
         await db.SaveChangesAsync();
 
         var mockUserService = new Mock<ICurrentUserService>();
         mockUserService.Setup(m => m.UserId).Returns("1");
         var approveHandler = new UpdateQueueItemStatusCommandHandler(db, mockUserService.Object);
-        await approveHandler.Handle(new UpdateQueueItemStatusCommand { Id = queueItem.Id, Status = "Approved" }, CancellationToken.None);
+        await approveHandler.Handle(new UpdateQueueItemStatusCommand { Id = queueItem.Id, Status = "Approved", BuyerId = buyer.Id, SoldPrice = 150.00m }, CancellationToken.None);
 
         var pendingItem = await db.AccPendingItems.SingleAsync();
         Assert.Equal(queueItem.Id, pendingItem.QueueItemId);
+        Assert.Equal(150.00m, pendingItem.SoldPrice);
 
         // Still just "Approved" — the accountant hasn't confirmed the physical discard yet.
         var stillApproved = await db.QueueItems.FindAsync(queueItem.Id);
@@ -51,6 +54,12 @@ public class QueueItemDiscardedOnAccountantConfirmTests
         Assert.True(result);
         var discardedQueueItem = await db.QueueItems.FindAsync(queueItem.Id);
         Assert.Equal(QueueItemStatus.Discarded, discardedQueueItem!.Status);
+
+        var discardedItem = await db.AccDiscardedItems.SingleAsync();
+        Assert.Equal(150.00m, discardedItem.SoldPrice);
+        var confirmedBuyer = await db.Buyers.FindAsync(buyer.Id);
+        Assert.Equal(discardedItem.Id, confirmedBuyer!.AccDiscardedItemId);
+        Assert.Equal(BuyerStatus.Sold, confirmedBuyer.Status);
     }
 
     // Covers the BUGS.md Accountant finding: "Discard queue detail panel never shows who
@@ -73,12 +82,14 @@ public class QueueItemDiscardedOnAccountantConfirmTests
             RequestedByName = "Jane Employee"
         };
         db.QueueItems.Add(queueItem);
+        var buyer = new Buyer { Name = "Acme Recyclers", Contact = "Jane", Email = "jane@acme.test", Phone = "0123456789", Category = "Scrap" };
+        db.Buyers.Add(buyer);
         await db.SaveChangesAsync();
 
         var mockUserService = new Mock<ICurrentUserService>();
         mockUserService.Setup(m => m.UserId).Returns("1");
         var approveHandler = new UpdateQueueItemStatusCommandHandler(db, mockUserService.Object);
-        await approveHandler.Handle(new UpdateQueueItemStatusCommand { Id = queueItem.Id, Status = "Approved" }, CancellationToken.None);
+        await approveHandler.Handle(new UpdateQueueItemStatusCommand { Id = queueItem.Id, Status = "Approved", BuyerId = buyer.Id, SoldPrice = 75.50m }, CancellationToken.None);
 
         var pendingItem = await db.AccPendingItems.SingleAsync();
         Assert.Equal("Jane Employee", pendingItem.RequestedByName);

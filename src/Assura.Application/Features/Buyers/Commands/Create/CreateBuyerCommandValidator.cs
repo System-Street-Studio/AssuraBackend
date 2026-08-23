@@ -29,5 +29,9 @@ public class CreateBuyerCommandValidator : AbstractValidator<CreateBuyerCommand>
             .NotEmpty().WithMessage("Specialization / Category is required.")
             .MinimumLength(2).WithMessage("Category must be at least 2 characters.")
             .MaximumLength(100).WithMessage("Category cannot exceed 100 characters.");
+
+        RuleFor(x => x.AccDiscardedItemId)
+            .GreaterThan(0).When(x => x.AccDiscardedItemId.HasValue)
+            .WithMessage("AccDiscardedItemId, when provided, must be a valid ID.");
     }
 }
