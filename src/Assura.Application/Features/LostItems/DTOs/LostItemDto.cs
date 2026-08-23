@@ -3,6 +3,7 @@ namespace Assura.Application.Features.LostItems.DTOs;
 public class LostItemDto
 {
     public string Id { get; set; } = string.Empty;
+    public int? AssetId { get; set; }
     public string AssetName { get; set; } = string.Empty;
     public string Division { get; set; } = string.Empty;
     public string Date { get; set; } = string.Empty;
