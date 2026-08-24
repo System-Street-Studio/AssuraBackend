@@ -1,0 +1,18 @@
+title = "AssuraBackend gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known-safe fixtures and placeholders"
+regexes = [
+  '''changeme''',
+  '''Your_Super_Secret_Key_At_Least_32_Chars_Long''',
+  '''your_super_secret_key_at_least_32_characters_long''',
+  '''your_app_password_here''',
+  '''your_email@gmail\.com''',
+]
+paths = [
+  '''\.env\.example''',
+  '''tests/.*''',
+]

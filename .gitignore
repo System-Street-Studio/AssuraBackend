@@ -113,3 +113,24 @@ logs/
 # ==========================================
 **/wwwroot/uploads/
 
+# ==========================================
+# Local seed credentials (never commit real/test passwords)
+# ==========================================
+credentials.md
+
+# ==========================================
+# Stray dev/debug scratch files & ad-hoc console projects
+# (not part of AssuraBackend.sln; must never enter a Docker build context)
+# ==========================================
+/tmp/
+/src/tmp/
+/dbfix/
+/tmp_seed_core/
+*.csx
+check_db.cs
+db_script.sql
+backend_log.txt
+restore_error.txt
+dotnet_log.txt
+transfer_data.json
+

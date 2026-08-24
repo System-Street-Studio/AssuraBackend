@@ -4,11 +4,19 @@ using Assura.Application;
 using Assura.Infrastructure;
 using Assura.Infrastructure.Persistence;
 using DotNetEnv;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
+using Prometheus;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .WriteTo.Console(new CompactJsonFormatter()));
 
 static string? GetFirstEnvValue(params string[] keys)
 {
@@ -25,6 +33,12 @@ builder.Services.AddApplication();
 // Backs the short-lived dashboard/lookup caches; the database is remote, so avoiding
 // repeat round-trips matters more than absolute freshness on read-only overviews.
 builder.Services.AddMemoryCache();
+
+// Liveness ("live") intentionally has no dependency checks — a brief DB blip shouldn't cause
+// every pod to be killed and restarted at once. Only readiness ("ready") checks the DB, so
+// k8s pulls a pod out of Service traffic during an outage without restarting it.
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("mysql", tags: new[] { "ready" });
 
 var dbConnectionStringFromEnv = GetFirstEnvValue("DB_CONNECTION_STRING", "MYSQL_CONNECTION_STRING");
 var dbServer = GetFirstEnvValue("DB_SERVER", "DB_HOST");
@@ -95,8 +109,27 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Seed default categories (Building, Computer & Peripherals, etc.) into the database
-await DbInitializer.SeedAsync(app.Services);
+// Three ways this process can be started, controlled by env vars set differently for local dev
+// vs. Kubernetes:
+//  - Default (local dev, docker-compose): seed/migrate runs on every boot, same as always.
+//  - MIGRATE_ONLY=true: run the seed/migrate step, then exit without starting Kestrel. This is
+//    what the Helm pre-upgrade hook Job runs — exactly one runner applies pending EF Core
+//    migrations before the Deployment rolls, instead of every replica racing to migrate at once.
+//  - SKIP_AUTO_MIGRATE=true: skip the seed/migrate step entirely and go straight to Kestrel.
+//    Set on the Deployment's regular pods in Kubernetes, since the migration Job already ran it.
+var migrateOnly = args.Contains("--migrate-only") || Env.GetBool("MIGRATE_ONLY", false);
+var skipAutoMigrate = Env.GetBool("SKIP_AUTO_MIGRATE", false);
+
+if (migrateOnly || !skipAutoMigrate)
+{
+    // Seed default categories (Building, Computer & Peripherals, etc.) into the database
+    await DbInitializer.SeedAsync(app.Services);
+}
+
+if (migrateOnly)
+{
+    return;
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -109,6 +142,9 @@ else
     app.UseHttpsRedirection();
 }
 
+app.UseSerilogRequestLogging();
+app.UseHttpMetrics();
+
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseCors("DefaultPolicy");
 
@@ -117,4 +153,7 @@ app.UseAuthorization();
 
 app.UseStaticFiles();
 app.MapControllers();
+app.MapMetrics();
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 app.Run();
