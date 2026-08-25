@@ -30,7 +30,13 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_EnableDiagnostics=0
 
-USER app
+# Numeric UID, not the name "app". Kubernetes' runAsNonRoot check has to prove the user is not
+# root BEFORE starting the container, and it can only do that from a number — a username means
+# nothing to the kubelet, which has no view inside the image's /etc/passwd. With `USER app` the
+# pod failed to start outright: "container has runAsNonRoot and image has non-numeric user (app),
+# cannot verify user is non-root". $APP_UID is set to 1654 by the chiseled base image, which
+# already declared its user numerically; spelling it as a name here was a regression.
+USER $APP_UID
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "Assura.API.dll"]
