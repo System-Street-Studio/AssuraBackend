@@ -81,22 +81,28 @@ public class SeedController : ControllerBase
     // Table-driven rather than the previous copy-pasted block per user: the old version silently
     // diverged from credentials.md, forcing every account to "Password@123" and omitting the
     // storekeeper, superintendent, HR and auditor accounts entirely.
-    private static readonly (string Username, string Password, string Email, string First, string Last, UserRole Role)[] TestUsers =
+    // DivisionId is NOT optional decoration. The frontend's AuthService.isPendingUser() treats a
+    // null/0 DivisionId as "not yet assigned by HR" and replaces the entire dashboard with an
+    // "Account Under Review — wait for HR review" screen, for every role except SystemAdmin.
+    // Seeding a user with a correct role but no division therefore produces an account that logs
+    // in successfully and can still do nothing at all. Division ids below match the 11 rows
+    // DbInitializer seeds: 7=Admin, 8=Finance, 9=Procurement, 10=Stores, 11=Human Resource.
+    private static readonly (string Username, string Password, string Email, string First, string Last, UserRole Role, int DivisionId)[] TestUsers =
     [
-        ("admin",            "Password@123",             "admin@assura.com",       "System", "Admin",          UserRole.Admin),
-        ("procurement",      "Procurement@123",          "proc@assura.com",        "Procurement", "Officer",   UserRole.Procurement),
-        ("test_storekeeper", "StorekeeperPass123!",      "storekeeper@assura.com", "Test", "Storekeeper",      UserRole.Storekeeper),
-        ("test_accountant",  "AccountantPass123!",       "accountant@assura.com",  "Test", "Accountant",       UserRole.Accountant),
-        ("test_super",       "SuperintendentPass123!",   "super@assura.com",       "Test", "Super",            UserRole.Superintendent),
-        ("test_hr",          "HRPass123!",               "hr@assura.com",          "Test", "HR",               UserRole.HR),
-        ("test_auditor",     "AuditorPass123!",          "auditor@assura.com",     "Test", "Auditor",          UserRole.Auditor),
-        ("sysadmin",         "SysAdmin@123",             "sysadmin@assura.com",    "System", "Administrator",  UserRole.SystemAdmin),
+        ("admin",            "Password@123",             "admin@assura.com",       "System", "Admin",          UserRole.Admin,          7),
+        ("procurement",      "Procurement@123",          "proc@assura.com",        "Procurement", "Officer",   UserRole.Procurement,    9),
+        ("test_storekeeper", "StorekeeperPass123!",      "storekeeper@assura.com", "Test", "Storekeeper",      UserRole.Storekeeper,   10),
+        ("test_accountant",  "AccountantPass123!",       "accountant@assura.com",  "Test", "Accountant",       UserRole.Accountant,     8),
+        ("test_super",       "SuperintendentPass123!",   "super@assura.com",       "Test", "Super",            UserRole.Superintendent, 7),
+        ("test_hr",          "HRPass123!",               "hr@assura.com",          "Test", "HR",               UserRole.HR,            11),
+        ("test_auditor",     "AuditorPass123!",          "auditor@assura.com",     "Test", "Auditor",          UserRole.Auditor,        7),
+        ("sysadmin",         "SysAdmin@123",             "sysadmin@assura.com",    "System", "Administrator",  UserRole.SystemAdmin,    7),
     ];
 
     [HttpPost("test-users")]
     public async Task<IActionResult> SeedTestUsers()
     {
-        foreach (var (username, password, email, first, last, role) in TestUsers)
+        foreach (var (username, password, email, first, last, role, divisionId) in TestUsers)
         {
             var hash = BCrypt.Net.BCrypt.HashPassword(password);
 
@@ -111,6 +117,7 @@ public class SeedController : ControllerBase
                 existing.Username = username;
                 existing.PasswordHash = hash;
                 existing.Role = role;
+                existing.DivisionId = divisionId;
                 existing.IsActive = true;
                 _context.Users.Update(existing);
             }
@@ -124,6 +131,7 @@ public class SeedController : ControllerBase
                     FirstName = first,
                     LastName = last,
                     Role = role,
+                    DivisionId = divisionId,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 });
