@@ -58,18 +58,18 @@ public class ReportingController : BaseApiController
     }
 
     [HttpPost("reports")]
-    public async Task<ActionResult<string>> CreateReport(Assura.Application.Features.Reporting.Commands.CreateCustomReportCommand command)
+    public async Task<ActionResult<object>> CreateReport(Assura.Application.Features.Reporting.Commands.CreateCustomReportCommand command)
     {
         var result = await _mediator.Send(command);
-        return Ok(result);
+        return Ok(new { id = result });
     }
 
     [HttpPost("reports/{id}/complete")]
-    public async Task<ActionResult<bool>> MarkReportCompleted(string id)
+    public async Task<ActionResult<object>> MarkReportCompleted(string id)
     {
         var result = await _mediator.Send(new Assura.Application.Features.Reporting.Commands.MarkReportCompletedCommand(id));
         if (!result) return NotFound();
-        return Ok(result);
+        return Ok(new { success = result });
     }
 
 
