@@ -99,6 +99,7 @@ public class GetReportingDashboardQueryHandler : IRequestHandler<GetReportingDas
                 {
                     Label = group.Key,
                     Count = group.Count(),
+                    Percentage = ReportingQueryHelpers.ToPercent(group.Count(), totalAssets),
                     Color = ReportingQueryHelpers.GetColor(index)
                 })
                 .ToList(),

@@ -22,6 +22,7 @@ public class ReportingLegendItemDto
     public string Label { get; set; } = string.Empty;
     public string Color { get; set; } = string.Empty;
     public int Count { get; set; }
+    public decimal Percentage { get; set; }
 }
 
 public class ReportingBarItemDto
