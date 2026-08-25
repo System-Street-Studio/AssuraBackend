@@ -157,7 +157,7 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 new ReportingStatCardDto
                 {
                     Label = "Scheduled Reports",
-                    Value = reportItems.Count(r => r.Status == "Pending").ToString("N0"),
+                    Value = reportItems.Count(r => r.Status == "Scheduled" || r.Status == "Pending").ToString("N0"),
                     Tone = "neutral"
                 },
                 new ReportingStatCardDto
