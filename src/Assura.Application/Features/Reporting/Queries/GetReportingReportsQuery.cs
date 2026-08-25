@@ -76,7 +76,7 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Type = "Audit",
                 Period = monthStart.ToString("MMM yyyy"),
                 Generated = now.ToLocalTime().ToString("MMM dd, yyyy"),
-                Status = completedLogs > 0 ? "Completed" : "Pending",
+                Status = "Scheduled",
                 Size = $"{Math.Max(1, assets.Count / 25)}.0 MB",
                 IsSystemGenerated = true
             },
@@ -88,7 +88,7 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Type = "Exception",
                 Period = $"Q{((now.Month - 1) / 3) + 1} {now.Year}",
                 Generated = now.ToLocalTime().ToString("MMM dd, yyyy"),
-                Status = flaggedLogs > 0 ? "Pending" : "Completed",
+                Status = "Scheduled",
                 Size = $"{Math.Max(1, flaggedLogs)} KB",
                 IsSystemGenerated = true
             },
@@ -100,7 +100,7 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Type = "Lifecycle",
                 Period = now.Year.ToString(),
                 Generated = now.ToLocalTime().ToString("MMM dd, yyyy"),
-                Status = discardedAssets > 0 ? "Completed" : "Pending",
+                Status = "Scheduled",
                 Size = $"{Math.Max(1, discardedAssets)} KB",
                 IsSystemGenerated = true
             },
@@ -112,7 +112,7 @@ public class GetReportingReportsQueryHandler : IRequestHandler<GetReportingRepor
                 Type = "Finance",
                 Period = quarterStart.ToString("MMM yyyy"),
                 Generated = now.ToLocalTime().ToString("MMM dd, yyyy"),
-                Status = totalValue > 0 ? "Completed" : "Pending",
+                Status = "Scheduled",
                 Size = $"{Math.Max(1, assets.Select(a => a.DivisionId).Distinct().Count())}.2 MB",
                 IsSystemGenerated = true
             }
