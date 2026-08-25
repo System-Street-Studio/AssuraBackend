@@ -12,8 +12,7 @@ pipeline {
     agent none
 
     environment {
-        ECR_REPO    = "CHANGE_ME.dkr.ecr.us-east-1.amazonaws.com/assura-demo-backend"
-        IMAGE_TAG   = "${env.GIT_COMMIT.take(12)}"
+        ECR_REPO    = "187691954427.dkr.ecr.us-east-1.amazonaws.com/assura-demo-backend"
         GITOPS_REPO = "https://github.com/System-Street-Studio/assura-gitops.git"
     }
 
@@ -22,6 +21,20 @@ pipeline {
             agent { label 'dotnet-sdk' }
             steps {
                 checkout scm
+                // IMAGE_TAG used to live in the top-level environment{} block as
+                // "${env.GIT_COMMIT.take(12)}". That block evaluates BEFORE any agent is
+                // allocated (this pipeline uses `agent none` at the top level, by design — see
+                // the file header), so GIT_COMMIT doesn't exist yet and .take(12) throws on
+                // null. Confirmed live: build #1 failed with "IllegalArgumentException: One or
+                // more variables have some issues with their values: IMAGE_TAG" before a single
+                // stage ran, which is why Jenkins had no stage view to draw at all.
+                // env.X assignments made in a script{} step are run-scoped, not
+                // agent/pod-scoped, so setting it here — right after the first real checkout —
+                // makes it visible to every later stage even though each runs in its own
+                // ephemeral pod.
+                script {
+                    env.IMAGE_TAG = env.GIT_COMMIT.take(12)
+                }
                 // Fails fast, before any build compute is spent, matching Phase 0's
                 // pre-commit gitleaks gate — this is the same check re-run server-side so a
                 // secret that bypassed the local hook still can't reach an image.
@@ -127,7 +140,7 @@ pipeline {
                 // Signs via AWS KMS through this pod's own IRSA role, scoped to kms:Sign on
                 // exactly one key ARN (see assura-infra/modules/iam-irsa) — no cosign.key file
                 // ever exists on disk to leak.
-                sh "cosign sign --key awskms:///CHANGE_ME_COSIGN_KEY_ARN ${ECR_REPO}:${IMAGE_TAG}"
+                sh "cosign sign --key awskms:///arn:aws:kms:us-east-1:187691954427:key/9b805e33-ec25-4d7d-b0e9-106a9cab7d11 ${ECR_REPO}:${IMAGE_TAG}"
             }
             post {
                 always { archiveArtifacts artifacts: 'sbom-backend.json', allowEmptyArchive: true }
