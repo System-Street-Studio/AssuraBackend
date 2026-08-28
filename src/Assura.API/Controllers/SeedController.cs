@@ -69,41 +69,81 @@ public class SeedController : ControllerBase
         return Ok("Categories seeded successfully.");
     }
 
+    // The single source of truth for test accounts, matching credentials.md exactly.
+    //
+    // These accounts previously existed only in a developer's local MySQL: tmp_seed_core/Program.cs
+    // is a throwaway console app that PRINTS INSERT statements to stdout for a human to paste into
+    // a client — it never connects to a database. Anything seeded that way is invisible to a fresh
+    // deployment, which is why a brand-new RDS instance had exactly one user (the Admin that
+    // DbInitializer bootstraps) and every documented role login failed with "Invalid username or
+    // password". Encoding them here instead makes the set reproducible on any environment.
+    //
+    // Table-driven rather than the previous copy-pasted block per user: the old version silently
+    // diverged from credentials.md, forcing every account to "Password@123" and omitting the
+    // storekeeper, superintendent, HR and auditor accounts entirely.
+    // DivisionId is NOT optional decoration. The frontend's AuthService.isPendingUser() treats a
+    // null/0 DivisionId as "not yet assigned by HR" and replaces the entire dashboard with an
+    // "Account Under Review — wait for HR review" screen, for every role except SystemAdmin.
+    // Seeding a user with a correct role but no division therefore produces an account that logs
+    // in successfully and can still do nothing at all. Division ids below match the 11 rows
+    // DbInitializer seeds: 7=Admin, 8=Finance, 9=Procurement, 10=Stores, 11=Human Resource.
+    private static readonly (string Username, string Password, string Email, string First, string Last, UserRole Role, int DivisionId)[] TestUsers =
+    [
+        ("admin",            "Password@123",             "admin@assura.com",       "System", "Admin",          UserRole.Admin,          7),
+        ("procurement",      "Procurement@123",          "proc@assura.com",        "Procurement", "Officer",   UserRole.Procurement,    9),
+        ("test_storekeeper", "StorekeeperPass123!",      "storekeeper@assura.com", "Test", "Storekeeper",      UserRole.Storekeeper,   10),
+        ("test_accountant",  "AccountantPass123!",       "accountant@assura.com",  "Test", "Accountant",       UserRole.Accountant,     8),
+        ("test_super",       "SuperintendentPass123!",   "super@assura.com",       "Test", "Super",            UserRole.Superintendent, 7),
+        ("test_hr",          "HRPass123!",               "hr@assura.com",          "Test", "HR",               UserRole.HR,            11),
+        ("test_auditor",     "AuditorPass123!",          "auditor@assura.com",     "Test", "Auditor",          UserRole.Auditor,        7),
+        ("sysadmin",         "SysAdmin@123",             "sysadmin@assura.com",    "System", "Administrator",  UserRole.SystemAdmin,    7),
+    ];
+
     [HttpPost("test-users")]
     public async Task<IActionResult> SeedTestUsers()
     {
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword("Password@123");
-
-        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Username == "admin");
-        if (admin != null)
+        foreach (var (username, password, email, first, last, role, divisionId) in TestUsers)
         {
-            admin.PasswordHash = passwordHash; admin.Role = UserRole.Admin; admin.IsActive = true; _context.Users.Update(admin);
+            var hash = BCrypt.Net.BCrypt.HashPassword(password);
+
+            // Match on Email as well as Username: the accountant row in particular has been
+            // created under both a differing username and this email in past environments, and
+            // a second row sharing the email would collide on the unique index.
+            var existing = await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == username || u.Email == email);
+
+            if (existing != null)
+            {
+                existing.Username = username;
+                existing.PasswordHash = hash;
+                existing.Role = role;
+                existing.DivisionId = divisionId;
+                existing.IsActive = true;
+                _context.Users.Update(existing);
+            }
+            else
+            {
+                _context.Users.Add(new User
+                {
+                    Username = username,
+                    PasswordHash = hash,
+                    Email = email,
+                    FirstName = first,
+                    LastName = last,
+                    Role = role,
+                    DivisionId = divisionId,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
         }
-        else
-        {
-            admin = new User { Username = "admin", PasswordHash = passwordHash, Email = "admin@assura.com", FirstName = "System", LastName = "Admin", Role = UserRole.Admin, IsActive = true, CreatedAt = DateTime.UtcNow };
-            _context.Users.Add(admin);
-        }
-
-        var procurement = await _context.Users.FirstOrDefaultAsync(u => u.Username == "procurement");
-        if (procurement != null) { procurement.PasswordHash = passwordHash; procurement.Role = UserRole.Procurement; procurement.IsActive = true; _context.Users.Update(procurement); }
-        else { procurement = new User { Username = "procurement", PasswordHash = passwordHash, Email = "proc@assura.com", FirstName = "Procurement", LastName = "Officer", Role = UserRole.Procurement, IsActive = true, CreatedAt = DateTime.UtcNow }; _context.Users.Add(procurement); }
-
-        var auditor = await _context.Users.FirstOrDefaultAsync(u => u.Username == "auditor");
-        if (auditor != null) { auditor.PasswordHash = passwordHash; auditor.Role = UserRole.Auditor; auditor.IsActive = true; _context.Users.Update(auditor); }
-        else { auditor = new User { Username = "auditor", PasswordHash = passwordHash, Email = "auditor@assura.com", FirstName = "System", LastName = "Auditor", Role = UserRole.Auditor, IsActive = true, CreatedAt = DateTime.UtcNow }; _context.Users.Add(auditor); }
-
-        var accountant = await _context.Users.FirstOrDefaultAsync(u => u.Username == "accountant" || u.Email == "accountant@assura.com");
-        if (accountant != null) { accountant.Username = "accountant"; accountant.PasswordHash = passwordHash; accountant.Role = UserRole.Accountant; accountant.IsActive = true; _context.Users.Update(accountant); }
-        else { accountant = new User { Username = "accountant", PasswordHash = passwordHash, Email = "accountant@assura.com", FirstName = "System", LastName = "Accountant", Role = UserRole.Accountant, IsActive = true, CreatedAt = DateTime.UtcNow }; _context.Users.Add(accountant); }
-
-        var sysadminPasswordHash = BCrypt.Net.BCrypt.HashPassword("SysAdmin@123");
-        var sysadmin = await _context.Users.FirstOrDefaultAsync(u => u.Username == "sysadmin");
-        if (sysadmin != null) { sysadmin.PasswordHash = sysadminPasswordHash; sysadmin.Role = UserRole.SystemAdmin; sysadmin.IsActive = true; _context.Users.Update(sysadmin); }
-        else { sysadmin = new User { Username = "sysadmin", PasswordHash = sysadminPasswordHash, Email = "sysadmin@assura.com", FirstName = "System", LastName = "Administrator", Role = UserRole.SystemAdmin, IsActive = true, CreatedAt = DateTime.UtcNow }; _context.Users.Add(sysadmin); }
 
         await _context.SaveChangesAsync(default);
-        return Ok("Test users updated/seeded successfully with password: Password@123");
+        return Ok(new
+        {
+            Message = "Test users seeded/updated to match credentials.md.",
+            Accounts = TestUsers.Select(u => new { u.Username, Role = u.Role.ToString() })
+        });
     }
 
     [HttpPost("suppliers")]

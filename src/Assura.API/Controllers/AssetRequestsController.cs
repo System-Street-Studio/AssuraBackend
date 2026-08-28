@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
+using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.AssetRequests.Commands;
 using Assura.Domain.Entities;
 using Assura.Application.Features.AssetRequests.Queries;
@@ -15,12 +16,12 @@ namespace Assura.API.Controllers;
 public class AssetRequestsController : ControllerBase
 {
    private readonly IMediator _mediator;
-   private readonly IWebHostEnvironment _env;
+   private readonly IFileStorageService _fileStorage;
 
-    public AssetRequestsController(IMediator mediator, IWebHostEnvironment env)
+    public AssetRequestsController(IMediator mediator, IFileStorageService fileStorage)
     {
         _mediator = mediator;
-        _env = env;
+        _fileStorage = fileStorage;
     }
 
     // Creates a new asset request.
@@ -58,25 +59,22 @@ public class AssetRequestsController : ControllerBase
             
             if (input.Files != null && input.Files.Count > 0)
             {
-                var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                if (!Directory.Exists(uploadFolder)) Directory.CreateDirectory(uploadFolder);
-
                 foreach (var file in input.Files)
                 {
                     if (file.Length > 0)
                     {
                         var uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
-                        var filePath = Path.Combine(uploadFolder, uniqueFileName);
 
-                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        string virtualPath;
+                        await using (var stream = file.OpenReadStream())
                         {
-                            await file.CopyToAsync(stream);
+                            virtualPath = await _fileStorage.SaveAsync(stream, string.Empty, uniqueFileName, file.ContentType);
                         }
 
                         savedAttachments.Add(new AttachmentUploadModel
                         {
                             FileName = file.FileName,
-                            FileUrl = $"/uploads/{uniqueFileName}",
+                            FileUrl = virtualPath,
                             FileSize = file.Length,
                             FileType = file.ContentType
                         });

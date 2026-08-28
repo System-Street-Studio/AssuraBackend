@@ -85,3 +85,8 @@ We use a feature-branch workflow. Please work ONLY in your assigned branch and m
 5. **Switch to your branch**: `git checkout <your-assigned-branch>`
 6. **Build the solution**: `dotnet build`
 7. **Run the API**: `dotnet run --project src/Assura.API`
+
+## 🔑 Local seed / test credentials
+`credentials.md` is intentionally **not** committed (see `SECURITY.md`). To get local login credentials:
+- **First admin on a fresh database**: if no Admin/SystemAdmin user exists yet, `DbInitializer.SeedAsync` (runs automatically on startup) bootstraps a default `admin` account with a randomly generated password. That password is only ever written once to the application log (`logger.LogWarning`) — check your console/log output right after the first run.
+- **Additional test users per role**: once logged in as an Admin/SystemAdmin, `POST /api/Seed/test-users` (see `SeedController`) creates/resets a fixed set of role accounts for local testing. It is authorization-gated to Admin/SystemAdmin, so it cannot be reached without already holding a privileged account.
