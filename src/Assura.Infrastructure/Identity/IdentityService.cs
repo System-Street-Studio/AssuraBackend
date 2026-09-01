@@ -62,6 +62,20 @@ public class IdentityService : IIdentifyServices
         return await _context.Users.AnyAsync(u => u.Username == username || u.Email == email);
     }
 
+    public async Task<string?> CheckUserConflictAsync(string username, string email)
+    {
+        username = username.Trim();
+        email = email.Trim();
+
+        var usernameTaken = await _context.Users.AnyAsync(u => u.Username == username);
+        if (usernameTaken) return "Username is already taken. Please choose a different username.";
+
+        var emailTaken = await _context.Users.AnyAsync(u => u.Email == email);
+        if (emailTaken) return "An account with this email already exists. Please use a different email.";
+
+        return null;
+    }
+
     public async Task<Assura.Application.Common.Models.AuthResponse?> AuthenticateAsync(string username, string password)
     {
         username = username.Trim();

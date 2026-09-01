@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Assura.Application.Features.Users.Commands.RegisterUser;
 
-public record RegisterUserCommand : IRequest<bool>
+public record RegisterUserCommand : IRequest<RegisterUserResult>
 {
     [Required]
     public string Username { get; init; } = string.Empty; // Manually added by the user during registration
@@ -31,6 +31,8 @@ public record RegisterUserCommand : IRequest<bool>
     public string? RequestedRole { get; init; }
 }
 
+public record RegisterUserResult(bool Success, string? Error);
+
 public class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
 {
     public RegisterUserCommandValidator()
@@ -42,24 +44,26 @@ public class RegisterUserCommandValidator : AbstractValidator<RegisterUserComman
     }
 }
 
-public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, bool>
+public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, RegisterUserResult>
 {
     private readonly IIdentifyServices _identifyServices;
     public RegisterUserCommandHandler(IIdentifyServices identifyServices)
     {
         _identifyServices = identifyServices;
     }
-    public async Task<bool> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+    public async Task<RegisterUserResult> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
-        // check the user already exists
-        if (await _identifyServices.UserExistsAsync(request.Username, request.Email))
+        // Check for specific conflicts (username or email already taken)
+        var conflict = await _identifyServices.CheckUserConflictAsync(request.Username, request.Email);
+        if (conflict != null)
         {
-            return false;
+            return new RegisterUserResult(false, conflict);
         }
+
         // Register the user with Role/Division left unassigned — a self-registered account can
         // never set its own division (or role); only HR/SystemAdmin assignment can, later.
         // DivisionId is deliberately not sourced from the request here, unlike RequestedRole.
-         return await _identifyServices.RegisterAsync(
+        var registered = await _identifyServices.RegisterAsync(
             request.Username,
             request.Password,
             request.Email,
@@ -68,5 +72,9 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, b
             request.PhoneNumber,
             request.RequestedRole,
             divisionId: null);
+
+        return registered
+            ? new RegisterUserResult(true, null)
+            : new RegisterUserResult(false, "Registration failed. Please try again.");
     }
 }
