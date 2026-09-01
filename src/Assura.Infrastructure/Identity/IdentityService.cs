@@ -144,6 +144,9 @@ public class IdentityService : IIdentifyServices
         if (user.IsLocked || !user.IsActive)
             return false;
 
+        if (string.Equals(newPassword, user.Username, StringComparison.OrdinalIgnoreCase))
+            return false;
+
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordResetToken = null;
         user.ResetTokenExpiryTime = null;

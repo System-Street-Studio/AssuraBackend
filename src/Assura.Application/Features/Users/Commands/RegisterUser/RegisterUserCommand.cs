@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Assura.Application.Common.Interfaces;
+using FluentValidation;
 using MediatR;
 
 namespace Assura.Application.Features.Users.Commands.RegisterUser;
@@ -28,6 +29,17 @@ public record RegisterUserCommand : IRequest<bool>
     /// Never the actual <see cref="Assura.Domain.Entities.User.Role"/>, which stays unset until
     /// HR/SystemAdmin assigns it.</summary>
     public string? RequestedRole { get; init; }
+}
+
+public class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
+{
+    public RegisterUserCommandValidator()
+    {
+        RuleFor(x => x.Password)
+            .Must((command, password) =>
+                !string.Equals(password, command.Username, StringComparison.OrdinalIgnoreCase))
+            .WithMessage("Password must not be the same as the username.");
+    }
 }
 
 public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, bool>

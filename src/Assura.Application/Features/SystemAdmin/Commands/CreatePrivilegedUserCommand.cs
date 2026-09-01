@@ -37,6 +37,10 @@ public class CreatePrivilegedUserCommandValidator : AbstractValidator<CreatePriv
     {
         RuleFor(x => x.Username).NotEmpty().MaximumLength(50);
         RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
+        RuleFor(x => x.Password)
+            .Must((command, password) =>
+                !string.Equals(password, command.Username, StringComparison.OrdinalIgnoreCase))
+            .WithMessage("Password must not be the same as the username.");
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);

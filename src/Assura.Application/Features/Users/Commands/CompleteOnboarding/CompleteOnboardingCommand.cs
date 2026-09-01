@@ -31,6 +31,10 @@ public class CompleteOnboardingCommandValidator : AbstractValidator<CompleteOnbo
         RuleFor(x => x.UserId).GreaterThan(0);
         RuleFor(x => x.NewUsername).NotEmpty().MaximumLength(50);
         RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(6);
+        RuleFor(x => x.NewPassword)
+            .Must((command, password) =>
+                !string.Equals(password, command.NewUsername, StringComparison.OrdinalIgnoreCase))
+            .WithMessage("Password must not be the same as the username.");
         RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Email).NotEmpty().EmailAddress();

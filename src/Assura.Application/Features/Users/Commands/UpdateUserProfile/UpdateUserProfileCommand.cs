@@ -54,6 +54,11 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
                 return new UpdateProfileResult(false, "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
             }
 
+            if (string.Equals(request.Password, request.Username, StringComparison.OrdinalIgnoreCase))
+            {
+                return new UpdateProfileResult(false, "Password must not be the same as the username.");
+            }
+
             if (string.IsNullOrEmpty(request.CurrentPassword) || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             {
                 return new UpdateProfileResult(false, "Invalid current password.");
