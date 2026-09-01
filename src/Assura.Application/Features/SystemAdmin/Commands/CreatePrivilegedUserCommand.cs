@@ -58,8 +58,11 @@ public class CreatePrivilegedUserCommandHandler : IRequestHandler<CreatePrivileg
 
     public async Task<CreatePrivilegedUserResult> Handle(CreatePrivilegedUserCommand request, CancellationToken cancellationToken)
     {
+        var username = request.Username.Trim();
+        var email = request.Email.Trim();
+
         var usernameOrEmailTaken = await _context.Users.AnyAsync(
-            u => u.Username == request.Username || u.Email == request.Email, cancellationToken);
+            u => u.Username == username || u.Email == email, cancellationToken);
         if (usernameOrEmailTaken)
         {
             return new CreatePrivilegedUserResult(false, "Username or email already exists.", null);
@@ -67,8 +70,8 @@ public class CreatePrivilegedUserCommandHandler : IRequestHandler<CreatePrivileg
 
         var user = new User
         {
-            Username = request.Username,
-            Email = request.Email,
+            Username = username,
+            Email = email,
             FirstName = request.FirstName,
             LastName = request.LastName,
             PhoneNumber = request.PhoneNumber,

@@ -65,25 +65,28 @@ public class CompleteOnboardingCommandHandler : IRequestHandler<CompleteOnboardi
             return new CompleteOnboardingResult(false, "This account does not require onboarding.", null);
         }
 
+        var newUsername = request.NewUsername.Trim();
+        var newEmail = request.Email.Trim();
+
         var usernameTaken = await _context.Users.AnyAsync(
-            u => u.Id != user.Id && u.Username == request.NewUsername, cancellationToken);
+            u => u.Id != user.Id && u.Username == newUsername, cancellationToken);
         if (usernameTaken)
         {
             return new CompleteOnboardingResult(false, "That username is already taken.", null);
         }
 
         var emailTaken = await _context.Users.AnyAsync(
-            u => u.Id != user.Id && u.Email == request.Email, cancellationToken);
+            u => u.Id != user.Id && u.Email == newEmail, cancellationToken);
         if (emailTaken)
         {
             return new CompleteOnboardingResult(false, "That email is already in use.", null);
         }
 
-        user.Username = request.NewUsername;
+        user.Username = newUsername;
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
-        user.Email = request.Email;
+        user.Email = newEmail;
         user.PhoneNumber = request.PhoneNumber;
         user.RequiresOnboarding = false;
 
@@ -92,7 +95,7 @@ public class CompleteOnboardingCommandHandler : IRequestHandler<CompleteOnboardi
             EntityName = "Users",
             EntityId = user.Id.ToString(),
             Action = "Completed Onboarding",
-            CreatedBy = request.NewUsername
+            CreatedBy = newUsername
         });
 
         await _context.SaveChangesAsync(cancellationToken);

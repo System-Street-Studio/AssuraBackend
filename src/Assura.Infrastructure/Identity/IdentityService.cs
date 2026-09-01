@@ -26,6 +26,13 @@ public class IdentityService : IIdentifyServices
         string? requestedRole = null,
         int? divisionId = null)
     {
+        // Trim so " alice" / "alice " / "alice" aren't stored as distinct usernames - without
+        // this, a stray leading/trailing space (autofill, copy-paste) slips past UserExistsAsync's
+        // exact-match check and creates a second account that is visually indistinguishable from
+        // the first.
+        username = username.Trim();
+        email = email.Trim();
+
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
 
         var user = new User
@@ -50,11 +57,14 @@ public class IdentityService : IIdentifyServices
 
     public async Task<bool> UserExistsAsync(string username, string email)
     {
+        username = username.Trim();
+        email = email.Trim();
         return await _context.Users.AnyAsync(u => u.Username == username || u.Email == email);
     }
 
     public async Task<Assura.Application.Common.Models.AuthResponse?> AuthenticateAsync(string username, string password)
     {
+        username = username.Trim();
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Username == username || u.Email == username);
 

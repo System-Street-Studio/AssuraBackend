@@ -40,10 +40,27 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
 
         if (user == null) return new UpdateProfileResult(false, "User not found.");
 
-        user.Username = request.Username;
+        var newUsername = request.Username.Trim();
+        var newEmail = request.Email.Trim();
+
+        var usernameTaken = await _context.Users.AnyAsync(
+            u => u.Id != user.Id && u.Username == newUsername, cancellationToken);
+        if (usernameTaken)
+        {
+            return new UpdateProfileResult(false, "That username is already taken.");
+        }
+
+        var emailTaken = await _context.Users.AnyAsync(
+            u => u.Id != user.Id && u.Email == newEmail, cancellationToken);
+        if (emailTaken)
+        {
+            return new UpdateProfileResult(false, "That email is already in use.");
+        }
+
+        user.Username = newUsername;
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
-        user.Email = request.Email;
+        user.Email = newEmail;
         user.PhoneNumber = request.PhoneNumber;
 
         if (!string.IsNullOrEmpty(request.Password))
@@ -54,7 +71,7 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
                 return new UpdateProfileResult(false, "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
             }
 
-            if (string.Equals(request.Password, request.Username, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(request.Password, newUsername, StringComparison.OrdinalIgnoreCase))
             {
                 return new UpdateProfileResult(false, "Password must not be the same as the username.");
             }
