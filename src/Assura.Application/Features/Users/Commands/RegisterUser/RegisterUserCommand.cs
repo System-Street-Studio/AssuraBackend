@@ -53,8 +53,8 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
     }
     public async Task<RegisterUserResult> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
-        // Check for specific conflicts (username or email already taken)
-        var conflict = await _identifyServices.CheckUserConflictAsync(request.Username, request.Email);
+        // Check for specific conflicts (username, email, or password already taken)
+        var conflict = await _identifyServices.CheckUserConflictAsync(request.Username, request.Email, request.Password);
         if (conflict != null)
         {
             return new RegisterUserResult(false, conflict);

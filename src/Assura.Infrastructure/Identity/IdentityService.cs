@@ -62,7 +62,7 @@ public class IdentityService : IIdentifyServices
         return await _context.Users.AnyAsync(u => u.Username == username || u.Email == email);
     }
 
-    public async Task<string?> CheckUserConflictAsync(string username, string email)
+    public async Task<string?> CheckUserConflictAsync(string username, string email, string? password = null)
     {
         username = username.Trim();
         email = email.Trim();
@@ -72,6 +72,27 @@ public class IdentityService : IIdentifyServices
 
         var emailTaken = await _context.Users.AnyAsync(u => u.Email == email);
         if (emailTaken) return "An account with this email already exists. Please use a different email.";
+
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            if (string.Equals(password, username, StringComparison.OrdinalIgnoreCase))
+            {
+                return "Password must not be the same as the username.";
+            }
+
+            var existingHashes = await _context.Users
+                .Where(u => !string.IsNullOrEmpty(u.PasswordHash))
+                .Select(u => u.PasswordHash)
+                .ToListAsync();
+
+            foreach (var hash in existingHashes)
+            {
+                if (BCrypt.Net.BCrypt.Verify(password, hash))
+                {
+                    return "This password is already in use by an existing account. Please choose a different password.";
+                }
+            }
+        }
 
         return null;
     }
