@@ -29,9 +29,9 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterUserCommand command)
     {
         var result = await _mediator.Send(command);
-        return result 
-            ? Ok(new { Message = "User registration successful. Pending HR assignment." }) 
-            : BadRequest(new { Message = "User already exists or registration failed." });
+        return result.Success
+            ? Ok(new { Message = "User registration successful. Pending HR assignment." })
+            : BadRequest(new { Message = result.Error ?? "Registration failed." });
     }
 
     [HttpPost("register-system-admin")]
