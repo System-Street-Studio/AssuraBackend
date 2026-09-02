@@ -10,7 +10,7 @@ namespace Assura.Application.Features.Assets.Queries;
 /// Query to retrieve all checkout and return records for the checkout history table.
 /// Returns records with status "Checked Out", "Returned", or dynamically computed "Overdue".
 /// </summary>
-public record GetCheckoutRecordsQuery : IRequest<List<CheckoutRecordDto>>;
+public record GetCheckoutRecordsQuery(int? AssetId = null) : IRequest<List<CheckoutRecordDto>>;
 
 /// <summary>
 /// DTO representing a single checkout/return record shown in the checkout history.
@@ -76,9 +76,16 @@ public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecords
 
     public async Task<List<CheckoutRecordDto>> Handle(GetCheckoutRecordsQuery request, CancellationToken cancellationToken)
     {
-        var rows = await _context.Requests
+        var query = _context.Requests
             .AsNoTracking()
-            .Where(r => r.AssetId != null && (r.Status == "Checked Out" || r.Status == "Returned"))
+            .Where(r => r.AssetId != null && (r.Status == "Checked Out" || r.Status == "Returned"));
+
+        if (request.AssetId.HasValue)
+        {
+            query = query.Where(r => r.AssetId == request.AssetId.Value);
+        }
+
+        var rows = await query
             .Include(r => r.Asset!)
                 .ThenInclude(a => a.Product)
             .Include(r => r.Asset!)
