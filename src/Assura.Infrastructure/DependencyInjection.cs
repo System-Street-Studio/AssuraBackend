@@ -1,4 +1,5 @@
 // src/Assura.Infrastructure/DependencyInjection.cs
+using Amazon.S3;
 using Assura.Application.Common.Interfaces;
 using Assura.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,20 @@ public static class DependencyInjection
         services.AddSingleton<IAppUrlsService, AppUrlsService>();
         services.AddHttpContextAccessor();
 
+        var storageProvider = configuration["Storage:Provider"] ?? "Local";
+        if (storageProvider.Equals("S3", StringComparison.OrdinalIgnoreCase))
+        {
+            // No static keys configured here by design — relies on the AWS SDK's default
+            // credential chain, which resolves to the pod's IRSA role when running in EKS.
+            services.AddDefaultAWSOptions(configuration.GetAWSOptions());
+            services.AddAWSService<IAmazonS3>();
+            services.AddScoped<IFileStorageService, S3FileStorageService>();
+        }
+        else
+        {
+            services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        }
+
         // Custom Auth Services from feature/auth
         services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
         services.AddScoped<IIdentifyServices, IdentityService>();
@@ -51,7 +66,13 @@ public static class DependencyInjection
         services.AddHostedService<TransferOverdueCheckerService>();
 
         var jwtSettings = configuration.GetSection("Jwt");
-        var secretKey = jwtSettings.GetValue<string>("Key") ?? "YourDevelopmentSecretKeyChangeInProduction";
+        var secretKey = jwtSettings.GetValue<string>("Key");
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            // Fail loudly rather than silently signing tokens with a well-known default key.
+            throw new InvalidOperationException(
+                "Jwt:Key is not configured. Set the JWT_SECRET_KEY environment variable (or Jwt:Key via Secrets Manager in deployed environments) before starting the API.");
+        }
 
         services.AddAuthentication(options =>
         {

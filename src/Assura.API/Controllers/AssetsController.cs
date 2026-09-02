@@ -63,9 +63,9 @@ public class AssetsController : BaseApiController
 
     [HttpGet("checkout-records")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Storekeeper},{Roles.Auditor}")]
-    public async Task<ActionResult<List<CheckoutRecordDto>>> GetCheckoutRecords()
+    public async Task<ActionResult<List<CheckoutRecordDto>>> GetCheckoutRecords([FromQuery] int? assetId = null)
     {
-        return await _mediator.Send(new GetCheckoutRecordsQuery());
+        return await _mediator.Send(new GetCheckoutRecordsQuery(assetId));
     }
 
     [HttpPost("{id}/checkout")]

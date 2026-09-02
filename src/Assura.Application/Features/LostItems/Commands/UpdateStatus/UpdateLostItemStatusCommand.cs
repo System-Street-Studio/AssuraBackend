@@ -1,7 +1,9 @@
 using MediatR;
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 
 namespace Assura.Application.Features.LostItems.Commands.UpdateStatus;
 
@@ -46,9 +48,25 @@ public class UpdateLostItemStatusCommandHandler : IRequestHandler<UpdateLostItem
 
         entity.Status = status;
 
-        if (status == LostItemStatus.ConfirmedLost && entity.AssetId.HasValue)
+        if (status == LostItemStatus.ConfirmedLost)
         {
-            var asset = await _context.Assets.FindAsync(new object[] { entity.AssetId.Value }, cancellationToken);
+            Asset? asset = null;
+            if (entity.AssetId.HasValue)
+            {
+                asset = await _context.Assets.FindAsync(new object[] { entity.AssetId.Value }, cancellationToken);
+            }
+            else
+            {
+                asset = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(_context.Assets, a => 
+                    a.AssetTag == entity.AssetName || 
+                    a.AssetCode == entity.AssetName || 
+                    (a.Product != null && a.Product.Name == entity.AssetName), cancellationToken);
+                if (asset != null)
+                {
+                    entity.AssetId = asset.Id;
+                }
+            }
+
             if (asset != null)
             {
                 asset.Status = AssetStatus.Lost;

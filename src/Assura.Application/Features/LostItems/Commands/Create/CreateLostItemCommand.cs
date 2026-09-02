@@ -49,14 +49,31 @@ public class CreateLostItemCommandHandler : IRequestHandler<CreateLostItemComman
         decimal purchasePrice = 0;
         decimal currentValue = 0;
 
-        if (request.AssetId.HasValue)
+        int? resolvedAssetId = request.AssetId;
+        Asset? matchedAsset = null;
+
+        if (resolvedAssetId.HasValue)
         {
-            var asset = await _context.Assets.FindAsync(new object[] { request.AssetId.Value }, cancellationToken);
-            if (asset != null)
+            matchedAsset = await _context.Assets.FindAsync(new object[] { resolvedAssetId.Value }, cancellationToken);
+        }
+        else
+        {
+            matchedAsset = await _context.Assets.FirstOrDefaultAsync(a => 
+                a.AssetTag == request.AssetName || 
+                a.AssetCode == request.AssetName || 
+                (a.Product != null && a.Product.Name == request.AssetName), cancellationToken);
+            if (matchedAsset != null)
             {
-                purchasePrice = asset.PurchaseValue;
-                currentValue = asset.PurchaseValue;
+                resolvedAssetId = matchedAsset.Id;
             }
+        }
+
+        if (matchedAsset != null)
+        {
+            purchasePrice = matchedAsset.PurchaseValue;
+            currentValue = matchedAsset.PurchaseValue;
+            matchedAsset.Status = AssetStatus.Lost;
+            matchedAsset.AssignedUserId = null;
         }
 
         var reportedByName = await ResolveActingUserNameAsync(cancellationToken);
@@ -74,7 +91,7 @@ public class CreateLostItemCommandHandler : IRequestHandler<CreateLostItemComman
             ValueAtPurchasing = purchasePrice,
             CurrentValue = currentValue,
             Description = request.Description,
-            AssetId = request.AssetId
+            AssetId = resolvedAssetId
         };
 
         _context.LostItems.Add(lostItem);

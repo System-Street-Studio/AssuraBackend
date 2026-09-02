@@ -70,11 +70,29 @@ public class GetReportingDashboardQueryHandler : IRequestHandler<GetReportingDas
             .Take(6)
             .ToList();
 
-        var statusGroups = assets
-            .GroupBy(a => a.Status)
-            .Select(g => new { Status = g.Key, Count = g.Count() })
-            .OrderByDescending(g => g.Count)
-            .ToList();
+        var lostItemsCount = await _context.LostItems
+            .AsNoTracking()
+            .Where(l => !l.IsDeleted && (l.Status == LostItemStatus.ConfirmedLost || l.Status == LostItemStatus.Reported))
+            .CountAsync(cancellationToken);
+
+        var inStoreCount = assets.Count(a => a.Status == AssetStatus.InStore);
+        var activeCount = assets.Count(a => a.Status == AssetStatus.InUse);
+        var maintenanceCount = assets.Count(a => a.Status == AssetStatus.UnderMaintenance);
+        var discardedCount = assets.Count(a => a.Status == AssetStatus.Discarded);
+        var transferredCount = assets.Count(a => a.Status == AssetStatus.Transferred);
+        var lostCount = Math.Max(assets.Count(a => a.Status == AssetStatus.Lost), lostItemsCount);
+
+        var totalFleet = totalAssets > 0 ? totalAssets : (inStoreCount + activeCount + maintenanceCount + discardedCount + transferredCount + lostCount);
+
+        var statusItems = new List<(string Label, int Count, string Color)>
+        {
+            ("In Store", inStoreCount, ReportingQueryHelpers.GetColor(0)),
+            ("Active", activeCount, ReportingQueryHelpers.GetColor(1)),
+            ("Discarded", discardedCount, ReportingQueryHelpers.GetColor(2)),
+            ("Maintenance", maintenanceCount, ReportingQueryHelpers.GetColor(3)),
+            ("Transferred", transferredCount, ReportingQueryHelpers.GetColor(4)),
+            ("Lost", lostCount, ReportingQueryHelpers.GetColor(5))
+        };
 
         var valueGroups = assets
             .GroupBy(a => a.CategoryName)
@@ -99,16 +117,17 @@ public class GetReportingDashboardQueryHandler : IRequestHandler<GetReportingDas
                 {
                     Label = group.Key,
                     Count = group.Count(),
+                    Percentage = ReportingQueryHelpers.ToPercent(group.Count(), totalAssets),
                     Color = ReportingQueryHelpers.GetColor(index)
                 })
                 .ToList(),
-            StatusBars = statusGroups
-                .Select((group, index) => new ReportingBarItemDto
+            StatusBars = statusItems
+                .Select(item => new ReportingBarItemDto
                 {
-                    Label = group.Status.HasValue ? ReportingQueryHelpers.FormatAssetStatus(group.Status.Value) : "Unknown",
-                    RawValue = group.Count,
-                    Value = ReportingQueryHelpers.ToPercent(group.Count, totalAssets),
-                    Color = ReportingQueryHelpers.GetColor(index)
+                    Label = item.Label,
+                    RawValue = item.Count,
+                    Value = ReportingQueryHelpers.ToPercent(item.Count, totalFleet),
+                    Color = item.Color
                 })
                 .ToList(),
             DivisionBars = divisionGroups

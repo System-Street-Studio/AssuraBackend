@@ -56,11 +56,11 @@ public static class DbInitializer
 
         try
         {
-            // Ensure required columns exist on MySQL database tables
-            try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE `Users` ADD COLUMN `CurrentSessionId` LONGTEXT NULL;"); } catch { }
-            try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE `AccPendingItems` ADD COLUMN `SoldPrice` DECIMAL(18,2) NULL;"); } catch { }
-            try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE `AccDiscardedItems` ADD COLUMN `BuyerId` INT NULL;"); } catch { }
-            try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE `AccDiscardedItems` ADD COLUMN `SoldPrice` DECIMAL(18,2) NULL;"); } catch { }
+            // Ensure required columns exist on MySQL database tables safely
+            await AddColumnIfNotExistsAsync(context, "Users", "CurrentSessionId", "LONGTEXT NULL");
+            await AddColumnIfNotExistsAsync(context, "AccPendingItems", "SoldPrice", "DECIMAL(18,2) NULL");
+            await AddColumnIfNotExistsAsync(context, "AccDiscardedItems", "BuyerId", "INT NULL");
+            await AddColumnIfNotExistsAsync(context, "AccDiscardedItems", "SoldPrice", "DECIMAL(18,2) NULL");
 
             // Ensure the database schema is up to date
             try
@@ -366,5 +366,32 @@ public static class DbInitializer
         }
 
         return new string(chars);
+    }
+
+    private static async Task AddColumnIfNotExistsAsync(AppDbContext context, string tableName, string columnName, string columnDefinition)
+    {
+        try
+        {
+            var connection = context.Database.GetDbConnection();
+            if (connection.State != System.Data.ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{tableName}' AND COLUMN_NAME = '{columnName}'";
+            var result = await cmd.ExecuteScalarAsync();
+            var count = Convert.ToInt32(result);
+
+            if (count == 0)
+            {
+                cmd.CommandText = $"ALTER TABLE `{tableName}` ADD COLUMN `{columnName}` {columnDefinition}";
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+        catch
+        {
+            // Ignore DB inspection or permission errors gracefully
+        }
     }
 }

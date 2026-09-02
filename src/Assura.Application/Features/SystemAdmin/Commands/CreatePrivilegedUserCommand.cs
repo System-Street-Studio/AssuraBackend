@@ -37,6 +37,10 @@ public class CreatePrivilegedUserCommandValidator : AbstractValidator<CreatePriv
     {
         RuleFor(x => x.Username).NotEmpty().MaximumLength(50);
         RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
+        RuleFor(x => x.Password)
+            .Must((command, password) =>
+                !string.Equals(password, command.Username, StringComparison.OrdinalIgnoreCase))
+            .WithMessage("Password must not be the same as the username.");
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
@@ -54,8 +58,11 @@ public class CreatePrivilegedUserCommandHandler : IRequestHandler<CreatePrivileg
 
     public async Task<CreatePrivilegedUserResult> Handle(CreatePrivilegedUserCommand request, CancellationToken cancellationToken)
     {
+        var username = request.Username.Trim();
+        var email = request.Email.Trim();
+
         var usernameOrEmailTaken = await _context.Users.AnyAsync(
-            u => u.Username == request.Username || u.Email == request.Email, cancellationToken);
+            u => u.Username == username || u.Email == email, cancellationToken);
         if (usernameOrEmailTaken)
         {
             return new CreatePrivilegedUserResult(false, "Username or email already exists.", null);
@@ -63,8 +70,8 @@ public class CreatePrivilegedUserCommandHandler : IRequestHandler<CreatePrivileg
 
         var user = new User
         {
-            Username = request.Username,
-            Email = request.Email,
+            Username = username,
+            Email = email,
             FirstName = request.FirstName,
             LastName = request.LastName,
             PhoneNumber = request.PhoneNumber,

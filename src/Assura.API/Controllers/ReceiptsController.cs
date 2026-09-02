@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.Receipts.Queries.GetAll;
 using Assura.Application.Features.Receipts.Commands.Create;
 using Assura.Application.Features.Receipts.Commands.UploadFile;
@@ -13,12 +14,12 @@ namespace Assura.API.Controllers;
 public class ReceiptsController : BaseApiController
 {
     private readonly IMediator _mediator;
-    private readonly IWebHostEnvironment _env;
+    private readonly IFileStorageService _fileStorage;
 
-    public ReceiptsController(IMediator mediator, IWebHostEnvironment env)
+    public ReceiptsController(IMediator mediator, IFileStorageService fileStorage)
     {
         _mediator = mediator;
-        _env = env;
+        _fileStorage = fileStorage;
     }
 
     [HttpGet]
@@ -41,21 +42,16 @@ public class ReceiptsController : BaseApiController
         if (file == null || file.Length == 0)
             return BadRequest("No file provided.");
 
-        // Ensure uploads directory exists
-        var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", "receipts");
-        Directory.CreateDirectory(uploadsDir);
-
-        // Save file with unique name
         var ext = Path.GetExtension(file.FileName);
         var fileName = $"{id}_{DateTime.UtcNow:yyyyMMddHHmmss}{ext}";
-        var filePath = Path.Combine(uploadsDir, fileName);
 
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        string virtualPath;
+        await using (var stream = file.OpenReadStream())
         {
-            await file.CopyToAsync(stream);
+            virtualPath = await _fileStorage.SaveAsync(stream, "receipts", fileName, file.ContentType);
         }
 
-        var result = await _mediator.Send(new UploadReceiptFileCommand(id, $"/uploads/receipts/{fileName}"));
+        var result = await _mediator.Send(new UploadReceiptFileCommand(id, virtualPath));
         if (result == null)
             return NotFound($"Receipt '{id}' not found.");
 

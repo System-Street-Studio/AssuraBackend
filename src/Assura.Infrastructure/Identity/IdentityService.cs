@@ -26,6 +26,13 @@ public class IdentityService : IIdentifyServices
         string? requestedRole = null,
         int? divisionId = null)
     {
+        // Trim so " alice" / "alice " / "alice" aren't stored as distinct usernames - without
+        // this, a stray leading/trailing space (autofill, copy-paste) slips past UserExistsAsync's
+        // exact-match check and creates a second account that is visually indistinguishable from
+        // the first.
+        username = username.Trim();
+        email = email.Trim();
+
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
 
         var user = new User
@@ -50,11 +57,49 @@ public class IdentityService : IIdentifyServices
 
     public async Task<bool> UserExistsAsync(string username, string email)
     {
+        username = username.Trim();
+        email = email.Trim();
         return await _context.Users.AnyAsync(u => u.Username == username || u.Email == email);
+    }
+
+    public async Task<string?> CheckUserConflictAsync(string username, string email, string? password = null)
+    {
+        username = username.Trim();
+        email = email.Trim();
+
+        var usernameTaken = await _context.Users.AnyAsync(u => u.Username == username);
+        if (usernameTaken) return "Username is already taken. Please choose a different username.";
+
+        var emailTaken = await _context.Users.AnyAsync(u => u.Email == email);
+        if (emailTaken) return "An account with this email already exists. Please use a different email.";
+
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            if (string.Equals(password, username, StringComparison.OrdinalIgnoreCase))
+            {
+                return "Password must not be the same as the username.";
+            }
+
+            var existingHashes = await _context.Users
+                .Where(u => !string.IsNullOrEmpty(u.PasswordHash))
+                .Select(u => u.PasswordHash)
+                .ToListAsync();
+
+            foreach (var hash in existingHashes)
+            {
+                if (BCrypt.Net.BCrypt.Verify(password, hash))
+                {
+                    return "This password is already in use by an existing account. Please choose a different password.";
+                }
+            }
+        }
+
+        return null;
     }
 
     public async Task<Assura.Application.Common.Models.AuthResponse?> AuthenticateAsync(string username, string password)
     {
+        username = username.Trim();
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Username == username || u.Email == username);
 
@@ -142,6 +187,9 @@ public class IdentityService : IIdentifyServices
             return false;
 
         if (user.IsLocked || !user.IsActive)
+            return false;
+
+        if (string.Equals(newPassword, user.Username, StringComparison.OrdinalIgnoreCase))
             return false;
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);

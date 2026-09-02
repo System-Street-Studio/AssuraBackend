@@ -1,3 +1,4 @@
+using Assura.Application.Common.Interfaces;
 using Assura.Application.DTOs;
 using Assura.Application.Features.Products.Commands;
 using Assura.Application.Features.Products.Queries;
@@ -12,14 +13,14 @@ namespace Assura.API.Controllers;
 public class ProductsController : BaseApiController
 {
     private readonly IMediator _mediator;
-    private readonly IWebHostEnvironment _env;
+    private readonly IFileStorageService _fileStorage;
     private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
     private const long MaxImageSizeBytes = 5 * 1024 * 1024;
 
-    public ProductsController(IMediator mediator, IWebHostEnvironment env)
+    public ProductsController(IMediator mediator, IFileStorageService fileStorage)
     {
         _mediator = mediator;
-        _env = env;
+        _fileStorage = fileStorage;
     }
 
     [HttpGet]
@@ -73,21 +74,18 @@ public class ProductsController : BaseApiController
         if (!AllowedImageExtensions.Contains(ext))
             return BadRequest("Only JPG, PNG, WEBP or GIF images are allowed.");
 
-        var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", "products");
-        Directory.CreateDirectory(uploadsDir);
-
         var fileName = $"{id}_{DateTime.UtcNow:yyyyMMddHHmmss}{ext}";
-        var filePath = Path.Combine(uploadsDir, fileName);
 
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        string virtualPath;
+        await using (var stream = file.OpenReadStream())
         {
-            await file.CopyToAsync(stream);
+            virtualPath = await _fileStorage.SaveAsync(stream, "products", fileName, file.ContentType);
         }
 
-        var result = await _mediator.Send(new UploadProductImageCommand(id, $"/uploads/products/{fileName}"));
+        var result = await _mediator.Send(new UploadProductImageCommand(id, virtualPath));
         if (result == null)
         {
-            System.IO.File.Delete(filePath);
+            await _fileStorage.DeleteAsync(virtualPath);
             return NotFound();
         }
 

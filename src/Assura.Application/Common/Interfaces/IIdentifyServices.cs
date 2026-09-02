@@ -18,6 +18,8 @@ public interface IIdentifyServices
         string? requestedRole = null,
         int? divisionId = null);
     Task<bool> UserExistsAsync(string username, string email);
+    /// <summary>Returns a specific conflict message if username, email, or password is taken/invalid, or null if clear.</summary>
+    Task<string?> CheckUserConflictAsync(string username, string email, string? password = null);
     Task<string?> GeneratePasswordResetTokenAsync(string email);
     Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
     Task LogoutAsync(int userId);

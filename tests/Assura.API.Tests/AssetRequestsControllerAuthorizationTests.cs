@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Assura.API.Controllers;
+using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.AssetRequests.Commands;
 using Assura.Application.Features.AssetRequests.DTOs;
 using Assura.Application.Features.AssetRequests.Queries;
@@ -211,8 +212,8 @@ public class AssetRequestsControllerAuthorizationTests
 
     private static AssetRequestsController BuildController(Mock<IMediator> mediatorMock, int userId, string role)
     {
-        var envMock = new Mock<IWebHostEnvironment>();
-        var controller = new AssetRequestsController(mediatorMock.Object, envMock.Object);
+        var fileStorageMock = new Mock<IFileStorageService>();
+        var controller = new AssetRequestsController(mediatorMock.Object, fileStorageMock.Object);
 
         var identity = new ClaimsIdentity(new[]
         {
