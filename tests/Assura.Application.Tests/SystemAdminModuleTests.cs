@@ -290,15 +290,23 @@ public class SystemAdminModuleTests
     private static string? ExtractPasswordFromEmailBody(string emailBody)
     {
         // Extract password from the HTML email body
-        // The password is in a div with specific styling
-        var match = Regex.Match(emailBody, @"<div[^>]*>([A-Za-z0-9!@#$%^&*]+)</div>", RegexOptions.Singleline);
-        if (match.Success && match.Groups.Count > 1)
+        // The password is in a div with lots of styling, and the template uses verbatim
+        // string literal which preserves indentation, so there's whitespace everywhere.
+        // Look for any 12-char sequence with the right composition anywhere in a div.
+        var matches = Regex.Matches(emailBody, @"<div[^>]*>([^<]*)</div>", RegexOptions.Singleline);
+
+        foreach (System.Text.RegularExpressions.Match match in matches)
         {
-            var possiblePassword = match.Groups[1].Value.Trim();
-            // The password should be alphanumeric with special chars, not just text
-            if (possiblePassword.Length >= 12 && possiblePassword.Any(char.IsDigit) && possiblePassword.Any(char.IsLetter))
+            var content = match.Groups[1].Value.Trim();
+            // The password should be exactly 12 characters with alphanumeric and special chars
+            if (content.Length == 12 &&
+                content.All(c => char.IsLetterOrDigit(c) || "!@#$%^&*".Contains(c)) &&
+                content.Any(char.IsDigit) &&
+                content.Any(char.IsUpper) &&
+                content.Any(char.IsLower) &&
+                content.Any(c => "!@#$%^&*".Contains(c)))
             {
-                return possiblePassword;
+                return content;
             }
         }
         return null;
