@@ -1,9 +1,12 @@
+using Assura.Application.Common.Interfaces;
 using Assura.Application.Features.SystemAdmin.Commands;
 using Assura.Application.Tests.Common;
 using Assura.Domain.Entities;
 using Assura.Domain.Enums;
 using FluentValidation.TestHelper;
 using Microsoft.EntityFrameworkCore;
+using Moq;
+using System.Text.RegularExpressions;
 
 namespace Assura.Application.Tests;
 
@@ -34,19 +37,28 @@ public class SystemAdminModuleTests
         db.Users.AddRange(caller, user);
         await db.SaveChangesAsync();
 
-        var handler = new ResetUserPasswordCommandHandler(db);
+        string? capturedPassword = null;
+        var emailService = new Mock<IEmailService>();
+        emailService.Setup(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((to, subject, body) => {
+                capturedPassword = ExtractPasswordFromEmailBody(body);
+            })
+            .Returns(Task.CompletedTask);
+
+        var handler = new ResetUserPasswordCommandHandler(db, emailService.Object);
         var result = await handler.Handle(new ResetUserPasswordCommand(user.Id, caller.Id), CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.NotNull(result.TemporaryPassword);
-        Assert.NotEqual("Password@123", result.TemporaryPassword);
+        Assert.True(result.EmailSent);
+        Assert.NotNull(capturedPassword);
+        Assert.NotEqual("Password@123", capturedPassword);
 
         var updated = await db.Users.FirstAsync(u => u.Id == user.Id);
         Assert.NotEqual("original-hash", updated.PasswordHash);
         Assert.False(BCrypt.Net.BCrypt.Verify("Password@123", updated.PasswordHash),
             "Reset password must not fall back to the old hardcoded default.");
-        Assert.True(BCrypt.Net.BCrypt.Verify(result.TemporaryPassword, updated.PasswordHash),
-            "The returned temporary password must actually match the new hash.");
+        Assert.True(BCrypt.Net.BCrypt.Verify(capturedPassword!, updated.PasswordHash),
+            "The password sent via email must actually match the new hash.");
     }
 
     [Fact]
@@ -59,11 +71,29 @@ public class SystemAdminModuleTests
         db.Users.AddRange(caller, user);
         await db.SaveChangesAsync();
 
-        var handler = new ResetUserPasswordCommandHandler(db);
+        string? firstPassword = null;
+        string? secondPassword = null;
+        var callCount = 0;
+        var emailService = new Mock<IEmailService>();
+        emailService.Setup(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((to, subject, body) => {
+                if (callCount == 0)
+                {
+                    firstPassword = ExtractPasswordFromEmailBody(body);
+                    callCount++;
+                }
+                else
+                {
+                    secondPassword = ExtractPasswordFromEmailBody(body);
+                }
+            })
+            .Returns(Task.CompletedTask);
+
+        var handler = new ResetUserPasswordCommandHandler(db, emailService.Object);
         var first = await handler.Handle(new ResetUserPasswordCommand(user.Id, caller.Id), CancellationToken.None);
         var second = await handler.Handle(new ResetUserPasswordCommand(user.Id, caller.Id), CancellationToken.None);
 
-        Assert.NotEqual(first.TemporaryPassword, second.TemporaryPassword);
+        Assert.NotEqual(firstPassword, secondPassword);
     }
 
     [Fact]
@@ -76,7 +106,11 @@ public class SystemAdminModuleTests
         db.Users.AddRange(caller, user);
         await db.SaveChangesAsync();
 
-        var handler = new ResetUserPasswordCommandHandler(db);
+        var emailService = new Mock<IEmailService>();
+        emailService.Setup(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = new ResetUserPasswordCommandHandler(db, emailService.Object);
         await handler.Handle(new ResetUserPasswordCommand(user.Id, caller.Id), CancellationToken.None);
 
         var notification = await db.Notifications.FirstOrDefaultAsync(n => n.UserId == user.Id);
@@ -94,11 +128,12 @@ public class SystemAdminModuleTests
         db.Users.AddRange(caller, sysadmin);
         await db.SaveChangesAsync();
 
-        var handler = new ResetUserPasswordCommandHandler(db);
+        var emailService = new Mock<IEmailService>();
+        var handler = new ResetUserPasswordCommandHandler(db, emailService.Object);
         var result = await handler.Handle(new ResetUserPasswordCommand(sysadmin.Id, caller.Id), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Null(result.TemporaryPassword);
+        Assert.False(result.EmailSent);
     }
 
     [Fact]
@@ -171,11 +206,12 @@ public class SystemAdminModuleTests
         db.Users.Add(admin);
         await db.SaveChangesAsync();
 
-        var handler = new ResetUserPasswordCommandHandler(db);
+        var emailService = new Mock<IEmailService>();
+        var handler = new ResetUserPasswordCommandHandler(db, emailService.Object);
         var result = await handler.Handle(new ResetUserPasswordCommand(admin.Id, admin.Id), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Null(result.TemporaryPassword);
+        Assert.False(result.EmailSent);
     }
 
     [Fact]
@@ -188,11 +224,12 @@ public class SystemAdminModuleTests
         db.Users.AddRange(admin1, admin2);
         await db.SaveChangesAsync();
 
-        var handler = new ResetUserPasswordCommandHandler(db);
+        var emailService = new Mock<IEmailService>();
+        var handler = new ResetUserPasswordCommandHandler(db, emailService.Object);
         var result = await handler.Handle(new ResetUserPasswordCommand(admin2.Id, admin1.Id), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Null(result.TemporaryPassword);
+        Assert.False(result.EmailSent);
     }
 
     [Fact]
@@ -249,4 +286,21 @@ public class SystemAdminModuleTests
     }
 
     private static TestApplicationDbContext CreateContext() => TestContextFactory.CreateContext();
+
+    private static string? ExtractPasswordFromEmailBody(string emailBody)
+    {
+        // Extract password from the HTML email body
+        // The password is in a div with specific styling
+        var match = Regex.Match(emailBody, @"<div[^>]*>([A-Za-z0-9!@#$%^&*]+)</div>", RegexOptions.Singleline);
+        if (match.Success && match.Groups.Count > 1)
+        {
+            var possiblePassword = match.Groups[1].Value.Trim();
+            // The password should be alphanumeric with special chars, not just text
+            if (possiblePassword.Length >= 12 && possiblePassword.Any(char.IsDigit) && possiblePassword.Any(char.IsLetter))
+            {
+                return possiblePassword;
+            }
+        }
+        return null;
+    }
 }

@@ -105,7 +105,11 @@ public class ResetPasswordFixTests
         db.Users.AddRange(caller, target);
         await db.SaveChangesAsync();
 
-        var handler = new ResetUserPasswordCommandHandler(db);
+        var emailService = new Mock<IEmailService>();
+        emailService.Setup(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = new ResetUserPasswordCommandHandler(db, emailService.Object);
         var result = await handler.Handle(new ResetUserPasswordCommand(target.Id, caller.Id), CancellationToken.None);
 
         Assert.True(result.Success);
