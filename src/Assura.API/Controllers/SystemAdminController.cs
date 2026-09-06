@@ -71,7 +71,7 @@ public class SystemAdminController : BaseApiController
 
         var result = await Mediator.Send(new ResetUserPasswordCommand(id, callerUserId));
         if (!result.Success) return BadRequest("Failed to reset user password. Cannot reset system admin.");
-        return Ok(new { temporaryPassword = result.TemporaryPassword });
+        return Ok(new { success = result.Success, emailSent = result.EmailSent });
     }
 
     // Creating privileged accounts (System Admin registration, HR credential generation) is a
