@@ -91,6 +91,47 @@ public class AssetCommandValidatorTests
     }
 
     [Fact]
+    public async Task CreateAsset_WithNoProductSelected_ShouldFailValidation()
+    {
+        // ProductId defaults to 0 (the frontend's "Select Product" placeholder) when nothing
+        // was picked. The backend must reject this itself, not just rely on the Angular form.
+        using var db = TestContextFactory.CreateContext();
+        var validator = new CreateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(
+            new CreateAssetCommand(NewAssetDto("AST-20260817-8001")));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("Product is required"));
+    }
+
+    [Fact]
+    public async Task CreateAsset_WithNonExistentProductId_ShouldFailValidation()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var validator = new CreateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(
+            new CreateAssetCommand(NewAssetDto("AST-20260817-8002", productId: 999)));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("does not exist"));
+    }
+
+    [Fact]
+    public async Task CreateAsset_WithValidProductId_ShouldPassValidation()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var productId = await SeedProduct(db);
+        var validator = new CreateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(
+            new CreateAssetCommand(NewAssetDto("AST-20260817-8003", productId: productId)));
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
     public async Task CreateAsset_WithNegativePurchaseValue_ShouldFailValidation()
     {
         using var db = TestContextFactory.CreateContext();
@@ -250,6 +291,51 @@ public class AssetCommandValidatorTests
         }));
 
         Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task UpdateAsset_WithNoProductSelected_ShouldFailValidation()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var asset = new Asset { AssetCode = "AST-20260817-8004" };
+        db.Assets.Add(asset);
+        await db.SaveChangesAsync();
+
+        var validator = new UpdateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(new UpdateAssetCommand(new AssetUpdateDto
+        {
+            Id = asset.Id,
+            AssetCode = "AST-20260817-8004",
+            AssetDate = DateTime.UtcNow,
+            PurchaseValue = 250m,
+        }));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("Product is required"));
+    }
+
+    [Fact]
+    public async Task UpdateAsset_WithNonExistentProductId_ShouldFailValidation()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var asset = new Asset { AssetCode = "AST-20260817-8005" };
+        db.Assets.Add(asset);
+        await db.SaveChangesAsync();
+
+        var validator = new UpdateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(new UpdateAssetCommand(new AssetUpdateDto
+        {
+            Id = asset.Id,
+            AssetCode = "AST-20260817-8005",
+            AssetDate = DateTime.UtcNow,
+            PurchaseValue = 250m,
+            ProductId = 999,
+        }));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("does not exist"));
     }
 
     [Fact]
