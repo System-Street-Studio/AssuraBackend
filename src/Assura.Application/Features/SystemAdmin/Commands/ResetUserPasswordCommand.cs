@@ -10,7 +10,7 @@ namespace Assura.Application.Features.SystemAdmin.Commands;
 
 public record ResetUserPasswordCommand(int UserId, int CallerUserId) : IRequest<ResetUserPasswordResult>;
 
-public record ResetUserPasswordResult(bool Success, string? TemporaryPassword);
+public record ResetUserPasswordResult(bool Success, bool EmailSent);
 
 public class ResetUserPasswordCommandValidator : AbstractValidator<ResetUserPasswordCommand>
 {
@@ -24,10 +24,12 @@ public class ResetUserPasswordCommandValidator : AbstractValidator<ResetUserPass
 public class ResetUserPasswordCommandHandler : IRequestHandler<ResetUserPasswordCommand, ResetUserPasswordResult>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IEmailService _emailService;
 
-    public ResetUserPasswordCommandHandler(IApplicationDbContext context)
+    public ResetUserPasswordCommandHandler(IApplicationDbContext context, IEmailService emailService)
     {
         _context = context;
+        _emailService = emailService;
     }
 
     public async Task<ResetUserPasswordResult> Handle(ResetUserPasswordCommand request, CancellationToken cancellationToken)
@@ -35,19 +37,19 @@ public class ResetUserPasswordCommandHandler : IRequestHandler<ResetUserPassword
         // Prevent self-targeting
         if (request.UserId == request.CallerUserId)
         {
-            return new ResetUserPasswordResult(false, null);
+            return new ResetUserPasswordResult(false, false);
         }
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-        if (user == null) return new ResetUserPasswordResult(false, null);
+        if (user == null) return new ResetUserPasswordResult(false, false);
 
         // Prevent resetting the master system admin password (hardcoded check)
-        if (user.Username == "sysadmin") return new ResetUserPasswordResult(false, null);
+        if (user.Username == "sysadmin") return new ResetUserPasswordResult(false, false);
 
         // Prevent resetting other Admin or SystemAdmin accounts
         if (user.Role == UserRole.Admin || user.Role == UserRole.SystemAdmin)
         {
-            return new ResetUserPasswordResult(false, null);
+            return new ResetUserPasswordResult(false, false);
         }
 
         var temporaryPassword = GenerateTemporaryPassword();
@@ -64,13 +66,43 @@ public class ResetUserPasswordCommandHandler : IRequestHandler<ResetUserPassword
         _context.Notifications.Add(new Notification
         {
             Title = "Password Reset by Administrator",
-            Message = "Your password was reset by an administrator. Contact them directly for your new temporary password, and change it as soon as you log in.",
+            Message = "Your password was reset by an administrator. Check your email for the new temporary password, and change it as soon as you log in.",
             UserId = user.Id,
             Type = "Warning"
         });
 
         await _context.SaveChangesAsync(cancellationToken);
-        return new ResetUserPasswordResult(true, temporaryPassword);
+
+        // Send email with temporary password
+        var emailSent = false;
+        try
+        {
+            var subject = "Assura - Password Reset by Administrator";
+            var body = $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;'>
+                    <h2 style='color: #003366; text-align: center;'>Password Reset Notice</h2>
+                    <p>Hello {user.Username},</p>
+                    <p>Your password has been reset by a System Administrator. Please use the following temporary password to log in:</p>
+                    <div style='padding: 15px; background-color: #f3f3f3; border-radius: 5px; font-weight: bold; font-size: 1.2rem; text-align: center; border: 1px solid #003366; margin: 20px 0;'>
+                        {temporaryPassword}
+                    </div>
+                    <p style='color: #d32f2f; font-weight: bold;'>⚠️ Important: Please change this password immediately after logging in.</p>
+                    <p>For security reasons, your existing session has been invalidated. You will need to log in again with this temporary password.</p>
+                    <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;' />
+                    <p style='font-size: 12px; color: #888; text-align: center;'>Thank you,<br/>Assura System Administrator</p>
+                </div>";
+
+            await _emailService.SendEmailAsync(user.Email, subject, body);
+            emailSent = true;
+        }
+        catch (Exception)
+        {
+            // Email sending failed, but password reset was successful
+            // Don't fail the entire operation
+            emailSent = false;
+        }
+
+        return new ResetUserPasswordResult(true, emailSent);
     }
 
     /// <summary>

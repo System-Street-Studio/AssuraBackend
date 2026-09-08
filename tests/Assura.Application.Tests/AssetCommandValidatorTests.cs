@@ -12,13 +12,22 @@ namespace Assura.Application.Tests;
 // API even though the form is meant to reject them.
 public class AssetCommandValidatorTests
 {
-    private static AssetCreateDto NewAssetDto(string assetCode, decimal purchaseValue = 100m, string? serialNumber = null) => new()
+    private static AssetCreateDto NewAssetDto(string assetCode, decimal purchaseValue = 100m, string? serialNumber = null, int productId = 0) => new()
     {
         AssetCode = assetCode,
         AssetDate = DateTime.UtcNow,
         PurchaseValue = purchaseValue,
         SerialNumber = serialNumber,
+        ProductId = productId,
     };
+
+    private static async Task<int> SeedProduct(Common.TestApplicationDbContext db)
+    {
+        var product = new Product { Name = "Test Product" };
+        db.Products.Add(product);
+        await db.SaveChangesAsync();
+        return product.Id;
+    }
 
     [Fact]
     public async Task CreateAsset_WithDuplicateAssetCode_ShouldFailValidation()
@@ -58,11 +67,12 @@ public class AssetCommandValidatorTests
         using var db = TestContextFactory.CreateContext();
         db.Assets.Add(new Asset { AssetCode = "AST-20260817-1234" });
         await db.SaveChangesAsync();
+        var productId = await SeedProduct(db);
 
         var validator = new CreateAssetCommandValidator(db);
 
         var result = await validator.ValidateAsync(
-            new CreateAssetCommand(NewAssetDto("AST-20260817-9999")));
+            new CreateAssetCommand(NewAssetDto("AST-20260817-9999", productId: productId)));
 
         Assert.True(result.IsValid);
     }
@@ -72,9 +82,51 @@ public class AssetCommandValidatorTests
     {
         // An empty code is legitimate: the create handler generates one.
         using var db = TestContextFactory.CreateContext();
+        var productId = await SeedProduct(db);
         var validator = new CreateAssetCommandValidator(db);
 
-        var result = await validator.ValidateAsync(new CreateAssetCommand(NewAssetDto("")));
+        var result = await validator.ValidateAsync(new CreateAssetCommand(NewAssetDto("", productId: productId)));
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task CreateAsset_WithNoProductSelected_ShouldFailValidation()
+    {
+        // ProductId defaults to 0 (the frontend's "Select Product" placeholder) when nothing
+        // was picked. The backend must reject this itself, not just rely on the Angular form.
+        using var db = TestContextFactory.CreateContext();
+        var validator = new CreateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(
+            new CreateAssetCommand(NewAssetDto("AST-20260817-8001")));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("Product is required"));
+    }
+
+    [Fact]
+    public async Task CreateAsset_WithNonExistentProductId_ShouldFailValidation()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var validator = new CreateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(
+            new CreateAssetCommand(NewAssetDto("AST-20260817-8002", productId: 999)));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("does not exist"));
+    }
+
+    [Fact]
+    public async Task CreateAsset_WithValidProductId_ShouldPassValidation()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var productId = await SeedProduct(db);
+        var validator = new CreateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(
+            new CreateAssetCommand(NewAssetDto("AST-20260817-8003", productId: productId)));
 
         Assert.True(result.IsValid);
     }
@@ -129,11 +181,12 @@ public class AssetCommandValidatorTests
         using var db = TestContextFactory.CreateContext();
         db.Assets.Add(new Asset { AssetCode = "AST-20260817-6003", SerialNumber = null });
         await db.SaveChangesAsync();
+        var productId = await SeedProduct(db);
 
         var validator = new CreateAssetCommandValidator(db);
 
         var result = await validator.ValidateAsync(
-            new CreateAssetCommand(NewAssetDto("AST-20260817-6004", serialNumber: "")));
+            new CreateAssetCommand(NewAssetDto("AST-20260817-6004", serialNumber: "", productId: productId)));
 
         Assert.True(result.IsValid);
     }
@@ -145,6 +198,7 @@ public class AssetCommandValidatorTests
         var asset = new Asset { AssetCode = "AST-20260817-6005", SerialNumber = "SN-200" };
         db.Assets.Add(asset);
         await db.SaveChangesAsync();
+        var productId = await SeedProduct(db);
 
         var validator = new UpdateAssetCommandValidator(db);
 
@@ -155,6 +209,7 @@ public class AssetCommandValidatorTests
             SerialNumber = "SN-200",
             AssetDate = DateTime.UtcNow,
             PurchaseValue = 250m,
+            ProductId = productId,
         }));
 
         Assert.True(result.IsValid);
@@ -222,6 +277,7 @@ public class AssetCommandValidatorTests
         var asset = new Asset { AssetCode = "AST-20260817-1234" };
         db.Assets.Add(asset);
         await db.SaveChangesAsync();
+        var productId = await SeedProduct(db);
 
         var validator = new UpdateAssetCommandValidator(db);
 
@@ -231,9 +287,55 @@ public class AssetCommandValidatorTests
             AssetCode = "AST-20260817-1234",
             AssetDate = DateTime.UtcNow,
             PurchaseValue = 250m,
+            ProductId = productId,
         }));
 
         Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task UpdateAsset_WithNoProductSelected_ShouldFailValidation()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var asset = new Asset { AssetCode = "AST-20260817-8004" };
+        db.Assets.Add(asset);
+        await db.SaveChangesAsync();
+
+        var validator = new UpdateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(new UpdateAssetCommand(new AssetUpdateDto
+        {
+            Id = asset.Id,
+            AssetCode = "AST-20260817-8004",
+            AssetDate = DateTime.UtcNow,
+            PurchaseValue = 250m,
+        }));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("Product is required"));
+    }
+
+    [Fact]
+    public async Task UpdateAsset_WithNonExistentProductId_ShouldFailValidation()
+    {
+        using var db = TestContextFactory.CreateContext();
+        var asset = new Asset { AssetCode = "AST-20260817-8005" };
+        db.Assets.Add(asset);
+        await db.SaveChangesAsync();
+
+        var validator = new UpdateAssetCommandValidator(db);
+
+        var result = await validator.ValidateAsync(new UpdateAssetCommand(new AssetUpdateDto
+        {
+            Id = asset.Id,
+            AssetCode = "AST-20260817-8005",
+            AssetDate = DateTime.UtcNow,
+            PurchaseValue = 250m,
+            ProductId = 999,
+        }));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("does not exist"));
     }
 
     [Fact]

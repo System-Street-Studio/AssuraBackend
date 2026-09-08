@@ -27,6 +27,22 @@ public class CreateAssetCommandValidator : AbstractValidator<CreateAssetCommand>
 
         RuleFor(x => x.Asset.PurchaseValue)
             .GreaterThan(0).WithMessage("Purchase value must be greater than zero.");
+
+        RuleFor(x => x.Asset.ProductId)
+            .GreaterThan(0).WithMessage("Product is required.");
+
+        RuleFor(x => x)
+            .MustAsync((cmd, ct) => ProductExists(context, cmd.Asset.ProductId, ct))
+            .When(x => x.Asset.ProductId > 0)
+            .WithMessage("Selected product does not exist.");
+    }
+
+    internal static Task<bool> ProductExists(
+        IApplicationDbContext context,
+        int productId,
+        CancellationToken cancellationToken)
+    {
+        return context.Products.AnyAsync(p => p.Id == productId, cancellationToken);
     }
 
     internal static async Task<bool> BeUniqueAssetCode(
@@ -93,5 +109,13 @@ public class UpdateAssetCommandValidator : AbstractValidator<UpdateAssetCommand>
 
         RuleFor(x => x.Asset.PurchaseValue)
             .GreaterThan(0).WithMessage("Purchase value must be greater than zero.");
+
+        RuleFor(x => x.Asset.ProductId)
+            .GreaterThan(0).WithMessage("Product is required.");
+
+        RuleFor(x => x)
+            .MustAsync((cmd, ct) => CreateAssetCommandValidator.ProductExists(context, cmd.Asset.ProductId, ct))
+            .When(x => x.Asset.ProductId > 0)
+            .WithMessage("Selected product does not exist.");
     }
 }
