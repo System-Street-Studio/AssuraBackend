@@ -52,7 +52,9 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
                 .FirstOrDefaultAsync(r => r.Id == actualId, cancellationToken);
 
             if (assetRequest == null) return;
-            if (assetRequest.Status != RequestStatus.PendingStorekeeperReview) return;
+            if (assetRequest.Status != RequestStatus.PendingStorekeeperReview
+                && assetRequest.Status != RequestStatus.Approved
+                && assetRequest.Status != RequestStatus.Pending) return;
 
             await ProcessAssetRequest(assetRequest, request, cancellationToken);
             return;
@@ -69,7 +71,9 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
                 .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
             if (assetRequest == null) return;
-            if (assetRequest.Status != RequestStatus.PendingStorekeeperReview) return;
+            if (assetRequest.Status != RequestStatus.PendingStorekeeperReview
+                && assetRequest.Status != RequestStatus.Approved
+                && assetRequest.Status != RequestStatus.Pending) return;
 
             await ProcessAssetRequest(assetRequest, request, cancellationToken);
             return;
@@ -77,7 +81,9 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
 
         // Reprocessing an already-processed request (e.g. a duplicate/retried call) must be a
         // no-op, not a second reservation of a possibly different asset against the same request.
-        if (entity.Status != RequestWorkflowStatus.PendingStorekeeperReview) return;
+        if (entity.Status != RequestWorkflowStatus.PendingStorekeeperReview
+            && entity.Status != RequestWorkflowStatus.Approved
+            && !string.Equals(entity.Status, "Pending", StringComparison.OrdinalIgnoreCase)) return;
 
         entity.Remarks = request.Remarks;
         entity.StorekeeperProcessorId = request.ProcessedByUserId;
