@@ -1,4 +1,6 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
+using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +19,13 @@ public class GetGRNByIdQueryHandler : IRequestHandler<GetGRNByIdQuery, GRNDto?>
 
     public async Task<GRNDto?> Handle(GetGRNByIdQuery request, CancellationToken cancellationToken)
     {
+        var checkedOutAssetIds = await _context.Requests
+            .AsNoTracking()
+            .Where(r => r.AssetId != null && r.Status == RequestWorkflowStatus.CheckedOut)
+            .Select(r => r.AssetId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
         return await _context.GRNs
             .AsNoTracking()
             .Include(g => g.PurchasingOrder)
@@ -38,6 +47,7 @@ public class GetGRNByIdQueryHandler : IRequestHandler<GetGRNByIdQuery, GRNDto?>
                 AssetCode = g.Asset.AssetCode,
                 ProductName = g.Asset.Product != null ? g.Asset.Product.Name : "-",
                 CreatedAt = g.CreatedAt,
+                IsCheckedOut = g.Asset.Status == AssetStatus.InUse || checkedOutAssetIds.Contains(g.AssetId),
             })
             .FirstOrDefaultAsync(cancellationToken);
     }

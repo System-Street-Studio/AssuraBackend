@@ -148,5 +148,31 @@ public class GRNTests
         Assert.Single(result);
         Assert.Equal("GRN-0001", result[0].GrnNumber);
         Assert.Equal("Apex Procurement Co.", result[0].SupplierName);
+        Assert.False(result[0].IsCheckedOut);
+    }
+
+    [Fact]
+    public async Task GetGRNs_ShouldMarkIsCheckedOutTrue_WhenAssetIsCheckedOut()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var supplier = new Supplier { Name = "Apex Procurement Co." };
+        var product = new Product { Name = "Office Chair Ergonomic" };
+        db.Suppliers.Add(supplier);
+        db.Products.Add(product);
+
+        var po = new PurchasingOrder { OrderNumber = "PO-0001", OrderDate = DateTime.UtcNow, Supplier = supplier };
+        db.PurchasingOrders.Add(po);
+
+        var asset = new Asset { AssetCode = "AST-0099", Product = product, Status = Assura.Domain.Enums.AssetStatus.InUse };
+        db.Assets.Add(asset);
+        db.GRNs.Add(new GRN { GrnNumber = "GRN-0001", ReceivedDate = DateTime.UtcNow, ReceivedBy = "Stores Employee", PurchasingOrder = po, Asset = asset });
+        await db.SaveChangesAsync();
+
+        var handler = new GetGRNsQueryHandler(db);
+        var result = await handler.Handle(new GetGRNsQuery(), CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.True(result[0].IsCheckedOut);
     }
 }

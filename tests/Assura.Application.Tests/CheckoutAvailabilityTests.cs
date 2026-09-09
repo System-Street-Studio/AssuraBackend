@@ -243,4 +243,67 @@ public class CheckoutAvailabilityTests
         Assert.Equal(AssetStatus.InUse, updated.Status);
         Assert.Equal(employee.Id, updated.AssignedUserId);
     }
+
+    [Fact]
+    public async Task CheckoutAssetCommand_ShouldAutoCreateGIN_WhenAssetIsCheckedOut()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var product = new Product { Name = "Laptop ThinkPad" };
+        var category = new Category { Name = "Computers" };
+        var division = new Division { Name = "Engineering" };
+        var supplier = new Supplier { Name = "Lenovo Direct" };
+        var po = new PurchasingOrder { OrderNumber = "PO-2026-TEST", Supplier = supplier, Status = "Registered" };
+        db.Products.Add(product);
+        db.Categories.Add(category);
+        db.Divisions.Add(division);
+        db.Suppliers.Add(supplier);
+        db.PurchasingOrders.Add(po);
+
+        var employee = new User
+        {
+            Username = "emp_dev",
+            FirstName = "Dev",
+            LastName = "User",
+            Email = "dev@assura.com",
+            Division = division,
+            IsActive = true
+        };
+        db.Users.Add(employee);
+
+        var asset = new Asset
+        {
+            AssetCode = "AST-AUTO-GIN",
+            Product = product,
+            Category = category,
+            Status = AssetStatus.InStore,
+            PurchasingOrderId = po.Id,
+        };
+        db.Assets.Add(asset);
+
+        var grn = new GRN
+        {
+            GrnNumber = "GRN-2026-TEST",
+            ReceivedDate = DateTime.UtcNow,
+            ReceivedBy = "Storekeeper",
+            Asset = asset,
+            PurchasingOrder = po,
+        };
+        db.GRNs.Add(grn);
+        await db.SaveChangesAsync();
+
+        var handler = new CheckoutAssetCommandHandler(db);
+        var command = new CheckoutAssetCommand(asset.Id, employee.Id, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)), "Special checkout note", "Storekeeper");
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        Assert.NotNull(result);
+
+        // Verify GIN was automatically created
+        var gin = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(db.GINs, g => g.AssetId == asset.Id);
+        Assert.NotNull(gin);
+        Assert.StartsWith("GIN-", gin.GinNumber);
+        Assert.Equal(grn.Id, gin.GRNId);
+        Assert.Equal("Good", gin.Condition);
+        Assert.Equal("Special checkout note", gin.Notes);
+    }
 }

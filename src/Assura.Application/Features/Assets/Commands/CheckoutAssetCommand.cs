@@ -115,6 +115,39 @@ public class CheckoutAssetCommandHandler : IRequestHandler<CheckoutAssetCommand,
         asset.Status = AssetStatus.InUse;
 
         _context.Requests.Add(checkoutRequest);
+
+        // Auto-generate a GIN (Goods Issue Note) upon checkout
+        var grn = await _context.GRNs
+            .FirstOrDefaultAsync(g => g.AssetId == asset.Id, cancellationToken);
+        if (grn == null && asset.PurchasingOrderId.HasValue)
+        {
+            grn = await _context.GRNs
+                .FirstOrDefaultAsync(g => g.PurchasingOrderId == asset.PurchasingOrderId.Value, cancellationToken);
+        }
+        if (grn == null)
+        {
+            grn = await _context.GRNs
+                .OrderByDescending(g => g.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (grn != null)
+        {
+            var ginNumber = $"GIN-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+            var gin = new GIN
+            {
+                GinNumber = ginNumber,
+                AssignedDate = DateTime.UtcNow,
+                Condition = "Good",
+                Notes = string.IsNullOrWhiteSpace(request.Notes)
+                    ? $"Issued upon checkout to {assignee.FirstName} {assignee.LastName} (Ref: {checkoutRequest.RequestNumber})"
+                    : request.Notes.Trim(),
+                GRNId = grn.Id,
+                AssetId = asset.Id
+            };
+            _context.GINs.Add(gin);
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return new CheckoutRecordDto
