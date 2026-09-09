@@ -306,4 +306,62 @@ public class CheckoutAvailabilityTests
         Assert.Equal("Good", gin.Condition);
         Assert.Equal("Special checkout note", gin.Notes);
     }
+
+    [Fact]
+    public async Task CheckoutAssetCommand_ShouldSupportPermanentAssignment_WithoutDueDate()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var employee = new User
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Email = "john.doe@example.com",
+            IsActive = true,
+            Role = UserRole.Employee,
+            Username = "johndoe"
+        };
+        db.Users.Add(employee);
+
+        var product = new Product { Name = "Permanent Office Laptop" };
+        var category = new Category { Name = "Computers" };
+        var division = new Division { Name = "Engineering" };
+        var supplier = new Supplier { Name = "Dell Tech" };
+        db.Products.Add(product);
+        db.Categories.Add(category);
+        db.Divisions.Add(division);
+        db.Suppliers.Add(supplier);
+
+        var asset = new Asset
+        {
+            AssetCode = "AST-PERM-01",
+            Product = product,
+            Category = category,
+            Division = division,
+            Supplier = supplier,
+            Status = AssetStatus.InStore,
+            AssignedUserId = null,
+        };
+        db.Assets.Add(asset);
+        await db.SaveChangesAsync();
+
+        var handler = new CheckoutAssetCommandHandler(db);
+        var command = new CheckoutAssetCommand(asset.Id, employee.Id, DueDate: null, Notes: "Permanent allocation", CheckedOutBy: "Storekeeper", IsPermanent: true);
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.True(result.IsPermanent);
+        Assert.Null(result.DueDate);
+        Assert.Equal("Assigned", result.Status);
+        Assert.Equal(employee.Id, asset.AssignedUserId);
+        Assert.Equal(AssetStatus.InUse, asset.Status);
+
+        // Verify GetCheckoutRecords returns Assigned status and IsPermanent
+        var queryHandler = new GetCheckoutRecordsQueryHandler(db);
+        var records = await queryHandler.Handle(new GetCheckoutRecordsQuery(asset.Id), CancellationToken.None);
+        Assert.Single(records);
+        Assert.True(records[0].IsPermanent);
+        Assert.Equal("Assigned", records[0].Status);
+        Assert.Null(records[0].DueDate);
+    }
 }

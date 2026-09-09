@@ -14,11 +14,18 @@ namespace Assura.Application.Features.Assets.Commands;
 /// Command to process the checkout of an asset to an employee.
 /// Contains the asset ID, assignee ID, due date, and checkout details.
 /// </summary>
-public record CheckoutAssetCommand(int AssetId, int AssigneeUserId, DateOnly DueDate, string? Notes, string? CheckedOutBy) : IRequest<CheckoutRecordDto>;
+public record CheckoutAssetCommand(
+    int AssetId, 
+    int AssigneeUserId, 
+    DateOnly? DueDate = null, 
+    string? Notes = null, 
+    string? CheckedOutBy = null,
+    bool IsPermanent = false) : IRequest<CheckoutRecordDto>;
 
 internal class CheckoutRecordMeta
 {
-    public DateOnly DueDate { get; set; }
+    public DateOnly? DueDate { get; set; }
+    public bool IsPermanent { get; set; }
     public string? CheckedOutBy { get; set; }
 }
 
@@ -33,8 +40,14 @@ public class CheckoutAssetCommandValidator : AbstractValidator<CheckoutAssetComm
             .GreaterThan(0);
 
         RuleFor(x => x.DueDate)
-            .Must(d => d >= DateOnly.FromDateTime(DateTime.UtcNow.Date))
-            .WithMessage("Due date cannot be in the past.");
+            .NotNull()
+            .WithMessage("Due date is required for temporary checkouts.")
+            .When(x => !x.IsPermanent);
+
+        RuleFor(x => x.DueDate)
+            .Must(d => d == null || d.Value >= DateOnly.FromDateTime(DateTime.UtcNow.Date))
+            .WithMessage("Due date cannot be in the past.")
+            .When(x => !x.IsPermanent && x.DueDate.HasValue);
 
         RuleFor(x => x.Notes)
             .MaximumLength(1000);
@@ -95,7 +108,8 @@ public class CheckoutAssetCommandHandler : IRequestHandler<CheckoutAssetCommand,
         var requestNumber = $"CHK-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
         var checkoutMeta = new CheckoutRecordMeta
         {
-            DueDate = request.DueDate,
+            DueDate = request.IsPermanent ? null : request.DueDate,
+            IsPermanent = request.IsPermanent,
             CheckedOutBy = string.IsNullOrWhiteSpace(request.CheckedOutBy) ? "Storekeeper" : request.CheckedOutBy.Trim()
         };
 
@@ -161,8 +175,9 @@ public class CheckoutAssetCommandHandler : IRequestHandler<CheckoutAssetCommand,
             Division = assignee.Division?.Name ?? "N/A",
             Email = assignee.Email,
             CheckoutDate = DateOnly.FromDateTime(checkoutRequest.CreatedAt).ToString("yyyy-MM-dd"),
-            DueDate = request.DueDate.ToString("yyyy-MM-dd"),
-            Status = RequestWorkflowStatus.CheckedOut,
+            DueDate = request.IsPermanent ? null : request.DueDate?.ToString("yyyy-MM-dd"),
+            IsPermanent = request.IsPermanent,
+            Status = request.IsPermanent ? "Assigned" : RequestWorkflowStatus.CheckedOut,
             CheckoutNotes = checkoutRequest.Description,
             CheckedOutBy = checkoutMeta.CheckedOutBy ?? "Storekeeper"
         };

@@ -84,7 +84,8 @@ public class AssetsController : BaseApiController
             request.AssigneeUserId,
             request.DueDate,
             request.Notes,
-            actorName));
+            actorName,
+            request.IsPermanent));
 
         return Ok(result);
     }
@@ -160,7 +161,8 @@ public class AssetsController : BaseApiController
     public class CheckoutRequest
     {
         public int AssigneeUserId { get; set; }
-        public DateOnly DueDate { get; set; }
+        public DateOnly? DueDate { get; set; }
+        public bool IsPermanent { get; set; }
         public string? Notes { get; set; }
     }
 

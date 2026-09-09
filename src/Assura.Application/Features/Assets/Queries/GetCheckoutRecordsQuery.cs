@@ -27,7 +27,8 @@ public class CheckoutRecordDto
     public string Division { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string CheckoutDate { get; set; } = string.Empty;
-    public string DueDate { get; set; } = string.Empty;
+    public string? DueDate { get; set; }
+    public bool IsPermanent { get; set; }
     public string? ReturnDate { get; set; }
     public string? Condition { get; set; }
     public string? DamageSeverity { get; set; }
@@ -49,6 +50,7 @@ public class CheckoutRecordDto
 internal class CheckoutRecordMeta
 {
     public DateOnly? DueDate { get; set; }
+    public bool IsPermanent { get; set; }
     public string? Condition { get; set; }
     public string? DamageSeverity { get; set; }
     public bool RepairNeeded { get; set; }
@@ -102,8 +104,9 @@ public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecords
             .Select(r =>
             {
                 var meta = ParseMeta(r.Remarks);
+                var isPermanent = meta?.IsPermanent ?? false;
                 var dueDate = meta?.DueDate;
-                var status = NormalizeStatus(r.Status, dueDate, today);
+                var status = NormalizeStatus(r.Status, dueDate, today, isPermanent);
 
                 return new CheckoutRecordDto
                 {
@@ -116,7 +119,8 @@ public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecords
                     Division = r.Requester?.Division?.Name ?? "N/A",
                     Email = r.Requester?.Email ?? string.Empty,
                     CheckoutDate = DateOnly.FromDateTime(r.CreatedAt).ToString("yyyy-MM-dd"),
-                    DueDate = dueDate?.ToString("yyyy-MM-dd") ?? DateOnly.FromDateTime(r.CreatedAt).ToString("yyyy-MM-dd"),
+                    DueDate = isPermanent ? null : (dueDate?.ToString("yyyy-MM-dd") ?? DateOnly.FromDateTime(r.CreatedAt).ToString("yyyy-MM-dd")),
+                    IsPermanent = isPermanent,
                     ReturnDate = status == "Returned" ? DateOnly.FromDateTime(r.UpdatedAt ?? r.CreatedAt).ToString("yyyy-MM-dd") : null,
                     Condition = meta?.Condition,
                     DamageSeverity = meta?.DamageSeverity,
@@ -159,11 +163,16 @@ public class GetCheckoutRecordsQueryHandler : IRequestHandler<GetCheckoutRecords
     /// Dynamically determines the display status of a checkout record.
     /// If the persisted status is "Checked Out" but the due date has passed, returns "Overdue".
     /// </summary>
-    private static string NormalizeStatus(string? persistedStatus, DateOnly? dueDate, DateOnly today)
+    private static string NormalizeStatus(string? persistedStatus, DateOnly? dueDate, DateOnly today, bool isPermanent)
     {
         if (string.Equals(persistedStatus, "Returned", StringComparison.OrdinalIgnoreCase))
         {
             return "Returned";
+        }
+
+        if (isPermanent)
+        {
+            return "Assigned";
         }
 
         if (dueDate.HasValue && dueDate.Value < today)
