@@ -46,7 +46,7 @@ public class GetAvailableAssetsForCheckoutQueryHandler : IRequestHandler<GetAvai
             .AsNoTracking()
             .Include(a => a.Product)
             .Include(a => a.Category)
-            .Where(a => a.Status == AssetStatus.InStore && a.ReservedForUserId == null && a.AssignedUserId == null)
+            .Where(a => (a.Status == AssetStatus.InStore || (int)a.Status == 0) && a.ReservedForUserId == null && a.AssignedUserId == null)
             .Select(a => new AvailableCheckoutAssetDto
             {
                 Id = a.Id,

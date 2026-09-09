@@ -75,7 +75,7 @@ public class CheckoutAssetCommandHandler : IRequestHandler<CheckoutAssetCommand,
             throw new ValidationException("Assignee user not found or inactive.");
         }
 
-        if (asset.Status != AssetStatus.InStore || asset.AssignedUserId != null)
+        if ((asset.Status != AssetStatus.InStore && (int)asset.Status != 0) || asset.AssignedUserId != null)
         {
             throw new ValidationException("Asset is no longer available for checkout.");
         }

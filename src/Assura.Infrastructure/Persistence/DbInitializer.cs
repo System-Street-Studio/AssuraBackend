@@ -114,6 +114,12 @@ public static class DbInitializer
                     ai.Status = "GRN Recorded";
                 }
 
+                var zeroStatusAssets = await context.Assets.IgnoreQueryFilters().Where(a => (int)a.Status == 0).ToListAsync();
+                foreach (var a in zeroStatusAssets)
+                {
+                    a.Status = a.AssignedUserId.HasValue && a.AssignedUserId.Value > 0 ? AssetStatus.InUse : AssetStatus.InStore;
+                }
+
                 await context.SaveChangesAsync();
             }
             catch

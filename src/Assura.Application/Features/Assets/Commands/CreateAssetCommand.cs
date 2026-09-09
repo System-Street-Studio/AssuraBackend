@@ -1,6 +1,7 @@
 using Assura.Application.Common.Interfaces;
 using Assura.Application.DTOs;
 using Assura.Domain.Entities;
+using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using QRCoder;
@@ -38,7 +39,9 @@ public class CreateAssetCommandHandler : IRequestHandler<CreateAssetCommand, Ass
             AssetCode = code,
             AssetTag = request.Asset.AssetTag,
             AssetDate = request.Asset.AssetDate,
-            Status = request.Asset.Status,
+            Status = (int)request.Asset.Status == 0
+                ? (request.Asset.AssignedUserId.HasValue && request.Asset.AssignedUserId.Value > 0 ? AssetStatus.InUse : AssetStatus.InStore)
+                : request.Asset.Status,
             SerialNumber = request.Asset.SerialNumber,
             PurchaseValue = request.Asset.PurchaseValue,
             Warranty = request.Asset.Warranty,
