@@ -1,6 +1,7 @@
 using Assura.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Assura.Domain.Constants;
 using Assura.Domain.Enums;
 
 namespace Assura.Application.Features.Assets.Queries;
@@ -26,10 +27,9 @@ public class AvailableCheckoutAssetDto
 
 /// <summary>
 /// Handler for <see cref="GetAvailableAssetsForCheckoutQuery"/>.
-/// Filters assets where Status is InStore, ReservedForUserId is null, and
-/// AssignedUserId is null — matching the eligibility check in
-/// <see cref="Commands.CheckoutAssetCommandHandler"/> exactly, so every asset
-/// offered here can actually be checked out.
+/// Filters assets where Status is InStore or legacy 0, not reserved, and
+/// not currently active in a checkout request, so that in-store assets
+/// (including those earmarked for a PO or employee) are available for checkout.
 /// </summary>
 public class GetAvailableAssetsForCheckoutQueryHandler : IRequestHandler<GetAvailableAssetsForCheckoutQuery, List<AvailableCheckoutAssetDto>>
 {
@@ -42,11 +42,23 @@ public class GetAvailableAssetsForCheckoutQueryHandler : IRequestHandler<GetAvai
 
     public async Task<List<AvailableCheckoutAssetDto>> Handle(GetAvailableAssetsForCheckoutQuery request, CancellationToken cancellationToken)
     {
+        var checkedOutAssetIds = await _context.Requests
+            .AsNoTracking()
+            .Where(r => r.AssetId != null && r.Status == RequestWorkflowStatus.CheckedOut)
+            .Select(r => r.AssetId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
         return await _context.Assets
             .AsNoTracking()
             .Include(a => a.Product)
             .Include(a => a.Category)
-            .Where(a => (a.Status == AssetStatus.InStore || (int)a.Status == 0) && a.ReservedForUserId == null && a.AssignedUserId == null)
+            .Where(a => !a.IsDeleted &&
+                        (a.Status == AssetStatus.InStore || (int)a.Status == 0) &&
+                        a.ReservedForUserId == null &&
+                        a.AssignedUserId == null &&
+                        !checkedOutAssetIds.Contains(a.Id))
+            .OrderBy(a => a.AssetCode)
             .Select(a => new AvailableCheckoutAssetDto
             {
                 Id = a.Id,

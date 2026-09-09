@@ -196,4 +196,51 @@ public class CheckoutAvailabilityTests
         Assert.NotNull(created);
         Assert.Equal(AssetStatus.InStore, created.Status);
     }
+
+    [Fact]
+    public async Task CheckoutAssetCommand_ShouldAllowCheckout_WhenAssetIsEarmarkedForAssignee()
+    {
+        using var db = TestContextFactory.CreateContext();
+
+        var product = new Product { Name = "Samsung A15" };
+        var category = new Category { Name = "Mobile" };
+        var division = new Division { Name = "Sales" };
+        db.Products.Add(product);
+        db.Categories.Add(category);
+        db.Divisions.Add(division);
+
+        var employee = new User
+        {
+            Username = "emp_target",
+            FirstName = "Target",
+            LastName = "Employee",
+            Email = "target@assura.com",
+            Division = division,
+            IsActive = true
+        };
+        db.Users.Add(employee);
+        await db.SaveChangesAsync();
+
+        // Asset arrived from PO and is marked InStore with AssignedUserId tentatively matching the target employee
+        var asset = new Asset
+        {
+            AssetCode = "AST-20260909-3970",
+            Product = product,
+            Category = category,
+            Status = AssetStatus.InStore,
+            AssignedUserId = employee.Id,
+        };
+        db.Assets.Add(asset);
+        await db.SaveChangesAsync();
+
+        var handler = new CheckoutAssetCommandHandler(db);
+        var command = new CheckoutAssetCommand(asset.Id, employee.Id, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)), null, null);
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        Assert.NotNull(result);
+        var updated = await db.Assets.FindAsync(asset.Id);
+        Assert.NotNull(updated);
+        Assert.Equal(AssetStatus.InUse, updated.Status);
+        Assert.Equal(employee.Id, updated.AssignedUserId);
+    }
 }

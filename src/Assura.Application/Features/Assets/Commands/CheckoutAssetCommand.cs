@@ -75,9 +75,21 @@ public class CheckoutAssetCommandHandler : IRequestHandler<CheckoutAssetCommand,
             throw new ValidationException("Assignee user not found or inactive.");
         }
 
-        if ((asset.Status != AssetStatus.InStore && (int)asset.Status != 0) || asset.AssignedUserId != null)
+        if ((asset.Status != AssetStatus.InStore && (int)asset.Status != 0) && !(asset.Status == AssetStatus.InUse && asset.AssignedUserId == assignee.Id))
         {
             throw new ValidationException("Asset is no longer available for checkout.");
+        }
+
+        var activeCheckout = await _context.Requests
+            .AnyAsync(r => r.AssetId == asset.Id && r.Status == RequestWorkflowStatus.CheckedOut, cancellationToken);
+        if (activeCheckout)
+        {
+            throw new ValidationException($"Asset {asset.AssetCode} is already checked out.");
+        }
+
+        if (asset.AssignedUserId.HasValue && asset.AssignedUserId.Value != assignee.Id)
+        {
+            throw new ValidationException($"Asset {asset.AssetCode} is already assigned to another user.");
         }
 
         var requestNumber = $"CHK-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
