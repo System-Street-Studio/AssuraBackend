@@ -95,6 +95,14 @@ public static class DependencyInjection
 
             options.Events = new JwtBearerEvents
             {
+                OnMessageReceived = context =>
+                {
+                    if (context.Request.Cookies.TryGetValue("access_token", out var cookieToken) && !string.IsNullOrWhiteSpace(cookieToken))
+                    {
+                        context.Token = cookieToken;
+                    }
+                    return Task.CompletedTask;
+                },
                 OnTokenValidated = async context =>
                 {
                     var dbContext = context.HttpContext.RequestServices.GetRequiredService<IApplicationDbContext>();

@@ -58,9 +58,12 @@ public class AuthController : ControllerBase
     {
         try {
             var result = await _mediator.Send(command);
-            return result != null
-                ? Ok(result)
-                : Unauthorized(new { Message = "Invalid username or password." });
+            if (result != null && !string.IsNullOrEmpty(result.Token))
+            {
+                SetTokenCookie(result.Token);
+                return Ok(result);
+            }
+            return Unauthorized(new { Message = "Invalid username or password." });
         } catch (UnauthorizedAccessException ex) {
             return Unauthorized(new { Message = ex.Message });
         }
@@ -76,6 +79,7 @@ public class AuthController : ControllerBase
         {
             await _identifyServices.LogoutAsync(userId);
         }
+        ClearTokenCookie();
         return Ok(new { Message = "Logged out successfully." });
     }
 
@@ -123,7 +127,35 @@ public class AuthController : ControllerBase
         });
 
         if (!result.Success) return BadRequest(new { Message = result.Error });
+        if (!string.IsNullOrEmpty(result.Token))
+        {
+            SetTokenCookie(result.Token);
+        }
         return Ok(new { token = result.Token });
+    }
+
+    private void SetTokenCookie(string token)
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddHours(8)
+        };
+        Response.Cookies.Append("access_token", token, cookieOptions);
+    }
+
+    private void ClearTokenCookie()
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddDays(-1)
+        };
+        Response.Cookies.Delete("access_token", cookieOptions);
     }
 }
 
