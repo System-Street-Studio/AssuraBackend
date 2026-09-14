@@ -56,11 +56,37 @@ public static class DbInitializer
 
         try
         {
-            // Ensure required columns exist on MySQL database tables safely
+            // Ensure required columns exist on MySQL database tables safely (defensive schema self-healing against migration drift)
+            await AddColumnIfNotExistsAsync(context, "Users", "RequiresOnboarding", "TINYINT(1) NOT NULL DEFAULT 0");
             await AddColumnIfNotExistsAsync(context, "Users", "CurrentSessionId", "LONGTEXT NULL");
+
+            await AddColumnIfNotExistsAsync(context, "Requests", "PurchasingOrderId", "INT NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "AssetName", "LONGTEXT NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "AssetCategory", "LONGTEXT NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "Quantity", "INT NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "Reason", "LONGTEXT NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "RejectionReason", "LONGTEXT NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "ProcessedByName", "LONGTEXT NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "ProcessorRemarks", "LONGTEXT NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "ProcessedAt", "DATETIME(6) NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "SubmittedDate", "DATETIME(6) NULL");
+            await AddColumnIfNotExistsAsync(context, "Requests", "DivisionId", "INT NULL");
+
+            await AddColumnIfNotExistsAsync(context, "AssetRequests", "PurchasingOrderId", "INT NULL");
+
+            await AddColumnIfNotExistsAsync(context, "AssetAttachments", "RequestId", "INT NULL");
+            await AddColumnIfNotExistsAsync(context, "AssetAttachments", "AssetRequestId", "INT NULL");
+
             await AddColumnIfNotExistsAsync(context, "AccPendingItems", "SoldPrice", "DECIMAL(18,2) NULL");
+            await AddColumnIfNotExistsAsync(context, "AccPendingItems", "BuyerId", "INT NULL");
             await AddColumnIfNotExistsAsync(context, "AccDiscardedItems", "BuyerId", "INT NULL");
             await AddColumnIfNotExistsAsync(context, "AccDiscardedItems", "SoldPrice", "DECIMAL(18,2) NULL");
+
+            await AddColumnIfNotExistsAsync(context, "LostItems", "AssetId", "INT NULL");
+            await AddColumnIfNotExistsAsync(context, "Buyers", "AccDiscardedItemId", "INT NULL");
+            await AddColumnIfNotExistsAsync(context, "AssetInformings", "PurchasingOrderId", "INT NULL");
+            await AddColumnIfNotExistsAsync(context, "AssetInformings", "AssetId", "INT NULL");
+            await AddColumnIfNotExistsAsync(context, "Transfers", "ExpectedReturnDate", "DATETIME(6) NULL");
 
             // Ensure the database schema is up to date
             try

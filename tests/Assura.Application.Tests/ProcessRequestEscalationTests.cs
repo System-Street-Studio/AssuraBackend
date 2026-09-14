@@ -86,12 +86,12 @@ public class ProcessRequestEscalationTests
         Assert.NotNull(notif);
         Assert.Contains("Office Desk", notif!.Message);
 
-        // 3. Verify GetPendingAssetRequestsQuery (Procurement PO queue) includes this request with negated ID
+        // 3. Verify GetPendingAssetRequestsQuery (Procurement PO queue) includes this request with positive ID
         var pendingHandler = new GetPendingAssetRequestsQueryHandler(db);
         var queue = await pendingHandler.Handle(new GetPendingAssetRequestsQuery(), CancellationToken.None);
 
         var queueItem = Assert.Single(queue);
-        Assert.Equal(-assetReq.Id, queueItem.Id);
+        Assert.Equal(assetReq.Id, queueItem.Id);
         Assert.Equal("Office Desk", queueItem.AssetName);
         Assert.Equal("New Asset", queueItem.Type);
     }

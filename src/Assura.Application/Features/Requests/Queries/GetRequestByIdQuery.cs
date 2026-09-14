@@ -37,19 +37,66 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
-        // Negative ID means this is an AssetRequest record
-        if (request.Id < 0)
+        var targetId = Math.Abs(request.Id);
+
+        // 1. Check unified Requests table first
+        var entity = await _context.Requests
+            .AsNoTracking()
+            .Include(r => r.Requester)
+            .Include(r => r.Requester.Division)
+            .Include(r => r.Division)
+            .Include(r => r.Asset)
+            .Include(r => r.Asset!.AssignedUser)
+            .Include(r => r.Attachments)
+            .FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
+
+        if (entity != null)
         {
-            var actualId = Math.Abs(request.Id);
-            var ar = await _context.AssetRequests
-                .AsNoTracking()
-                .Include(a => a.User)
-                .Include(a => a.Division)
-                .Include(a => a.Asset!.AssignedUser)
-                .FirstOrDefaultAsync(a => a.Id == actualId, cancellationToken);
+            if (request.Role == UserRole.DivisionHead)
+            {
+                var reqDivisionId = entity.DivisionId ?? entity.Requester?.DivisionId;
+                var inHeadDivision = headDivisionId.HasValue &&
+                    (reqDivisionId == headDivisionId.Value ||
+                     (entity.Type == RequestType.Transfer && entity.Asset != null && entity.Asset.DivisionId == headDivisionId.Value));
 
-            if (ar == null) return null;
+                if (!inHeadDivision) return null;
+            }
+            else if (!isPrivileged && (!request.UserId.HasValue || entity.RequesterId != request.UserId.Value))
+            {
+                return null;
+            }
 
+            return new RequestDto
+            {
+                Id = entity.Id,
+                RequesterId = entity.RequesterId,
+                RequestNumber = entity.RequestNumber,
+                Type = entity.Type.ToString(),
+                Priority = entity.Priority.ToString(),
+                Description = entity.Description ?? entity.Reason,
+                Status = entity.Status,
+                CreatedAt = entity.CreatedAt,
+                RequesterName = entity.Requester != null ? $"{entity.Requester.FirstName} {entity.Requester.LastName}" : "N/A",
+                Department = entity.Division != null ? entity.Division.Name : (entity.Requester?.Division != null ? entity.Requester.Division.Name : "N/A"),
+                AssetName = entity.AssetName ?? entity.Asset?.AssetCode,
+                AssetCode = entity.Asset?.AssetCode,
+                AssetDivisionName = entity.Division != null ? entity.Division.Name : (entity.Asset != null && entity.Asset.Division != null ? entity.Asset.Division.Name : null),
+                AssigneeName = entity.Asset != null && entity.Asset.AssignedUser != null
+                    ? $"{entity.Asset.AssignedUser.FirstName} {entity.Asset.AssignedUser.LastName}"
+                    : null
+            };
+        }
+
+        // 2. Fallback to legacy AssetRequests if not found in Requests
+        var ar = await _context.AssetRequests
+            .AsNoTracking()
+            .Include(a => a.User)
+            .Include(a => a.Division)
+            .Include(a => a.Asset!.AssignedUser)
+            .FirstOrDefaultAsync(a => a.Id == targetId, cancellationToken);
+
+        if (ar != null)
+        {
             if (request.Role == UserRole.DivisionHead)
             {
                 if (headDivisionId == null || ar.DivisionId != headDivisionId) return null;
@@ -61,7 +108,7 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
 
             return new RequestDto
             {
-                Id = -ar.Id,
+                Id = ar.Id,
                 RequesterId = ar.UserId ?? 0,
                 RequestNumber = $"AR-{ar.Id}",
                 Type = ar.RequestType ?? "Asset",
@@ -72,47 +119,14 @@ public class GetRequestByIdQueryHandler : IRequestHandler<GetRequestByIdQuery, R
                 RequesterName = ar.RequesterName ?? "N/A",
                 Department = ar.Division?.Name ?? "N/A",
                 AssetName = ar.AssetName,
+                AssetCode = null,
+                AssetDivisionName = ar.Division?.Name,
                 AssigneeName = ar.Asset != null && ar.Asset.AssignedUser != null
                     ? $"{ar.Asset.AssignedUser.FirstName} {ar.Asset.AssignedUser.LastName}"
                     : null
             };
         }
 
-        var entity = await _context.Requests
-            .AsNoTracking()
-            .Include(r => r.Requester)
-            .Include(r => r.Requester.Division)
-            .Include(r => r.Asset)
-            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-        if (entity == null) return null;
-
-        if (request.Role == UserRole.DivisionHead)
-        {
-            var inHeadDivision = headDivisionId.HasValue &&
-                (entity.Requester.DivisionId == headDivisionId.Value ||
-                 (entity.Type == RequestType.Transfer && entity.Asset != null && entity.Asset.DivisionId == headDivisionId.Value));
-
-            if (!inHeadDivision) return null;
-        }
-        else if (!isPrivileged && (!request.UserId.HasValue || entity.RequesterId != request.UserId.Value))
-        {
-            return null;
-        }
-
-        return new RequestDto
-        {
-            Id = entity.Id,
-            RequesterId = entity.RequesterId,
-            RequestNumber = entity.RequestNumber,
-            Type = entity.Type.ToString(),
-            Priority = entity.Priority.ToString(),
-            Description = entity.Description,
-            Status = entity.Status,
-            CreatedAt = entity.CreatedAt,
-            RequesterName = $"{entity.Requester.FirstName} {entity.Requester.LastName}",
-            Department = entity.Requester.Division != null ? entity.Requester.Division.Name : "N/A",
-            AssetName = entity.Asset != null ? entity.Asset.AssetCode : null
-        };
+        return null;
     }
 }

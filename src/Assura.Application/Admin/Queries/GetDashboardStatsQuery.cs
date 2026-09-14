@@ -27,19 +27,30 @@ public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQu
         // Assets by Division - Ensure all divisions from Seed are present
         var divisions = await _context.Divisions.Select(d => d.Name).ToListAsync(cancellationToken);
         var assetsByDivisionRaw = await _context.Assets
-            .GroupBy(a => a.Division.Name)
+            .GroupBy(a => a.Division != null ? a.Division.Name : "Unassigned")
             .Select(g => new { Label = g.Key, Count = g.Count(), Value = g.Sum(a => a.PurchaseValue) })
             .ToListAsync(cancellationToken);
 
-        stats.AssetsByDivision = divisions.Select(name => {
-            var raw = assetsByDivisionRaw.FirstOrDefault(x => x.Label == name);
-            return new StatItemDto
-            {
-                Label = name,
-                Count = raw?.Count ?? 0,
-                Value = (raw?.Count ?? 0) * 50000m // Temporary dummy value for verification
-            };
+        var divisionMap = assetsByDivisionRaw.ToDictionary(x => x.Label, x => x);
+
+        var divisionStats = divisions.Select(name => new StatItemDto
+        {
+            Label = name,
+            Count = divisionMap.TryGetValue(name, out var raw) ? raw.Count : 0,
+            Value = divisionMap.TryGetValue(name, out var r) ? r.Value : 0m
         }).ToList();
+
+        if (divisionMap.TryGetValue("Unassigned", out var unassigned) && unassigned.Count > 0)
+        {
+            divisionStats.Add(new StatItemDto
+            {
+                Label = "Unassigned",
+                Count = unassigned.Count,
+                Value = unassigned.Value
+            });
+        }
+
+        stats.AssetsByDivision = divisionStats;
 
         // Assets by Category - Ensure all categories from Seed are present
         var categories = await _context.Categories.Select(c => c.Name).ToListAsync(cancellationToken);
@@ -54,13 +65,13 @@ public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQu
             Count = assetsByCategoryRaw.FirstOrDefault(x => x.Label == name)?.Count ?? 0
         }).ToList();
 
-        // Assets by Status - Ensure all statuses from the image are represented
+        // Assets by Status - Ensure all statuses are accurately represented
         var assetsByStatusRaw = await _context.Assets
             .GroupBy(a => a.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
 
-        var statuses = new[] { AssetStatus.InUse, AssetStatus.InStore, AssetStatus.UnderMaintenance, AssetStatus.Discarded };
+        var statuses = Enum.GetValues<AssetStatus>();
         
         stats.AssetsByStatus = statuses.Select(status => new StatItemDto
         {
@@ -70,6 +81,8 @@ public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQu
                 AssetStatus.InStore => "In Store",
                 AssetStatus.UnderMaintenance => "Under Maintenance",
                 AssetStatus.Discarded => "Discarded",
+                AssetStatus.Transferred => "Transferred",
+                AssetStatus.Lost => "Lost",
                 _ => status.ToString()
             },
             Count = assetsByStatusRaw.FirstOrDefault(x => x.Status == status)?.Count ?? 0

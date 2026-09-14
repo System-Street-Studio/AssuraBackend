@@ -39,6 +39,7 @@ public interface IApplicationDbContext
     DbSet<UserDivisionRole> UserDivisionRoles { get; }
     DbSet<TransferApproval> TransferApprovals { get; }
     DbSet<CustomReport> CustomReports { get; }
+    DbSet<AssetAttachment> AssetAttachments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

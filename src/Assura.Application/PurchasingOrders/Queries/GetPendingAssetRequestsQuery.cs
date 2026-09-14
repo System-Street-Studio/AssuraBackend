@@ -40,6 +40,8 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
             })
             .ToListAsync(cancellationToken);
 
+        var existingReqIds = new HashSet<int>(requestsList.Select(r => r.Id));
+
         var assetRequestsList = await _context.AssetRequests
             .Include(x => x.User)
                 .ThenInclude(u => u.Division)
@@ -48,7 +50,7 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
             .OrderByDescending(x => x.SubmittedDate)
             .Select(x => new AssetRequestDto
             {
-                Id = -x.Id,
+                Id = x.Id, // Positive ID
                 EmployeeName = x.RequesterName,
                 DivisionName = x.Division != null ? x.Division.Name : (x.User != null && x.User.Division != null ? x.User.Division.Name : "N/A"),
                 Date = x.SubmittedDate,
@@ -61,7 +63,7 @@ public class GetPendingAssetRequestsQueryHandler : IRequestHandler<GetPendingAss
             })
             .ToListAsync(cancellationToken);
 
-        return requestsList.Concat(assetRequestsList)
+        return requestsList.Concat(assetRequestsList.Where(ar => !existingReqIds.Contains(ar.Id)))
             .OrderByDescending(x => x.Date)
             .ToList();
     }

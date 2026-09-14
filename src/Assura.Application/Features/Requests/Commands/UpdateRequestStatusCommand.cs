@@ -54,63 +54,61 @@ public class UpdateRequestStatusCommandHandler : IRequestHandler<UpdateRequestSt
             throw new UnauthorizedAccessException("Only Storekeeper, Procurement, or Admin may update a request's status.");
         }
 
-        // Negative ID means this is an AssetRequest record (from the unified /requests list) —
-        // matches the fallback ProcessRequestCommand/ConfirmTemporaryAssignmentCommand already use.
-        if (request.Id < 0)
+        var targetId = Math.Abs(request.Id);
+
+        var entity = await _context.Requests
+            .FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
+
+        if (entity != null)
         {
-            var actualId = Math.Abs(request.Id);
-            var assetRequest = await _context.AssetRequests
-                .FirstOrDefaultAsync(ar => ar.Id == actualId, cancellationToken);
-
-            if (assetRequest == null) return;
-
-            assetRequest.Status = request.Status == RequestWorkflowStatus.Approved
-                ? RequestStatus.Approved
-                : RequestStatus.Rejected;
-
+            entity.Status = request.Status;
             if (!string.IsNullOrEmpty(request.Notes))
             {
-                assetRequest.Reason = (assetRequest.Reason ?? "") + " (Remarks: " + request.Notes + ")";
+                entity.Remarks = request.Notes;
             }
 
-            int? requesterIdVal = assetRequest.UserId;
-            if (!requesterIdVal.HasValue && int.TryParse(assetRequest.RequesterId, out var rid))
-            {
-                requesterIdVal = rid;
-            }
-
+            // Add a notification for the requester
             _context.Notifications.Add(new Notification
             {
                 Title = $"Request {request.Status}",
-                Message = $"Your request for '{assetRequest.AssetName}' has been {request.Status.ToLower()}.",
-                UserId = requesterIdVal ?? 0,
+                Message = $"Your request {entity.RequestNumber} has been {request.Status.ToLower()}.",
+                UserId = entity.RequesterId,
                 Type = request.Status == RequestWorkflowStatus.Approved ? "Success" : "Error",
-                ReferenceId = assetRequest.Id.ToString()
+                ReferenceId = entity.Id.ToString()
             });
 
             await _context.SaveChangesAsync(cancellationToken);
             return;
         }
 
-        var entity = await _context.Requests
-            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        // Fallback to AssetRequests for legacy/test records
+        var assetRequest = await _context.AssetRequests
+            .FirstOrDefaultAsync(ar => ar.Id == targetId, cancellationToken);
 
-        if (entity == null) return;
+        if (assetRequest == null) return;
 
-        entity.Status = request.Status;
+        assetRequest.Status = request.Status == RequestWorkflowStatus.Approved
+            ? RequestStatus.Approved
+            : RequestStatus.Rejected;
+
         if (!string.IsNullOrEmpty(request.Notes))
         {
-            entity.Remarks = request.Notes;
+            assetRequest.Reason = (assetRequest.Reason ?? "") + " (Remarks: " + request.Notes + ")";
         }
 
-        // Add a notification for the requester
+        int? requesterIdVal = assetRequest.UserId;
+        if (!requesterIdVal.HasValue && int.TryParse(assetRequest.RequesterId, out var rid))
+        {
+            requesterIdVal = rid;
+        }
+
         _context.Notifications.Add(new Notification
         {
             Title = $"Request {request.Status}",
-            Message = $"Your request {entity.RequestNumber} has been {request.Status.ToLower()}.",
-            UserId = entity.RequesterId,
+            Message = $"Your request for '{assetRequest.AssetName}' has been {request.Status.ToLower()}.",
+            UserId = requesterIdVal ?? 0,
             Type = request.Status == RequestWorkflowStatus.Approved ? "Success" : "Error",
-            ReferenceId = entity.Id.ToString()
+            ReferenceId = assetRequest.Id.ToString()
         });
 
         await _context.SaveChangesAsync(cancellationToken);

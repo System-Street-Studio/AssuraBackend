@@ -27,8 +27,25 @@ public class Request : BaseEntity
     public int RequesterId { get; set; }
     public User Requester { get; set; } = null!;
 
+    public int? DivisionId { get; set; }
+    public Division? Division { get; set; }
+
     public int? AssetId { get; set; }
     public Asset? Asset { get; set; }
+
+    // Unified request properties (consolidated from AssetRequest)
+    public string? AssetName { get; set; }
+    public string? AssetCategory { get; set; }
+    public int? Quantity { get; set; }
+    public string? Reason { get; set; }
+    public string? RejectionReason { get; set; }
+    public string? ProcessedByName { get; set; }
+    public string? ProcessorRemarks { get; set; }
+    public DateTime? ProcessedAt { get; set; }
+    public DateTime? SubmittedDate { get; set; }
+
+    // Attachments for the request
+    public ICollection<AssetAttachment> Attachments { get; set; } = new List<AssetAttachment>();
 
     // Set when Procurement raises a Purchasing Order against this request (see
     // CreatePurchasingOrderCommand). Lets asset registration for that PO (CreateAssetCommand)

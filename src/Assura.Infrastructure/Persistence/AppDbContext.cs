@@ -50,6 +50,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<UserDivisionRole> UserDivisionRoles => Set<UserDivisionRole>();
     public DbSet<TransferApproval> TransferApprovals => Set<TransferApproval>();
     public DbSet<CustomReport> CustomReports => Set<CustomReport>();
+    public DbSet<AssetAttachment> AssetAttachments => Set<AssetAttachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

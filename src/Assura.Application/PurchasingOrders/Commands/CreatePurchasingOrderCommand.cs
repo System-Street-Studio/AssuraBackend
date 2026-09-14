@@ -71,10 +71,20 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
         // so the originating request actually gets marked Approved and drops out of the queue.
         if (request.RequestId.HasValue)
         {
-            if (request.RequestId.Value < 0)
+            var targetId = Math.Abs(request.RequestId.Value);
+            var req = await _context.Requests.Include(r => r.Requester).FirstOrDefaultAsync(r => r.Id == targetId && r.Status == Assura.Domain.Constants.RequestWorkflowStatus.PendingProcurement, cancellationToken);
+            if (req != null)
             {
-                var actualId = Math.Abs(request.RequestId.Value);
-                var assetReq = await _context.AssetRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == actualId && r.Status == Assura.Domain.Enums.RequestStatus.PendingProcurement, cancellationToken);
+                req.Status = Assura.Domain.Constants.RequestWorkflowStatus.Approved;
+                if (!divisionId.HasValue)
+                {
+                    divisionId = req.DivisionId ?? req.Requester?.DivisionId;
+                }
+                linkedRequest = req;
+            }
+            else
+            {
+                var assetReq = await _context.AssetRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == targetId && r.Status == Assura.Domain.Enums.RequestStatus.PendingProcurement, cancellationToken);
                 if (assetReq != null)
                 {
                     assetReq.Status = Assura.Domain.Enums.RequestStatus.Approved;
@@ -83,19 +93,6 @@ public class CreatePurchasingOrderCommandHandler : IRequestHandler<CreatePurchas
                         divisionId = assetReq.DivisionId ?? assetReq.User?.DivisionId;
                     }
                     linkedAssetRequest = assetReq;
-                }
-            }
-            else
-            {
-                var req = await _context.Requests.Include(r => r.Requester).FirstOrDefaultAsync(r => r.Id == request.RequestId.Value && r.Status == Assura.Domain.Constants.RequestWorkflowStatus.PendingProcurement, cancellationToken);
-                if (req != null)
-                {
-                    req.Status = Assura.Domain.Constants.RequestWorkflowStatus.Approved;
-                    if (!divisionId.HasValue && req.Requester != null)
-                    {
-                        divisionId = req.Requester.DivisionId;
-                    }
-                    linkedRequest = req;
                 }
             }
         }

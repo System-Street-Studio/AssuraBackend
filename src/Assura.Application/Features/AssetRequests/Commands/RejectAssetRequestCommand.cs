@@ -1,5 +1,6 @@
 using MediatR;
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
 using Assura.Domain.Enums;
 using Assura.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -23,8 +24,49 @@ public class RejectAssetRequestHandler : IRequestHandler<RejectAssetRequestComma
 
     public async Task<RejectAssetRequestResult> Handle(RejectAssetRequestCommand request, CancellationToken cancellationToken)
     {
-        var entity = await _context.AssetRequests.FindAsync(new object[] { request.Id }, cancellationToken);
-        if (entity == null) return RejectAssetRequestResult.NotFound;
+        var targetId = Math.Abs(request.Id);
+        var entity = await _context.AssetRequests.FindAsync(new object[] { targetId }, cancellationToken);
+        if (entity == null)
+        {
+            var reqEntity = await _context.Requests.Include(r => r.Requester).FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
+            if (reqEntity == null) return RejectAssetRequestResult.NotFound;
+
+            if (reqEntity.Status != RequestWorkflowStatus.PendingDivisionHeadApproval && reqEntity.Status != "Pending")
+            {
+                return RejectAssetRequestResult.InvalidStatus;
+            }
+
+            if (!request.IsAdmin)
+            {
+                var caller = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+                var reqDivisionId = reqEntity.DivisionId ?? reqEntity.Requester?.DivisionId;
+                if (caller?.DivisionId == null || reqDivisionId == null || caller.DivisionId != reqDivisionId)
+                {
+                    return RejectAssetRequestResult.Forbidden;
+                }
+            }
+
+            reqEntity.Status = RequestWorkflowStatus.Rejected;
+            reqEntity.DivisionHeadReviewerId = request.UserId;
+            reqEntity.DivisionHeadReviewedAt = DateTime.UtcNow;
+            reqEntity.RejectionReason = request.Reason;
+            if (!string.IsNullOrEmpty(request.Reason))
+            {
+                reqEntity.Remarks = request.Reason;
+            }
+
+            _context.Notifications.Add(new Notification
+            {
+                Title = "Request Rejected",
+                Message = $"Your request {reqEntity.RequestNumber} was rejected by the division head.",
+                UserId = reqEntity.RequesterId,
+                Type = "Error",
+                ReferenceId = reqEntity.Id.ToString()
+            });
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return RejectAssetRequestResult.Success;
+        }
 
         // Only a still-pending request can be rejected — see ApproveAssetRequestHandler
         // for why re-deciding an already-resolved request is disallowed.

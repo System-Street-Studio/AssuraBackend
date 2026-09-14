@@ -10,7 +10,11 @@ public class AssetAttachment
     public string FileType { get; set; } = string.Empty;
     public DateTime UploadedDate { get; set; }
 
-    // Relationship with AssetRequest
+    // Relationship with AssetRequest (legacy)
     public int? AssetRequestId { get; set; }
     public AssetRequest? AssetRequest { get; set; }
+
+    // Relationship with Request (unified)
+    public int? RequestId { get; set; }
+    public Request? Request { get; set; }
 }

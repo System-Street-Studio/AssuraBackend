@@ -27,28 +27,118 @@ public record ReviewRequestByDivisionHeadCommand : IRequest<ReviewRequestByDivis
 public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewRequestByDivisionHeadCommand, ReviewRequestByDivisionHeadResult>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IPublisher? _publisher;
 
-    public ReviewRequestByDivisionHeadCommandHandler(IApplicationDbContext context)
+    public ReviewRequestByDivisionHeadCommandHandler(IApplicationDbContext context, IPublisher? publisher = null)
     {
         _context = context;
+        _publisher = publisher;
     }
 
     public async Task<ReviewRequestByDivisionHeadResult> Handle(ReviewRequestByDivisionHeadCommand request, CancellationToken cancellationToken)
     {
+        var targetId = Math.Abs(request.Id);
+
         var entity = await _context.Requests
             .Include(r => r.Requester)
             .Include(r => r.Asset)
-            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
 
         if (entity == null)
         {
-            return ReviewRequestByDivisionHeadResult.NotFound;
+            // Fallback to AssetRequests for legacy/test records
+            var assetRequest = await _context.AssetRequests
+                .FirstOrDefaultAsync(ar => ar.Id == targetId, cancellationToken);
+
+            if (assetRequest == null)
+            {
+                return ReviewRequestByDivisionHeadResult.NotFound;
+            }
+
+            if (assetRequest.Status != RequestStatus.Pending)
+            {
+                return ReviewRequestByDivisionHeadResult.InvalidStatus;
+            }
+
+            if (!request.IsAdmin)
+            {
+                var reviewerDivisionId = request.ReviewedByUserId.HasValue
+                    ? await _context.Users
+                        .Where(u => u.Id == request.ReviewedByUserId.Value)
+                        .Select(u => u.DivisionId)
+                        .FirstOrDefaultAsync(cancellationToken)
+                    : null;
+
+                if (!reviewerDivisionId.HasValue || assetRequest.DivisionId != reviewerDivisionId.Value)
+                {
+                    return ReviewRequestByDivisionHeadResult.Forbidden;
+                }
+            }
+
+            if (!request.Approve)
+            {
+                assetRequest.Status = RequestStatus.Rejected;
+                assetRequest.RejectionReason = request.Remarks;
+
+                if (int.TryParse(assetRequest.RequesterId, out var requesterIdVal))
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        Title = "Asset Request Rejected",
+                        Message = $"Your request for '{assetRequest.AssetName}' was rejected by the division head.",
+                        UserId = requesterIdVal,
+                        Type = "Error",
+                        ReferenceId = assetRequest.Id.ToString()
+                    });
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                return ReviewRequestByDivisionHeadResult.Success;
+            }
+
+            assetRequest.Status = RequestStatus.Approved;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            if (int.TryParse(assetRequest.RequesterId, out var reqId))
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    Title = "Asset Request Approved",
+                    Message = $"Your asset request ({assetRequest.AssetName}) has been approved.",
+                    UserId = reqId,
+                    Type = "Success",
+                    ReferenceId = assetRequest.Id.ToString()
+                });
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+
+            if (_publisher != null)
+            {
+                await _publisher.Publish(new AssetRequests.Events.AssetRequestApprovedEvent(
+                    assetRequest.Id,
+                    assetRequest.AssetName,
+                    assetRequest.AssetCategory,
+                    assetRequest.Quantity ?? 0,
+                    assetRequest.RequestType,
+                    assetRequest.Priority,
+                    assetRequest.Status.ToString(),
+                    assetRequest.RequesterName,
+                    assetRequest.RequesterId,
+                    "N/A",
+                    assetRequest.SubmittedDate,
+                    assetRequest.Description ?? "N/A",
+                    assetRequest.Reason ?? "N/A",
+                    request.ReviewedByUserId
+                ), cancellationToken);
+            }
+
+            return ReviewRequestByDivisionHeadResult.Success;
         }
 
         // Only a request still awaiting division-head approval can be decided —
         // otherwise a head could re-approve/re-reject a request another head (or a
         // later stage of the workflow) has already moved past.
-        if (entity.Status != RequestWorkflowStatus.PendingDivisionHeadApproval)
+        if (entity.Status != RequestWorkflowStatus.PendingDivisionHeadApproval && entity.Status != "Pending")
         {
             return ReviewRequestByDivisionHeadResult.InvalidStatus;
         }
@@ -117,6 +207,78 @@ public class ReviewRequestByDivisionHeadCommandHandler : IRequestHandler<ReviewR
                 AssetId = entity.AssetId.Value
             };
             _context.Maintenances.Add(maintenance);
+        }
+        else if (entity.Type == RequestType.Disposal)
+        {
+            string divisionName = "Unknown";
+            if (entity.DivisionId.HasValue)
+            {
+                divisionName = await _context.Divisions
+                    .Where(d => d.Id == entity.DivisionId.Value)
+                    .Select(d => d.Name)
+                    .FirstOrDefaultAsync(cancellationToken) ?? "Unknown";
+            }
+            else if (entity.Requester?.DivisionId != null)
+            {
+                divisionName = await _context.Divisions
+                    .Where(d => d.Id == entity.Requester.DivisionId.Value)
+                    .Select(d => d.Name)
+                    .FirstOrDefaultAsync(cancellationToken) ?? "Unknown";
+            }
+
+            var assetName = entity.AssetName ?? entity.Asset?.AssetCode ?? "Asset";
+            var requesterName = entity.Requester != null 
+                ? $"{entity.Requester.FirstName} {entity.Requester.LastName}" 
+                : "Unknown";
+
+            var discardedNote = new DiscardedNote
+            {
+                Name = assetName,
+                Division = divisionName,
+                Date = DateTime.UtcNow,
+                Status = DiscardNoteStatus.Pending,
+                AssetType = entity.AssetCategory ?? "General",
+                SpecialNote = entity.Reason ?? entity.Description ?? entity.Remarks ?? "N/A",
+                RequestedByUserId = entity.RequesterId,
+                RequestedByName = requesterName,
+                AssetId = entity.AssetId
+            };
+
+            _context.DiscardedNotes.Add(discardedNote);
+
+            var queueItem = new QueueItem
+            {
+                Name = assetName,
+                Division = divisionName,
+                Date = DateTime.UtcNow,
+                Status = QueueItemStatus.Pending,
+                Time = DateTime.UtcNow.TimeOfDay,
+                AssetType = entity.AssetCategory ?? "General",
+                SpecialNote = entity.Reason ?? entity.Description ?? entity.Remarks ?? "N/A",
+                RequestedById = entity.RequesterId.ToString(),
+                RequestedByName = requesterName
+            };
+
+            _context.QueueItems.Add(queueItem);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            discardedNote.QueueItemId = queueItem.Id;
+
+            var superintendents = await _context.Users
+                .Where(u => u.Role == UserRole.Superintendent || u.Role == UserRole.Admin)
+                .ToListAsync(cancellationToken);
+
+            foreach (var super in superintendents)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    Title = "Discard Request Pending Review",
+                    Message = $"Asset '{assetName}' from {divisionName} division is pending your discard review.",
+                    UserId = super.Id,
+                    Type = "Info",
+                    ReferenceId = discardedNote.Id.ToString()
+                });
+            }
         }
 
         // Notify the employee (requester) that their request was approved

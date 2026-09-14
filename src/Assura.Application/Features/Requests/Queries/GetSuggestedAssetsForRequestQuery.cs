@@ -32,17 +32,30 @@ public class GetSuggestedAssetsForRequestQueryHandler : IRequestHandler<GetSugge
         string normalizedDescription = "";
         Asset? requestedAsset = null;
 
-        // Negative ID means this is an AssetRequest record (from unified list)
-        if (request.RequestId < 0)
+        var targetId = Math.Abs(request.RequestId);
+
+        var req = await _context.Requests
+            .AsNoTracking()
+            .Include(r => r.Asset)
+                .ThenInclude(a => a!.Product)
+            .Include(r => r.Asset)
+                .ThenInclude(a => a!.Category)
+            .FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
+
+        if (req != null)
         {
-            var actualId = Math.Abs(request.RequestId);
+            normalizedDescription = BuildNormalizedText(req.Description, req.Specifications, req.SpecialNote, req.Reason);
+            requestedAsset = req.Asset;
+        }
+        else
+        {
             var assetRequest = await _context.AssetRequests
                 .AsNoTracking()
                 .Include(r => r.Asset)
                     .ThenInclude(a => a!.Product)
                 .Include(r => r.Asset)
                     .ThenInclude(a => a!.Category)
-                .FirstOrDefaultAsync(r => r.Id == actualId, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
 
             if (assetRequest == null)
             {
@@ -51,40 +64,6 @@ public class GetSuggestedAssetsForRequestQueryHandler : IRequestHandler<GetSugge
 
             normalizedDescription = BuildNormalizedText(assetRequest.Description, assetRequest.Reason);
             requestedAsset = assetRequest.Asset;
-        }
-        else
-        {
-            var req = await _context.Requests
-                .AsNoTracking()
-                .Include(r => r.Asset)
-                    .ThenInclude(a => a!.Product)
-                .Include(r => r.Asset)
-                    .ThenInclude(a => a!.Category)
-                .FirstOrDefaultAsync(r => r.Id == request.RequestId, cancellationToken);
-
-            if (req == null)
-            {
-                var assetRequest = await _context.AssetRequests
-                    .AsNoTracking()
-                    .Include(r => r.Asset)
-                        .ThenInclude(a => a!.Product)
-                    .Include(r => r.Asset)
-                        .ThenInclude(a => a!.Category)
-                    .FirstOrDefaultAsync(r => r.Id == request.RequestId, cancellationToken);
-
-                if (assetRequest == null)
-                {
-                    return new List<SuggestedAssetDto>();
-                }
-
-                normalizedDescription = BuildNormalizedText(assetRequest.Description, assetRequest.Reason);
-                requestedAsset = assetRequest.Asset;
-            }
-            else
-            {
-                normalizedDescription = BuildNormalizedText(req.Description, req.Specifications, req.SpecialNote);
-                requestedAsset = req.Asset;
-            }
         }
         var nowUtc = DateTime.UtcNow;
 

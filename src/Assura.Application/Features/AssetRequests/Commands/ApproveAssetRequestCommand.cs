@@ -1,5 +1,6 @@
 using MediatR;
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
 using Assura.Domain.Enums;
 using Assura.Application.Features.AssetRequests.Events;
 using Assura.Domain.Entities;
@@ -31,9 +32,46 @@ public class ApproveAssetRequestHandler : IRequestHandler<ApproveAssetRequestCom
 
     public async Task<ApproveAssetRequestResult> Handle(ApproveAssetRequestCommand request, CancellationToken cancellationToken)
     {
-        var entity = await _context.AssetRequests.FindAsync(new object[] { request.Id }, cancellationToken);
+        var targetId = Math.Abs(request.Id);
+        var entity = await _context.AssetRequests.FindAsync(new object[] { targetId }, cancellationToken);
 
-        if (entity == null) return ApproveAssetRequestResult.NotFound;
+        if (entity == null)
+        {
+            var reqEntity = await _context.Requests.Include(r => r.Requester).FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
+            if (reqEntity == null) return ApproveAssetRequestResult.NotFound;
+
+            if (reqEntity.Status != RequestWorkflowStatus.PendingDivisionHeadApproval && reqEntity.Status != "Pending")
+            {
+                return ApproveAssetRequestResult.InvalidStatus;
+            }
+
+            if (!request.IsAdmin)
+            {
+                var caller = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+                var reqDivisionId = reqEntity.DivisionId ?? reqEntity.Requester?.DivisionId;
+                if (caller?.DivisionId == null || reqDivisionId == null || caller.DivisionId != reqDivisionId)
+                {
+                    return ApproveAssetRequestResult.Forbidden;
+                }
+            }
+
+            reqEntity.Status = RequestWorkflowStatus.PendingStorekeeperReview;
+            reqEntity.DivisionHeadReviewerId = request.UserId;
+            reqEntity.DivisionHeadReviewedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _context.Notifications.Add(new Notification
+            {
+                Title = "Request Approved",
+                Message = $"Your request {reqEntity.RequestNumber} has been approved by the division head.",
+                UserId = reqEntity.RequesterId,
+                Type = "Success",
+                ReferenceId = reqEntity.Id.ToString()
+            });
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return ApproveAssetRequestResult.Success;
+        }
 
         // Only a still-pending request can be approved — otherwise a Division Head
         // could re-approve/flip a request another head or the requester has already

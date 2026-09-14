@@ -76,21 +76,27 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
                 RequestNumber = r.RequestNumber,
                 Type = r.Type.ToString(),
                 Priority = r.Priority.ToString(),
-                Description = r.Description,
+                Description = r.Description ?? r.Reason,
                 Status = r.Status,
                 CreatedAt = r.CreatedAt,
                 RequesterName = $"{r.Requester.FirstName} {r.Requester.LastName}",
-                Department = r.Requester.Division != null ? r.Requester.Division.Name : "N/A",
-                AssetName = r.Asset != null ? r.Asset.AssetCode : null,
+                Department = r.Division != null ? r.Division.Name : (r.Requester.Division != null ? r.Requester.Division.Name : "N/A"),
+                AssetName = r.AssetName ?? (r.Asset != null ? r.Asset.AssetCode : null),
                 AssetCode = r.Asset != null ? r.Asset.AssetCode : null,
-                AssetDivisionName = r.Asset != null && r.Asset.Division != null ? r.Asset.Division.Name : null
+                AssetDivisionName = r.Division != null ? r.Division.Name : (r.Asset != null && r.Asset.Division != null ? r.Asset.Division.Name : null),
+                AssigneeName = r.Asset != null && r.Asset.AssignedUser != null
+                    ? $"{r.Asset.AssignedUser.FirstName} {r.Asset.AssignedUser.LastName}"
+                    : null
             })
             .ToListAsync(cancellationToken);
 
-        // ── 2. Query the AssetRequests table and map with negative IDs ──
+        // ── 2. Query the legacy AssetRequests table (if any records exist that are not in Requests) ──
+        var existingIds = new HashSet<int>(standardResults.Select(r => r.Id));
+
         var arQuery = _context.AssetRequests
             .Include(ar => ar.User)
             .Include(ar => ar.Division)
+            .Include(ar => ar.Asset!.AssignedUser)
             .AsQueryable();
 
         if (request.Role == UserRole.DivisionHead && request.UserId.HasValue)
@@ -118,22 +124,27 @@ public class GetRequestsQueryHandler : IRequestHandler<GetRequestsQuery, List<Re
             .OrderByDescending(ar => ar.SubmittedDate)
             .ToListAsync(cancellationToken);
 
-        var mappedAssetRequests = assetRequestResults.Select(ar => new RequestDto
-        {
-            Id = -ar.Id,  // Negative ID to avoid collision with Requests table
-            RequesterId = ar.UserId ?? 0,
-            RequestNumber = $"AR-{ar.Id}",
-            Type = ar.RequestType ?? "Asset",
-            Priority = ar.Priority ?? "Normal",
-            Description = ar.Description ?? ar.Reason,
-            Status = ar.Status.ToString(),
-            CreatedAt = ar.SubmittedDate,
-            RequesterName = ar.RequesterName ?? "N/A",
-            Department = ar.Division?.Name ?? "N/A",
-            AssetName = ar.AssetName,
-            AssetCode = null,
-            AssetDivisionName = ar.Division?.Name
-        }).ToList();
+        var mappedAssetRequests = assetRequestResults
+            .Where(ar => !existingIds.Contains(ar.Id))
+            .Select(ar => new RequestDto
+            {
+                Id = ar.Id,  // Clean positive ID
+                RequesterId = ar.UserId ?? 0,
+                RequestNumber = $"AR-{ar.Id}",
+                Type = ar.RequestType ?? "Asset",
+                Priority = ar.Priority ?? "Normal",
+                Description = ar.Description ?? ar.Reason,
+                Status = ar.Status.ToString(),
+                CreatedAt = ar.SubmittedDate,
+                RequesterName = ar.RequesterName ?? "N/A",
+                Department = ar.Division?.Name ?? "N/A",
+                AssetName = ar.AssetName,
+                AssetCode = null,
+                AssetDivisionName = ar.Division?.Name,
+                AssigneeName = ar.Asset?.AssignedUser != null
+                    ? $"{ar.Asset.AssignedUser.FirstName} {ar.Asset.AssignedUser.LastName}"
+                    : null
+            }).ToList();
 
         // ── 3. Combine and sort by date ──
         var combined = standardResults.Concat(mappedAssetRequests)

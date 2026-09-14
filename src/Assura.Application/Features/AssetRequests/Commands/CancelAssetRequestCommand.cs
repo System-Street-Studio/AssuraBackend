@@ -1,4 +1,5 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
 using Assura.Domain.Enums;
 using MediatR;
 
@@ -22,7 +23,31 @@ public class CancelAssetRequestHandler : IRequestHandler<CancelAssetRequestComma
 
     public async Task<CancelAssetRequestResult> Handle(CancelAssetRequestCommand request, CancellationToken cancellationToken)
     {
-        var entity = await _context.AssetRequests.FindAsync(new object[] { request.Id }, cancellationToken);
+        var targetId = Math.Abs(request.Id);
+
+        var reqEntity = await _context.Requests.FindAsync(new object[] { targetId }, cancellationToken);
+        if (reqEntity != null)
+        {
+            if (!request.IsPrivileged && reqEntity.RequesterId != request.UserId)
+            {
+                return CancelAssetRequestResult.Forbidden;
+            }
+
+            var isPending = reqEntity.Status == "Pending" ||
+                            reqEntity.Status == RequestWorkflowStatus.PendingDivisionHeadApproval ||
+                            reqEntity.Status == RequestWorkflowStatus.PendingStorekeeperReview;
+
+            if (!isPending)
+            {
+                return CancelAssetRequestResult.InvalidStatus;
+            }
+
+            reqEntity.Status = "Cancelled";
+            await _context.SaveChangesAsync(cancellationToken);
+            return CancelAssetRequestResult.Success;
+        }
+
+        var entity = await _context.AssetRequests.FindAsync(new object[] { targetId }, cancellationToken);
         if (entity == null) return CancelAssetRequestResult.NotFound;
 
         if (!request.IsPrivileged && entity.RequesterId != request.UserId.ToString())

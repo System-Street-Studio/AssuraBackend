@@ -43,32 +43,17 @@ public class ProcessRequestCommandHandler : IRequestHandler<ProcessRequestComman
             throw new UnauthorizedAccessException("Only Storekeeper, Procurement, or Admin may process a request.");
         }
 
-        // Negative ID means this is an AssetRequest record (from unified list)
-        if (request.Id < 0)
-        {
-            var actualId = Math.Abs(request.Id);
-            var assetRequest = await _context.AssetRequests
-                .Include(r => r.User)
-                .FirstOrDefaultAsync(r => r.Id == actualId, cancellationToken);
-
-            if (assetRequest == null) return;
-            if (assetRequest.Status != RequestStatus.PendingStorekeeperReview
-                && assetRequest.Status != RequestStatus.Approved
-                && assetRequest.Status != RequestStatus.Pending) return;
-
-            await ProcessAssetRequest(assetRequest, request, cancellationToken);
-            return;
-        }
+        var targetId = Math.Abs(request.Id);
 
         var entity = await _context.Requests
             .Include(r => r.Requester)
-            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
 
         if (entity == null)
         {
             var assetRequest = await _context.AssetRequests
                 .Include(r => r.User)
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == targetId, cancellationToken);
 
             if (assetRequest == null) return;
             if (assetRequest.Status != RequestStatus.PendingStorekeeperReview
