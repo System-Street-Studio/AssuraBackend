@@ -214,7 +214,8 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
                 DivisionId = divisionId,
                 ProductId = product.Id,
                 SupplierId = purchasingOrder.SupplierId,
-                AssignedUserId = null
+                AssignedUserId = null,
+                PurchasingOrderId = purchasingOrder.Id > 0 ? purchasingOrder.Id : null
             };
 
             // Generate QR Code
@@ -235,6 +236,11 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        if (asset != null && (!asset.PurchasingOrderId.HasValue || asset.PurchasingOrderId <= 0) && purchasingOrder != null && purchasingOrder.Id > 0)
+        {
+            asset.PurchasingOrderId = purchasingOrder.Id;
+        }
+
         // 5. Create GRN
         var grnNumber = $"GRN-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
         var grn = new GRN
@@ -252,6 +258,45 @@ public class CreateGRNCommandHandler : IRequestHandler<CreateGRNCommand, GRNDto>
         if (purchasingOrder != null && purchasingOrder.Status != "Completed" && purchasingOrder.Status != "Registered")
         {
             purchasingOrder.Status = "Registered";
+        }
+
+        // Auto-fulfill any pending/approved request waiting on this Purchasing Order
+        if (purchasingOrder != null && purchasingOrder.Id > 0 && asset != null && asset.AssignedUserId == null)
+        {
+            var assetReq = await _context.AssetRequests
+                .FirstOrDefaultAsync(r => r.PurchasingOrderId == purchasingOrder.Id && (r.Status == RequestStatus.Approved || r.Status == RequestStatus.PendingProcurement) && r.AssetId == null, cancellationToken);
+            var req = assetReq == null
+                ? await _context.Requests.FirstOrDefaultAsync(r => r.PurchasingOrderId == purchasingOrder.Id && (r.Status == Assura.Domain.Constants.RequestWorkflowStatus.Approved || r.Status == Assura.Domain.Constants.RequestWorkflowStatus.PendingProcurement) && r.AssetId == null, cancellationToken)
+                : null;
+
+            int? requesterId = null;
+            if (assetReq != null)
+            {
+                assetReq.AssetId = asset.Id;
+                assetReq.Status = RequestStatus.Approved;
+                requesterId = assetReq.UserId ?? (int.TryParse(assetReq.RequesterId, out var rid) ? rid : null);
+            }
+            else if (req != null)
+            {
+                req.AssetId = asset.Id;
+                req.Status = Assura.Domain.Constants.RequestWorkflowStatus.Approved;
+                requesterId = req.RequesterId;
+            }
+
+            if (requesterId.HasValue)
+            {
+                asset.AssignedUserId = requesterId;
+                asset.Status = AssetStatus.InUse;
+
+                _context.Notifications.Add(new Notification
+                {
+                    Title = "Asset Ready",
+                    Message = $"The asset you requested has arrived and been assigned to you ({asset.AssetCode}).",
+                    UserId = requesterId.Value,
+                    Type = "Success",
+                    ReferenceId = asset.Id.ToString()
+                });
+            }
         }
 
         // 7. Transition AssetInforming to "GRN Recorded" so it is ready for Checkout

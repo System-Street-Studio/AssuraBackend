@@ -57,11 +57,16 @@ public class ReturnActiveTransferCommandHandler : IRequestHandler<ReturnActiveTr
 
         if (asset != null)
         {
-            asset.Status = AssetStatus.InUse;
-            // Hand the asset back to its original holder — it was reassigned to
-            // TargetUserId when the transfer was confirmed (see
-            // ConfirmTransferByHeadCommandHandler), and nothing else restores it.
-            asset.AssignedUserId = transfer.CurrentHolderId;
+            if (transfer.CurrentHolderId > 0)
+            {
+                asset.Status = AssetStatus.InUse;
+                asset.AssignedUserId = transfer.CurrentHolderId;
+            }
+            else
+            {
+                asset.Status = AssetStatus.InStore;
+                asset.AssignedUserId = null;
+            }
             asset.UpdatedAt = DateTime.UtcNow;
         }
 

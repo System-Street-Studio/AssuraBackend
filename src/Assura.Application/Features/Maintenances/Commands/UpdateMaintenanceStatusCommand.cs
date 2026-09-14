@@ -1,4 +1,6 @@
 using Assura.Application.Common.Interfaces;
+using Assura.Domain.Constants;
+using Assura.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -52,6 +54,48 @@ public class UpdateMaintenanceStatusCommandHandler : IRequestHandler<UpdateMaint
                 break;
             case "Completed":
                 maintenance.CompletedAt = DateTime.UtcNow;
+
+                // Make asset ready upon maintenance completion
+                if (maintenance.Asset != null)
+                {
+                    if (maintenance.RequestedByUserId.HasValue && maintenance.RequestedByUserId.Value > 0)
+                    {
+                        maintenance.Asset.Status = AssetStatus.InUse;
+                        maintenance.Asset.AssignedUserId = maintenance.RequestedByUserId.Value;
+                    }
+                    else if (maintenance.Asset.AssignedUserId.HasValue && maintenance.Asset.AssignedUserId.Value > 0)
+                    {
+                        maintenance.Asset.Status = AssetStatus.InUse;
+                    }
+                    else
+                    {
+                        maintenance.Asset.Status = AssetStatus.InStore;
+                        maintenance.Asset.AssignedUserId = null;
+                    }
+                    maintenance.Asset.UpdatedAt = DateTime.UtcNow;
+                }
+
+                // Return replacement asset to store
+                if (maintenance.ReplacementAssetId.HasValue)
+                {
+                    var rep = await _context.Assets.FirstOrDefaultAsync(a => a.Id == maintenance.ReplacementAssetId.Value, cancellationToken);
+                    if (rep != null)
+                    {
+                        rep.Status = AssetStatus.InStore;
+                        rep.AssignedUserId = null;
+                        rep.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+
+                // Resolve original request if linked
+                if (maintenance.OriginalRequestId.HasValue)
+                {
+                    var origAssetReq = await _context.AssetRequests.FirstOrDefaultAsync(ar => ar.Id == maintenance.OriginalRequestId.Value, cancellationToken);
+                    if (origAssetReq != null) origAssetReq.Status = RequestStatus.Completed;
+
+                    var origReq = await _context.Requests.FirstOrDefaultAsync(r => r.Id == maintenance.OriginalRequestId.Value, cancellationToken);
+                    if (origReq != null) origReq.Status = "Completed";
+                }
                 break;
         }
 

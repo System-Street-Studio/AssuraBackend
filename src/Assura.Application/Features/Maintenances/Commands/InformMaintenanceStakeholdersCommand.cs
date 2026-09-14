@@ -88,13 +88,18 @@ public class InformMaintenanceStakeholdersCommandHandler : IRequestHandler<Infor
         maintenance.Status = "Submitted";
         maintenance.StorekeeperUserId = request.StorekeeperUserId;
 
-        // 1. Re-activate the primary asset and restore its assignment to the requesting employee
+        // 1. Re-activate the primary asset and restore its assignment to the requesting employee, or return to InStore
         if (maintenance.Asset != null)
         {
-            maintenance.Asset.Status = AssetStatus.InUse;
             if (maintenance.RequestedByUserId.HasValue)
             {
+                maintenance.Asset.Status = AssetStatus.InUse;
                 maintenance.Asset.AssignedUserId = maintenance.RequestedByUserId.Value;
+            }
+            else
+            {
+                maintenance.Asset.Status = AssetStatus.InStore;
+                maintenance.Asset.AssignedUserId = null;
             }
         }
         else if (maintenance.AssetId > 0)
@@ -102,10 +107,15 @@ public class InformMaintenanceStakeholdersCommandHandler : IRequestHandler<Infor
             var asset = await _context.Assets.FirstOrDefaultAsync(a => a.Id == maintenance.AssetId, cancellationToken);
             if (asset != null)
             {
-                asset.Status = AssetStatus.InUse;
                 if (maintenance.RequestedByUserId.HasValue)
                 {
+                    asset.Status = AssetStatus.InUse;
                     asset.AssignedUserId = maintenance.RequestedByUserId.Value;
+                }
+                else
+                {
+                    asset.Status = AssetStatus.InStore;
+                    asset.AssignedUserId = null;
                 }
             }
         }
