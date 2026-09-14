@@ -110,6 +110,7 @@ public class SeedController : ControllerBase
             // created under both a differing username and this email in past environments, and
             // a second row sharing the email would collide on the unique index.
             var existing = await _context.Users
+                .Include(u => u.DivisionRoles)
                 .FirstOrDefaultAsync(u => u.Username == username || u.Email == email);
 
             if (existing != null)
@@ -119,11 +120,21 @@ public class SeedController : ControllerBase
                 existing.Role = role;
                 existing.DivisionId = divisionId;
                 existing.IsActive = true;
+                if (!existing.DivisionRoles.Any(dr => dr.Role == role && dr.DivisionId == divisionId))
+                {
+                    existing.DivisionRoles.Add(new UserDivisionRole
+                    {
+                        UserId = existing.Id,
+                        DivisionId = divisionId,
+                        Role = role,
+                        AssignedAt = DateTime.UtcNow
+                    });
+                }
                 _context.Users.Update(existing);
             }
             else
             {
-                _context.Users.Add(new User
+                var newUser = new User
                 {
                     Username = username,
                     PasswordHash = hash,
@@ -134,7 +145,14 @@ public class SeedController : ControllerBase
                     DivisionId = divisionId,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
+                };
+                newUser.DivisionRoles.Add(new UserDivisionRole
+                {
+                    DivisionId = divisionId,
+                    Role = role,
+                    AssignedAt = DateTime.UtcNow
                 });
+                _context.Users.Add(newUser);
             }
         }
 

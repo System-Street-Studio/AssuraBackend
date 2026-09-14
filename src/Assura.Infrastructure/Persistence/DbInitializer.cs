@@ -361,6 +361,50 @@ public static class DbInitializer
                     "Username: 'admin', Password: '{Password}'. Log in and change this password immediately.",
                     tempPassword);
             }
+
+            // ── Step 6: Self-heal test accounts whose roles were overwritten by workspace switching bug ──
+            try
+            {
+                var storesDiv = await context.Divisions.FirstOrDefaultAsync(d => d.Name == "Stores" && !d.IsDeleted);
+                var testStorekeeper = await context.Users
+                    .Include(u => u.DivisionRoles)
+                    .FirstOrDefaultAsync(u => u.Username == "test_storekeeper");
+
+                if (testStorekeeper != null)
+                {
+                    bool updated = false;
+                    if (testStorekeeper.Role != UserRole.Storekeeper)
+                    {
+                        testStorekeeper.Role = UserRole.Storekeeper;
+                        updated = true;
+                    }
+                    if (storesDiv != null && testStorekeeper.DivisionId != storesDiv.Id)
+                    {
+                        testStorekeeper.DivisionId = storesDiv.Id;
+                        updated = true;
+                    }
+                    if (storesDiv != null && !testStorekeeper.DivisionRoles.Any(dr => dr.Role == UserRole.Storekeeper && dr.DivisionId == storesDiv.Id))
+                    {
+                        testStorekeeper.DivisionRoles.Add(new UserDivisionRole
+                        {
+                            UserId = testStorekeeper.Id,
+                            DivisionId = storesDiv.Id,
+                            Role = UserRole.Storekeeper,
+                            AssignedAt = DateTime.UtcNow
+                        });
+                        updated = true;
+                    }
+                    if (updated)
+                    {
+                        await context.SaveChangesAsync();
+                        logger?.LogInformation("Healed test_storekeeper account with restored Storekeeper role and division.");
+                    }
+                }
+            }
+            catch (Exception healEx)
+            {
+                logger?.LogWarning(healEx, "Could not self-heal test_storekeeper account during startup.");
+            }
         }
         catch (Exception ex)
         {

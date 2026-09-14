@@ -73,17 +73,30 @@ public class SwitchUserContextCommandHandler : IRequestHandler<SwitchUserContext
             return new SwitchUserContextResult(false, "You are not authorized for this role and division.", null, null, null);
         }
 
-        // Apply new context to user
-        user.Role = parsedRole;
-        if (request.DivisionId.HasValue && request.DivisionId.Value > 0)
+        // Ensure user's permanent role is preserved in UserDivisionRoles if not already present
+        if (user.Role.HasValue && user.DivisionId.HasValue && user.DivisionId.Value > 0)
         {
-            user.DivisionId = request.DivisionId.Value;
+            if (user.DivisionRoles != null && !user.DivisionRoles.Any(dr => dr.Role == user.Role.Value && dr.DivisionId == user.DivisionId.Value))
+            {
+                user.DivisionRoles.Add(new Domain.Entities.UserDivisionRole
+                {
+                    UserId = user.Id,
+                    DivisionId = user.DivisionId.Value,
+                    Role = user.Role.Value,
+                    JobTitle = user.JobTitle,
+                    AssignedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync(cancellationToken);
+            }
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        var targetDivisionId = request.DivisionId.HasValue && request.DivisionId.Value > 0
+            ? request.DivisionId.Value
+            : user.DivisionId;
 
-        var token = _jwtTokenGenerator.GenerateToken(user);
+        // Generate token with active role and division context without overwriting user.Role in the database
+        var token = _jwtTokenGenerator.GenerateToken(user, request.Role, targetDivisionId);
 
-        return new SwitchUserContextResult(true, null, token, user.DivisionId, user.Role.Value.ToString());
+        return new SwitchUserContextResult(true, null, token, targetDivisionId, request.Role);
     }
 }
