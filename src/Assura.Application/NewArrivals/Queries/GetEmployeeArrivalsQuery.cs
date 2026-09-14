@@ -21,19 +21,13 @@ public class GetEmployeeArrivalsQueryHandler : IRequestHandler<GetEmployeeArriva
 
     public async Task<List<AssetInformingDto>> Handle(GetEmployeeArrivalsQuery request, CancellationToken cancellationToken)
     {
-        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-        var effectiveDivisionId = request.DivisionId ?? user?.DivisionId;
-
         var query = _context.AssetInformings
             .AsNoTracking()
             .Include(x => x.Division)
             .Include(x => x.TargetEmployee)
             .Include(x => x.Asset)
             .ThenInclude(a => a!.Product)
-            .Where(x => !x.IsDeleted && (
-                x.TargetEmployeeId == request.UserId ||
-                (effectiveDivisionId.HasValue && x.DivisionId == effectiveDivisionId.Value)
-            ));
+            .Where(x => !x.IsDeleted && x.TargetEmployeeId == request.UserId);
 
         var list = await query.ToListAsync(cancellationToken);
 

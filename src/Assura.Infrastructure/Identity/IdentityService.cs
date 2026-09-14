@@ -101,6 +101,7 @@ public class IdentityService : IIdentifyServices
     {
         username = username.Trim();
         var user = await _context.Users
+            .Include(u => u.DivisionRoles)
             .FirstOrDefaultAsync(u => u.Username == username || u.Email == username);
 
         if (user == null)
@@ -135,6 +136,17 @@ public class IdentityService : IIdentifyServices
 
         var token = _jwtTokenGenerator.GenerateToken(user);
 
+        var userRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (user.Role.HasValue) userRoles.Add(user.Role.Value.ToString());
+        if (user.DivisionRoles != null)
+        {
+            foreach (var dr in user.DivisionRoles) userRoles.Add(dr.Role.ToString());
+        }
+        if (!userRoles.Contains("Pending") && !userRoles.Contains("SystemAdmin") && userRoles.Count > 0)
+        {
+            userRoles.Add("Employee");
+        }
+
         return new Assura.Application.Common.Models.AuthResponse
         {
             Token = token,
@@ -143,7 +155,7 @@ public class IdentityService : IIdentifyServices
                 Id = user.Id.ToString(),
                 Email = user.Email,
                 Name = $"{user.FirstName} {user.LastName}",
-                Roles = new List<string> { user.Role?.ToString() ?? "Employee" }
+                Roles = userRoles.ToList()
             }
         };
     }
@@ -160,7 +172,9 @@ public class IdentityService : IIdentifyServices
 
     public async Task<string?> RegenerateTokenAsync(int userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _context.Users
+            .Include(u => u.DivisionRoles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return null;
 
         return _jwtTokenGenerator.GenerateToken(user);

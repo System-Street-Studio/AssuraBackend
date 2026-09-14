@@ -3,12 +3,14 @@ using Assura.Application.Features.Users.Commands.Login;
 using Assura.Application.Features.Users.Commands.ForgotPassword;
 using Assura.Application.Features.Users.Commands.ResetPassword;
 using Assura.Application.Features.Users.Commands.CompleteOnboarding;
+using Assura.Application.Features.Users.Commands.SwitchContext;
 using Assura.Application.Features.SystemAdmin.Commands;
 using Assura.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
 
 namespace Assura.API.Controllers;
 
@@ -81,6 +83,39 @@ public class AuthController : ControllerBase
         }
         ClearTokenCookie();
         return Ok(new { Message = "Logged out successfully." });
+    }
+
+    [Authorize]
+    [HttpPost("switch-context")]
+    public async Task<IActionResult> SwitchContext([FromBody] SwitchContextRequest request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst("id")?.Value;
+
+        if (!int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _mediator.Send(new SwitchUserContextCommand
+        {
+            UserId = userId,
+            DivisionId = request.DivisionId,
+            Role = request.Role
+        });
+
+        if (!result.Success)
+        {
+            return BadRequest(new { Message = result.Error });
+        }
+
+        if (!string.IsNullOrEmpty(result.Token))
+        {
+            SetTokenCookie(result.Token);
+        }
+
+        return Ok(new { Token = result.Token, DivisionId = result.DivisionId, Role = result.Role });
     }
 
     [EnableRateLimiting("PasswordReset")]
@@ -174,3 +209,9 @@ public record RegisterSystemAdminRequest(
     string FirstName,
     string LastName,
     string? PhoneNumber);
+
+public class SwitchContextRequest
+{
+    public int? DivisionId { get; set; }
+    public string Role { get; set; } = string.Empty;
+}
