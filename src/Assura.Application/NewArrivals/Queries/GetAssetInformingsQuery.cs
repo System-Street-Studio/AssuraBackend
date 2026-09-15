@@ -18,7 +18,7 @@ public class GetAssetInformingsQueryHandler : IRequestHandler<GetAssetInformings
 
     public async Task<List<AssetInformingDto>> Handle(GetAssetInformingsQuery request, CancellationToken cancellationToken)
     {
-        return await _context.AssetInformings
+        var items = await _context.AssetInformings
             .Include(x => x.Division)
             .Include(x => x.TargetEmployee)
             .Include(x => x.Asset)
@@ -45,5 +45,48 @@ public class GetAssetInformingsQueryHandler : IRequestHandler<GetAssetInformings
                 PurchasingOrderId = x.PurchasingOrderId
             })
             .ToListAsync(cancellationToken);
+
+        var unresolvedPoIds = items
+            .Where(x => !x.TargetEmployeeId.HasValue && x.PurchasingOrderId.HasValue)
+            .Select(x => x.PurchasingOrderId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (unresolvedPoIds.Count > 0)
+        {
+            var requests = await _context.Requests
+                .Include(r => r.Requester)
+                .Where(r => r.PurchasingOrderId.HasValue && unresolvedPoIds.Contains(r.PurchasingOrderId.Value))
+                .ToListAsync(cancellationToken);
+
+            var assetRequests = await _context.AssetRequests
+                .Include(ar => ar.User)
+                .Where(ar => ar.PurchasingOrderId.HasValue && unresolvedPoIds.Contains(ar.PurchasingOrderId.Value))
+                .ToListAsync(cancellationToken);
+
+            foreach (var item in items)
+            {
+                if (!item.TargetEmployeeId.HasValue && item.PurchasingOrderId.HasValue)
+                {
+                    var req = requests.FirstOrDefault(r => r.PurchasingOrderId == item.PurchasingOrderId.Value);
+                    if (req?.Requester != null)
+                    {
+                        item.TargetEmployeeId = req.RequesterId;
+                        item.TargetEmployeeName = $"{req.Requester.FirstName} {req.Requester.LastName}".Trim();
+                    }
+                    else
+                    {
+                        var ar = assetRequests.FirstOrDefault(a => a.PurchasingOrderId == item.PurchasingOrderId.Value);
+                        if (ar?.User != null)
+                        {
+                            item.TargetEmployeeId = ar.UserId;
+                            item.TargetEmployeeName = $"{ar.User.FirstName} {ar.User.LastName}".Trim();
+                        }
+                    }
+                }
+            }
+        }
+
+        return items;
     }
 }

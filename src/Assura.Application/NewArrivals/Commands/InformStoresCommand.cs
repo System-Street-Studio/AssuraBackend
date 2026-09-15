@@ -22,6 +22,19 @@ public class InformStoresCommandHandler : IRequestHandler<InformStoresCommand, i
     {
         var dto = request.InformStoresDto;
 
+        int? targetEmployeeId = null;
+        if (dto.PurchasingOrderId.HasValue)
+        {
+            targetEmployeeId = await _context.Requests
+                .Where(r => r.PurchasingOrderId == dto.PurchasingOrderId.Value)
+                .Select(r => (int?)r.RequesterId)
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? await _context.AssetRequests
+                    .Where(ar => ar.PurchasingOrderId == dto.PurchasingOrderId.Value)
+                    .Select(ar => ar.UserId)
+                    .FirstOrDefaultAsync(cancellationToken);
+        }
+
         var entity = new AssetInforming
         {
             ItemName = dto.ItemName,
@@ -32,6 +45,7 @@ public class InformStoresCommandHandler : IRequestHandler<InformStoresCommand, i
             PurchasedPrice = dto.PurchasedPrice,
             DivisionId = dto.DivisionId,
             PurchasingOrderId = dto.PurchasingOrderId,
+            TargetEmployeeId = targetEmployeeId,
             Status = "Pending"
         };
 

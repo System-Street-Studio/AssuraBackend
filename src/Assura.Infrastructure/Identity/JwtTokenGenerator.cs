@@ -60,11 +60,6 @@ public class JwtTokenGenerator : IJwtTokenGenerator
                 roleSet.Add(dr.Role.ToString());
             }
         }
-        // Operational users also have access to the Employee portal
-        if (!roleSet.Contains("Pending") && !roleSet.Contains("SystemAdmin") && roleSet.Count > 0)
-        {
-            roleSet.Add("Employee");
-        }
 
         if (!string.IsNullOrWhiteSpace(activeRole))
         {

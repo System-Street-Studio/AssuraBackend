@@ -71,26 +71,6 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, U
             });
         }
 
-        var distinctDivisions = workspaces
-            .Where(w => w.DivisionId.HasValue && w.DivisionId > 0)
-            .Select(w => new { Id = w.DivisionId!.Value, Name = w.DivisionName })
-            .Distinct()
-            .ToList();
-
-        foreach (var div in distinctDivisions)
-        {
-            if (!workspaces.Any(w => w.Role.Equals("Employee", System.StringComparison.OrdinalIgnoreCase) && w.DivisionId == div.Id))
-            {
-                workspaces.Add(new UserWorkspaceDto
-                {
-                    DivisionId = div.Id,
-                    DivisionName = div.Name,
-                    Role = "Employee",
-                    JobTitle = "Employee"
-                });
-            }
-        }
-
         return new UserProfileDto
         {
             Id = user.Id,

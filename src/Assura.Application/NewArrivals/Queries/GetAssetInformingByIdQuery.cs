@@ -27,7 +27,7 @@ public class GetAssetInformingByIdQueryHandler : IRequestHandler<GetAssetInformi
 
         if (x is null) return null;
 
-        return new AssetInformingDto
+        var dto = new AssetInformingDto
         {
             Id = x.Id,
             ItemName = x.ItemName,
@@ -49,5 +49,30 @@ public class GetAssetInformingByIdQueryHandler : IRequestHandler<GetAssetInformi
             AssetCode = x.Asset != null ? x.Asset.AssetCode : null,
             PurchasingOrderId = x.PurchasingOrderId,
         };
+
+        if (!dto.TargetEmployeeId.HasValue && dto.PurchasingOrderId.HasValue)
+        {
+            var req = await _context.Requests
+                .Include(r => r.Requester)
+                .FirstOrDefaultAsync(r => r.PurchasingOrderId == dto.PurchasingOrderId.Value, cancellationToken);
+            if (req?.Requester != null)
+            {
+                dto.TargetEmployeeId = req.RequesterId;
+                dto.TargetEmployeeName = $"{req.Requester.FirstName} {req.Requester.LastName}".Trim();
+            }
+            else
+            {
+                var ar = await _context.AssetRequests
+                    .Include(a => a.User)
+                    .FirstOrDefaultAsync(a => a.PurchasingOrderId == dto.PurchasingOrderId.Value, cancellationToken);
+                if (ar?.User != null)
+                {
+                    dto.TargetEmployeeId = ar.UserId;
+                    dto.TargetEmployeeName = $"{ar.User.FirstName} {ar.User.LastName}".Trim();
+                }
+            }
+        }
+
+        return dto;
     }
 }
