@@ -66,6 +66,8 @@ public static class DbInitializer
                 logger?.LogWarning(migEx, "MigrateAsync failed or partially completed.");
             }
 
+            await EnsureAssetAttachmentTableAsync(context, logger);
+
             // Ensure CurrentSessionId column exists on Users table
             try
             {
@@ -317,6 +319,32 @@ public static class DbInitializer
         catch (Exception ex)
         {
             logger?.LogError(ex, "An error occurred while seeding the database.");
+        }
+    }
+
+    private static async Task EnsureAssetAttachmentTableAsync(AppDbContext context, ILogger<AppDbContext>? logger)
+    {
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE IF NOT EXISTS `AssetAttachment` (
+                    `Id` int NOT NULL AUTO_INCREMENT,
+                    `FileName` longtext CHARACTER SET utf8mb4 NOT NULL,
+                    `FileUrl` longtext CHARACTER SET utf8mb4 NOT NULL,
+                    `FileSize` bigint NOT NULL,
+                    `FileType` longtext CHARACTER SET utf8mb4 NOT NULL,
+                    `UploadedDate` datetime(6) NOT NULL,
+                    `AssetRequestId` int NULL,
+                    PRIMARY KEY (`Id`),
+                    KEY `IX_AssetAttachment_AssetRequestId` (`AssetRequestId`),
+                    CONSTRAINT `FK_AssetAttachment_AssetRequests_AssetRequestId`
+                        FOREIGN KEY (`AssetRequestId`) REFERENCES `AssetRequests` (`Id`)
+                ) CHARACTER SET=utf8mb4;
+                """);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure the AssetAttachment table exists.");
         }
     }
 
